@@ -69,7 +69,6 @@ public final class QuordleAid extends JPanel {
   
   private QuordleAid() {
     super(new BorderLayout());
-    System.out.println("QuordleAid");
     add(makeTopPanel(), BorderLayout.PAGE_START);
     add(makeQuartiles(), BorderLayout.CENTER);
     add(makeBottomPanel(), BorderLayout.PAGE_END);
@@ -223,7 +222,6 @@ public final class QuordleAid extends JPanel {
         label.setText(master);
       }
     };
-
   }
   
   private static final DocumentFilter DOC_FILTER = new DocumentFilter() {
