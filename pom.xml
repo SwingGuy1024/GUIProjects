@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.mm</groupId>
+  <artifactId>GUIProjects</artifactId>
+  <packaging>pom</packaging>
+  <version>1.0-SNAPSHOT</version>
+  <modules>
+    <module>CValues</module>
+    <module>Escape</module>
+    <module>QuordleAid</module>
+    <module>Anagram</module>
+    <module>Amazing</module>
+  </modules>
+
+  <properties>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+    <mainClass>dummy</mainClass>
+    <iconFile></iconFile>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>22.0.0</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${mainClass}</mainClass>
+            </manifest>
+          </archive>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <!--This "appendAssemblyId" tag removes the "with-dependencies" from the name.-->
+          <!--This is commented out because it overwrites the other jar file.-->
+          <!--That interferes with the creation of the Mac App Bundle.-->
+          <!--<appendAssemblyId>false</appendAssemblyId>-->
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <!--This is the Maven dependency plugin.-->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.1.1</version>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>
+                ${project.build.directory}/libs
+              </outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!--This creates an executable jar file. It should be used with the maven-dependency-plugin-->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>${mainClass}</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <!--This one will bundle everything into a Mac Application bundle.-->
+      <plugin>
+        <!-- https://github.com/federkasten/appbundle-maven-plugin -->
+        <groupId>sh.tak.appbundler</groupId>
+        <artifactId>appbundle-maven-plugin</artifactId>
+        <version>1.2.1-SNAPSHOT</version>
+        <configuration>
+          <!--Put your custom Info.plist and Icon.icns under your maven resource paths (src/main/resources on default configuration).-->
+          <mainClass>${mainClass}</mainClass>
+          <!--<dictionaryFile>YourCustomInfo.plist</dictionaryFile>-->
+          <iconFile>${iconFile}</iconFile>
+          <!-- Put this line in to bundle the jdk with the app. -->
+          <!--suppress MavenModelInspection -->
+          <!--<jrePath>${javaHome}/../..</jrePath>-->
+          <!--<jrePath>${env.JAVA_HOME}/../..</jrePath>-->
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>bundle</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Allows user to launch from maven: mvn exec:java -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.4.0</version>
+        <configuration>
+          <mainClass>${mainClass}</mainClass>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
