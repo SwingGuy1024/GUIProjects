@@ -36,11 +36,11 @@ import javax.swing.text.PlainDocument;
  *
  * @author Miguel Mu\u00f1oz
  */
-@SuppressWarnings("HardCodedStringLiteral")
+@SuppressWarnings({"HardCodedStringLiteral", "UseOfSystemOutOrSystemErr"})
 public final class QuordleAid extends JPanel {
 
   private static final String FREQ = "EARIOTNSLCUDPMHGBFYWKVXZJQ        ";
-  private static final Font MONO = new Font(Font.MONOSPACED, Font.BOLD, 13);
+  private static final Font MONO = new Font(Font.MONOSPACED, Font.BOLD, 20);
   private static final Deque<Quart> quarts = new LinkedList<>();
   private static final FocusListener FOCUS_LISTENER = new FocusAdapter() {
     @Override
@@ -227,7 +227,6 @@ public final class QuordleAid extends JPanel {
   private static final DocumentFilter DOC_FILTER = new DocumentFilter() {
     @Override
     public void insertString(final FilterBypass fb, final int offset, final String string, final AttributeSet attr) throws BadLocationException {
-//      super.insertString(fb, offset, string.toUpperCase(), attr);
       fb.insertString(offset, string.toUpperCase(), attr);
     }
 
