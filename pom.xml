@@ -14,6 +14,7 @@
     <module>QuordleAid</module>
     <module>Anagram</module>
     <module>Amazing</module>
+    <module>Penrose</module>
   </modules>
 
   <properties>

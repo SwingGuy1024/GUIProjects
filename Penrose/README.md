@@ -1,0 +1,3 @@
+I found this Penrose Tile applet on the internet somewhere, a long time ago. I downloaded the jar file and packaged it as a Mac app for my own use. It was very useful in experimenting with different designs for my kitchen floor tiles.
+
+With the release of Mac OS Big Sur, or Maybe High Sierra or Catalina, this app stopped working because it was out of date. Mostly it was the packaging that was out of date, but some of the APIs were deprecated, too. So I unzipped the jar file and decompiled it to get it running again under a modern Java VM. I didn't need to restore all the classes in the jar file. Some came from a geometry library and weren't used in the app. The class files are stored in the TargetX folder.
