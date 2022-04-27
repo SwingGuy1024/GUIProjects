@@ -63,8 +63,7 @@ public final class QuordleAid extends JPanel {
     jFrame.add(new QuordleAid());
     jFrame.pack();
     jFrame.setVisible(true);
-    //noinspection UseOfSystemOutOrSystemErr
-    System.out.printf("Mono name is %s, fam: %s, fName: %s%n", MONO.getName(), MONO.getFamily(), MONO.getFontName()); // NON-NLS
+//    System.out.printf("Mono name is %s, fam: %s, fName: %s%n", MONO.getName(), MONO.getFamily(), MONO.getFontName()); // NON-NLS
   }
   
   private QuordleAid() {
@@ -226,12 +225,14 @@ public final class QuordleAid extends JPanel {
   
   private static final DocumentFilter DOC_FILTER = new DocumentFilter() {
     @Override
-    public void insertString(final FilterBypass fb, final int offset, final String string, final AttributeSet attr) throws BadLocationException {
+    public void insertString(final FilterBypass fb, final int offset, final String string, final AttributeSet attr)
+        throws BadLocationException {
       fb.insertString(offset, string.toUpperCase(), attr);
     }
 
     @Override
-    public void replace(final FilterBypass fb, final int offset, final int length, final String text, final AttributeSet attrs) throws BadLocationException {
+    public void replace(final FilterBypass fb, final int offset, final int length, final String text, final AttributeSet attrs)
+        throws BadLocationException {
       fb.replace(offset, length, text.toUpperCase(), attrs);
     }
   };
