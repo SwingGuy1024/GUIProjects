@@ -66,7 +66,7 @@ import static java.awt.event.KeyEvent.*;
  * todo: Look at flicker for large properties.
  * todo: Add a check box to control wrapping in the master.
  */
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "StringContatenationInLoop", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "StringContatenationInLoop", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment", "CloneableClassWithoutClone"})
 public class Escape
 {
 	private static final String specialSaveChars = ":\t\r\n\f#!";
@@ -125,7 +125,6 @@ public class Escape
 		cp.add(makeViewPanel(), BorderLayout.CENTER);
 		Action cut = new DefaultEditorKit.CutAction();
 		Action copy = new DefaultEditorKit.CopyAction();
-		@SuppressWarnings("CloneableClassWithoutClone")
 		Action paste = new DefaultEditorKit.PasteAction()
 			{
 				@Override
@@ -135,7 +134,6 @@ public class Escape
 					myMasterView.requestFocus();
 				}
 			};
-		@SuppressWarnings("CloneableClassWithoutClone")
 		Action exit = new AbstractAction("Exit")
 			{
 				@Override
@@ -148,13 +146,11 @@ public class Escape
 		Action serifFont = new FontAction("Serif");
 		Action monospacedFont = new FontAction("Monospaced");
 		Action unicodeFont = new FontAction("Arial Unicode MS");
-		@SuppressWarnings("CloneableClassWithoutClone")
 		Action viewAction = new AbstractAction("View Property")
 		{
 			@Override
 			public void actionPerformed(ActionEvent e) { doView(); }
 		};
-		@SuppressWarnings("CloneableClassWithoutClone")
 		Action openAction = new AbstractAction("Open File")
 		{
 			@Override
@@ -163,7 +159,6 @@ public class Escape
 				doOpen();
 			}
 		};
-		@SuppressWarnings("CloneableClassWithoutClone")
 		Action saveAction = new AbstractAction("Save")
 		{
 			@Override
@@ -172,7 +167,6 @@ public class Escape
 				doSave();
 			}
 		};
-		@SuppressWarnings("CloneableClassWithoutClone")
 		Action saveAsAction = new AbstractAction("Save As")
 		{
 			@Override
@@ -437,23 +431,7 @@ public class Escape
 			try
 			{
 				mOpenFile=fileDlg.getSelectedFile();
-				BufferedReader rdr= new BufferedReader(new FileReader(mOpenFile));
-				try
-				{
-					StringBuilder text = new StringBuilder();
-					char[] cbuf = new char[1024];
-					int count;
-					while ((count=rdr.read(cbuf))>=0)
-					{
-						text.append(cbuf, 0, count);
-					}
-					myMasterView.setText(loadConvert(text.toString()));
-					mFileChanged = false;
-				}
-				finally
-				{
-					rdr.close();
-				}
+				readFromOpenedFile();
 			}
 			catch (IOException e)
 			{
@@ -461,7 +439,28 @@ public class Escape
 			}
 		}
 	}
-	
+
+	@SuppressWarnings("OverlyBroadThrowsClause")
+	private void readFromOpenedFile() throws IOException {
+		BufferedReader rdr= new BufferedReader(new FileReader(mOpenFile));
+		try
+		{
+			StringBuilder text = new StringBuilder();
+			char[] cbuf = new char[1024];
+			int count;
+			while ((count=rdr.read(cbuf))>=0)
+			{
+				text.append(cbuf, 0, count);
+			}
+			myMasterView.setText(loadConvert(text.toString()));
+			mFileChanged = false;
+		}
+		finally
+		{
+			rdr.close();
+		}
+	}
+
 	private FileFilter makePropsFilter()
 	{
 		return new ExtensionFileFilter(sPropExtension);
@@ -483,7 +482,7 @@ public class Escape
 					"", 
 					JOptionPane.YES_NO_CANCEL_OPTION
  			);
-			if (answer == JOptionPane.YES_OPTION && !doSave()) {
+			if ((answer == JOptionPane.YES_OPTION) && !doSave()) {
 				return JOptionPane.CANCEL_OPTION;
 			}
 			return answer;
@@ -512,7 +511,7 @@ public class Escape
 	 */ 
 	private boolean doSave()
 	{
-		if (mOpenFile == null && !askSaveAs()) {
+		if ((mOpenFile == null) && !askSaveAs()) {
 			return false;
 		}
 		saveFile();
@@ -597,24 +596,24 @@ public class Escape
 	 */ 
 	private void saveFile()
 	{
-		try
-		{
-			Writer pen = new BufferedWriter(new FileWriter(mOpenFile));
-			try
-			{
-				pen.write(mySlaveView.getText());
-			}
-			finally
-			{
-				pen.close();
-			}
+		try {
+			writeToSaveFile();
 		}
-		catch (IOException e)
-		{
+		catch (IOException e) {
 			showError(e);
 		}
 	}
-	
+
+	private void writeToSaveFile() throws IOException {
+		Writer pen = new BufferedWriter(new FileWriter(mOpenFile));
+		try {
+			pen.write(mySlaveView.getText());
+		}
+		finally {
+			pen.close();
+		}
+	}
+
 	private void showError(Throwable err)
 	{
 		JOptionPane.showMessageDialog(sFrame, "Error: " + err.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);		
@@ -648,6 +647,7 @@ public class Escape
 	 * @param includeNewLine if true, include literal \n for new line characters
 	 * @return The converted String
 	 */
+	@SuppressWarnings("CharUsedInArithmeticContext")
 	private static String saveConvert(String theString, boolean includeNewLine) {
 		int len = theString.length();
 		StringBuilder outBuffer = new StringBuilder(len << 1); // len << 1 means len*2
@@ -702,6 +702,7 @@ public class Escape
 	 * and changes special saved chars to their original forms
 	 * (Stolen from class java.util.Properties)
 	 */
+	@SuppressWarnings("CharUsedInArithmeticContext")
 	private static String loadConvert (String theString)
 	{
 			int len = theString.length();
@@ -747,7 +748,7 @@ public class Escape
 										break;
 									default:
 										throw new IllegalArgumentException("Malformed \\uxxxx encoding. Found " + aChar);
-								};                         // end switch
+								}                     // end switch
 							}                       // end for
 							outBuffer.append((char)value);
 						} else {
@@ -823,7 +824,7 @@ public class Escape
 			@Override
 			public void actionPerformed(ActionEvent evt)
 			{
-				mFontSize= Integer.valueOf((String) getValue(Action.NAME));
+				mFontSize= Integer.parseInt((String) getValue(Action.NAME));
 				Font masterFont=myMasterView.getFont().deriveFont(mFontSize);
 				myMasterView.setFont(masterFont);
 				mySlaveView.setFont(mySlaveView.getFont().deriveFont(mFontSize));
@@ -1122,9 +1123,7 @@ public class Escape
 			{
 				mFileChanged = true;
 				final String preText=getText(0, offs);
-				StringBuilder preString = new StringBuilder(preText);
-				preString.append(str);
-				String preConverted = preString.toString();
+				String preConverted = preText + str;
 				int newLen = preConverted.length();
 				if (newLen >= 6)
 				{
@@ -1173,7 +1172,7 @@ public class Escape
 		}
 	}
 	
-	private static class Transformer implements DocumentListener
+	private static final class Transformer implements DocumentListener
 	{
 		private final Document  mDestination;
 //		private Caret     mDestCaret;
@@ -1213,7 +1212,6 @@ public class Escape
 		}
 	}
 	
-	@SuppressWarnings("CloneableClassWithoutClone")
 	private class FontAction extends AbstractAction
 	{
 		FontAction(String fName) { super(fName); }
@@ -1233,7 +1231,6 @@ public class Escape
 		protected String getFontName() { return getValue(Action.NAME).toString(); }
 	}
 
-	@SuppressWarnings("CloneableClassWithoutClone")
 	private class InternationalFont extends FontAction
 	{
 		InternationalFont() { super("International Font"); }
