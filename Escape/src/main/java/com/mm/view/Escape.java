@@ -28,7 +28,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.JApplet;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JDialog;
@@ -42,6 +41,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.RootPaneContainer;
@@ -80,9 +80,11 @@ public class Escape
 
 	private final JDialog  myParagraphView;
 	private static JFrame   sFrame;
+	private static JFrame sPeek;
+	private static JTextField sPeekText;
 	public final String sPropExtension="properties";
-	public float  mFontSize=12;
-	public JComboBox<String> mFontBox;
+	private float  mFontSize=12;
+	private final JComboBox<String> mFontBox;
 	// todo: Two choices for the escape threshold. I should add a toggle 
 	// todo  button to the UI to let the user change this interactively.
 	// Use ASCII_ESCAPE_THRESHOLD for 7-bit characters
@@ -97,18 +99,17 @@ public class Escape
 //    catch (Exception err) { }
 		//noinspection CatchGenericClass
 		try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
-		catch (Exception err) { /* Do Nothing */ }
+		catch (Exception ignore) { /* Do Nothing */ }
 		sFrame=new JFrame("Escape Code Editor");
 		sFrame.setBounds(sInitLoc, sInitLoc, 600, 900);
 		sFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
-		final Escape cval = new Escape(sFrame);
-		//noinspection MethodDoesntCallSuperMethod
+		final Escape cVal = new Escape(sFrame);
 		sFrame.addWindowListener(new WindowAdapter()
 			{ @Override
-			  public void windowClosing(WindowEvent evt) { cval.doExit(); } } );
+			  public void windowClosing(WindowEvent evt) { cVal.doExit(); } } );
 
 //		Container cp = sFrame.getContentPane();
-//		cp.add(cval, BorderLayout.CENTER);
+//		cp.add(cVal, BorderLayout.CENTER);
 		sFrame.setVisible(true);
 	}
 	
@@ -124,6 +125,7 @@ public class Escape
 		cp.add(makeViewPanel(), BorderLayout.CENTER);
 		Action cut = new DefaultEditorKit.CutAction();
 		Action copy = new DefaultEditorKit.CopyAction();
+		@SuppressWarnings("CloneableClassWithoutClone")
 		Action paste = new DefaultEditorKit.PasteAction()
 			{
 				@Override
@@ -133,6 +135,7 @@ public class Escape
 					myMasterView.requestFocus();
 				}
 			};
+		@SuppressWarnings("CloneableClassWithoutClone")
 		Action exit = new AbstractAction("Exit")
 			{
 				@Override
@@ -145,11 +148,13 @@ public class Escape
 		Action serifFont = new FontAction("Serif");
 		Action monospacedFont = new FontAction("Monospaced");
 		Action unicodeFont = new FontAction("Arial Unicode MS");
+		@SuppressWarnings("CloneableClassWithoutClone")
 		Action viewAction = new AbstractAction("View Property")
 		{
 			@Override
 			public void actionPerformed(ActionEvent e) { doView(); }
 		};
+		@SuppressWarnings("CloneableClassWithoutClone")
 		Action openAction = new AbstractAction("Open File")
 		{
 			@Override
@@ -158,6 +163,7 @@ public class Escape
 				doOpen();
 			}
 		};
+		@SuppressWarnings("CloneableClassWithoutClone")
 		Action saveAction = new AbstractAction("Save")
 		{
 			@Override
@@ -166,13 +172,15 @@ public class Escape
 				doSave();
 			}
 		};
+		@SuppressWarnings("CloneableClassWithoutClone")
 		Action saveAsAction = new AbstractAction("Save As")
 		{
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				if (askSaveAs())
+				if (askSaveAs()) {
 					doSave();
+				}
 //				JFileChooser ch = makeChooser();
 //				if (askForFile(ch) == JFileChooser.APPROVE_OPTION)
 //					doSave();
@@ -243,16 +251,11 @@ public class Escape
 		GraphicsEnvironment env=GraphicsEnvironment.getLocalGraphicsEnvironment();
 		String[] fnts = env.getAvailableFontFamilyNames();
 		mFontBox=new JComboBox<>(fnts);
-		ActionListener al = new ActionListener()
-		{
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				JComboBox<String> src = (JComboBox<String>)e.getSource();
-				String chosenName = src.getSelectedItem().toString();
-				Font fnt = new Font(chosenName, Font.PLAIN, (int)(mFontSize+0.5));
-				myMasterView.setFont(fnt);
-			}
+		ActionListener al = e -> {
+			JComboBox<String> src = (JComboBox<String>)e.getSource();
+			String chosenName = src.getSelectedItem().toString();
+			Font fnt = new Font(chosenName, Font.PLAIN, (int)(mFontSize+0.5));
+			myMasterView.setFont(fnt);
 		};
 
 		String defFontName=myMasterView.getFont().getFamily();
@@ -274,6 +277,42 @@ public class Escape
 		mySlaveView.addKeyListener(keyListener);
 		rpc.getContentPane().addKeyListener(keyListener);
 		Toolkit.getDefaultToolkit().addAWTEventListener(e -> keyTyped((KeyEvent) e), AWTEvent.KEY_EVENT_MASK);
+		
+		myMasterView.addCaretListener(e -> {
+			int diff = e.getDot() - e.getMark();
+			boolean peekIsVisible = (sPeek != null) && sPeek.isVisible();
+			if ((diff == 0) && peekIsVisible) {
+				hidePeekWindow();
+			} else if ((diff != 0)) {
+				int min = Math.min(e.getDot(), e.getMark());
+				int max = Math.max(e.getDot(), e.getMark());
+				try {
+					String text = myMasterView.getText(min, max-min);
+					showPeekWindow(saveConvert(text, true));
+				} catch (BadLocationException ignored) { }
+			}
+		});
+	}
+	
+	private static void showPeekWindow(String peekText) {
+		if (sPeek == null) {
+			sPeek = new JFrame();
+			sPeek.setAlwaysOnTop(true);
+			sPeek.setFocusable(false);
+			sPeek.setFocusableWindowState(false);
+			sPeekText = new JTextField(40);
+			sPeek.add(sPeekText);
+			sPeek.setLocationByPlatform(false);
+			sPeek.setLocation(sFrame.getX() + sFrame.getWidth(), sFrame.getY());
+		}
+		sPeekText.setColumns(Math.max(40, peekText.length()));
+		sPeekText.setText(peekText);
+		sPeek.pack();
+		sPeek.setVisible(true);
+	}
+	
+	private static void hidePeekWindow() {
+		sPeek.setVisible(false);
 	}
 	
 	private void keyTyped(KeyEvent e) {
@@ -349,12 +388,13 @@ public class Escape
 		return initialTextBldr.toString();
 	}
 
-	@SuppressWarnings({"CharacterComparison"})
+	@SuppressWarnings("CharacterComparison")
 	private void addRange(Font pFont, StringBuilder pInitialTextBldr, char start, char end, String label) {
 		pInitialTextBldr.append("\n\n").append(label).append(":\n");
 		for (char cc = start; cc < end; cc++) {
-			if (pFont.canDisplay(cc))
+			if (pFont.canDisplay(cc)) {
 				pInitialTextBldr.append(cc).append(' ');
+			}
 		}
 	}
 
@@ -375,8 +415,9 @@ public class Escape
 	private void doExit()
 	{
 		int saveValue = promptForSave();
-		if (saveValue == JOptionPane.CANCEL_OPTION)
+		if (saveValue == JOptionPane.CANCEL_OPTION) {
 			return;
+		}
 		System.exit(0);
 	}
 	
@@ -385,8 +426,9 @@ public class Escape
 		if (mFileChanged)
 		{
 			int saveValue = promptForSave();
-			if (saveValue == JOptionPane.CANCEL_OPTION)
+			if (saveValue == JOptionPane.CANCEL_OPTION) {
 				return;
+			}
 		}
 		JFileChooser fileDlg = makeChooser();
 		int openVal = fileDlg.showOpenDialog(sFrame);
@@ -441,9 +483,9 @@ public class Escape
 					"", 
 					JOptionPane.YES_NO_CANCEL_OPTION
  			);
-			if (answer == JOptionPane.YES_OPTION)
-				if (!doSave())
-					return JOptionPane.CANCEL_OPTION;
+			if (answer == JOptionPane.YES_OPTION && !doSave()) {
+				return JOptionPane.CANCEL_OPTION;
+			}
 			return answer;
 		}
 		return JOptionPane.NO_OPTION;
@@ -470,9 +512,9 @@ public class Escape
 	 */ 
 	private boolean doSave()
 	{
-		if (mOpenFile == null)
-			if (!askSaveAs())
-				return false;
+		if (mOpenFile == null && !askSaveAs()) {
+			return false;
+		}
 		saveFile();
 		return true;
 	}
@@ -496,8 +538,9 @@ public class Escape
 		while (!nameChosen)
 		{
 			int saveVal = askForFile(fileDlg);
-			if (saveVal == JFileChooser.CANCEL_OPTION)
+			if (saveVal == JFileChooser.CANCEL_OPTION) {
 				return false;
+			}
 			File newFile = fileDlg.getSelectedFile();
 			if (!newFile.exists())
 			{
@@ -515,10 +558,12 @@ public class Escape
 			{
 				int replace = JOptionPane.showConfirmDialog(sFrame, "The file " 
 				        + mOpenFile.getName() + " already exists. Do you want to replace it?");
-				if (replace == JOptionPane.CANCEL_OPTION)
+				if (replace == JOptionPane.CANCEL_OPTION) {
 					return false;
-				if (replace == JOptionPane.YES_OPTION)
+				}
+				if (replace == JOptionPane.YES_OPTION) {
 					nameChosen = true;
+				}
 			}
 			else
 			{
@@ -537,11 +582,13 @@ public class Escape
 	 */ 
 	private int askForFile(JFileChooser dlg)
 	{
-		if (mOpenFile != null)
+		if (mOpenFile != null) {
 			dlg.setSelectedFile(mOpenFile);
+		}
 		int saveResult=dlg.showSaveDialog(sFrame);
-		if (saveResult == JFileChooser.APPROVE_OPTION)
+		if (saveResult == JFileChooser.APPROVE_OPTION) {
 			mOpenFile = dlg.getSelectedFile();
+		}
 		return saveResult;
 	}
 	
@@ -582,13 +629,27 @@ public class Escape
 		myParagraphView.setVisible(true);
 	}
 
-	/*
+	/**
 	 * Converts unicodes to encoded &#92;uxxxx
 	 * and writes out any of the characters in specialSaveChars
 	 * with a preceding slash
+	 * @param theString The String to convert.
+	 * @return The converted String
 	 */
 	private static String saveConvert(String theString) {
-			int len = theString.length();
+		return saveConvert(theString, false);
+	}
+
+	/**
+	 * Converts unicodes to encoded &#92;uxxxx
+	 * and writes out any of the characters in specialSaveChars
+	 * with a preceding slash
+	 * @param theString the String to convert.
+	 * @param includeNewLine if true, include literal \n for new line characters
+	 * @return The converted String
+	 */
+	private static String saveConvert(String theString, boolean includeNewLine) {
+		int len = theString.length();
 		StringBuilder outBuffer = new StringBuilder(len << 1); // len << 1 means len*2
 	
 			for(int x=0; x<len; x++) {
@@ -599,15 +660,20 @@ public class Escape
 //                  outBuffer.append('\\');
 //                  outBuffer.append(' ');
 //                  break;
-							case '\t': outBuffer.append('\\'); outBuffer.append('t');
+							case '\t': outBuffer.append('\\').append('t');
 												break;
-							case '\f':outBuffer.append('\\'); outBuffer.append('f');
+							case '\f':outBuffer.append('\\').append('f');
 												break;
 ////							case '\\':outBuffer.append('\\'); outBuffer.append('\\');
 ////	                          break;
-							case '\n': outBuffer.append(aChar);
+							case '\n':
+								if (includeNewLine) {
+									outBuffer.append('\\').append('n');
+								} else {
+									outBuffer.append(aChar);
+								}
 												break;
-							case '\r':outBuffer.append('\\'); outBuffer.append('r');
+							case '\r':outBuffer.append('\\').append('r');
 												break;
 							default:
 								if (specialSaveChars.indexOf(aChar) != -1)
@@ -704,8 +770,9 @@ public class Escape
 //						System.err.println("out = <" + outBuffer + ">");
 						outBuffer.append(saveAChar);
 					}
-				} else
-				outBuffer.append(aChar);
+				} else {
+					outBuffer.append(aChar);
+				}
 			}
 			return outBuffer.toString();
 	}
@@ -717,12 +784,12 @@ public class Escape
 	//    return bf.toString();
 	//  }
 		/**
-		 * Convert a nibble to a hex character
-		 * @param	nibble	the nibble to convert.
+		 * Convert a nybble to a hex character
+		 * @param	nybble	the nybble to convert.
 		 * @return the hex digit for the nybble.
 		 */
-		private static char toHex(int nibble) {
-			return hexDigit[(nibble & 0xF)];
+		private static char toHex(int nybble) {
+			return hexDigit[(nybble & 0xF)];
 		}
 
 		/** A table of hex digits */
@@ -814,7 +881,6 @@ public class Escape
 		
 		private void setUpListeners()
 		{
-			//noinspection MethodDoesntCallSuperMethod
 			WindowListener viewEar = new WindowAdapter()
 			{
 				@Override
@@ -822,7 +888,6 @@ public class Escape
 			};
 			myParagraphView.addWindowListener(viewEar);
 
-			//noinspection MethodDoesntCallSuperMethod
 			WindowListener mainEar = new WindowAdapter()
 			{
 				@Override
@@ -895,10 +960,9 @@ public class Escape
 			
 			String prop = getProp(offset);
 			mView.setText(filterText(prop));
-			if (pScroll)
+			if (pScroll) {
 				mView.select(0, 0);
-			else
-			{
+			} else {
 				// Scrolls the view to the changed text:
 				Runnable viewCaret = () -> {
 					int dot=myMasterView.getCaret().getDot();
@@ -949,8 +1013,9 @@ public class Escape
 		{
 			String srcTxt = myMasterView.getText();
 			int endLoc = srcTxt.indexOf('\n', mBeginRange);
-			if (endLoc < 0)
+			if (endLoc < 0) {
 				endLoc = srcTxt.length();
+			}
 
 			myMasterView.replaceRange(pNewText, mBeginRange, endLoc);
 		}
@@ -963,8 +1028,9 @@ public class Escape
 				String txt = doc.getText(0, doc.getLength());
 				int beginLoc = getPropStart(where, txt);
 				int endLoc = txt.indexOf('\n', where);
-				if (endLoc < 0)
+				if (endLoc < 0) {
 					endLoc = txt.length();
+				}
 				// Skip the new line character
 				beginLoc++; // Even if it didn't find anything, this works
 				mBeginRange = beginLoc;
@@ -988,8 +1054,9 @@ public class Escape
 		private String filterText(String inputTxt)
 		{
 			lineCount=1;
-			if (!inputTxt.contains("\\n"))
+			if (!inputTxt.contains("\\n")) {
 				return inputTxt;
+			}
 			StringBuilder buf = new StringBuilder(inputTxt);
 			int where;
 			while ((where=buf.indexOf("\\n")) >= 0)
@@ -1003,11 +1070,13 @@ public class Escape
 		private String unFilterText(String inputTxt)
 		{
 			lineCount = 1;
-			if (inputTxt.indexOf('\n') < 0)
+			if (inputTxt.indexOf('\n') < 0) {
 				return inputTxt;
+			}
 			StringBuilder buf = new StringBuilder(inputTxt);
-			while (buf.charAt(buf.length()-1) == '\n')
+			while (buf.charAt(buf.length()-1) == '\n') {
 				buf.deleteCharAt(buf.length()-1);
+			}
 			int where;
 			while ((where=buf.indexOf("\n")) >= 0)
 			{
@@ -1020,7 +1089,7 @@ public class Escape
 		/**
 		 * Sets the font for this component.
 		 *
-		 * @param font the desired <code>Font</code> for this component
+		 * @param font the desired {@code Font} for this component
 		 *
 		 * description: The font for the component.
 		 * @see Component#getFont
@@ -1030,8 +1099,9 @@ public class Escape
 		{
 			super.setFont(font);
 			// test is just for initialization.
-			if (mView != null)
+			if (mView != null) {
 				mView.setFont(font);
+			}
 		}
 	}
 
@@ -1056,9 +1126,9 @@ public class Escape
 				preString.append(str);
 				String preConverted = preString.toString();
 				int newLen = preConverted.length();
-				int searchLength = 5+str.length();
 				if (newLen >= 6)
 				{
+					int searchLength = 5 + str.length();
 					int beginIndex=Math.max(0, newLen-searchLength);
 					int endIndex=offs+str.length();
 					String lookForCode = preConverted.substring(beginIndex, endIndex);
@@ -1103,7 +1173,7 @@ public class Escape
 		}
 	}
 	
-	private class Transformer implements DocumentListener
+	private static class Transformer implements DocumentListener
 	{
 		private final Document  mDestination;
 //		private Caret     mDestCaret;
@@ -1143,6 +1213,7 @@ public class Escape
 		}
 	}
 	
+	@SuppressWarnings("CloneableClassWithoutClone")
 	private class FontAction extends AbstractAction
 	{
 		FontAction(String fName) { super(fName); }
@@ -1161,7 +1232,8 @@ public class Escape
 
 		protected String getFontName() { return getValue(Action.NAME).toString(); }
 	}
-	
+
+	@SuppressWarnings("CloneableClassWithoutClone")
 	private class InternationalFont extends FontAction
 	{
 		InternationalFont() { super("International Font"); }
@@ -1196,7 +1268,7 @@ public class Escape
 	private class CharacterCounter extends JLabel {
 		CharacterCounter() {
 			super("");
-			setFont(new Font("Lucida Console", 0, 12));
+			setFont(new Font("Lucida Console", Font.PLAIN, 12));
 			DocumentListener charListener = new DocumentListener() {
 				@Override
 				public void insertUpdate(DocumentEvent e) {
