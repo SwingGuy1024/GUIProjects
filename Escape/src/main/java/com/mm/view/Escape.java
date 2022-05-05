@@ -295,6 +295,7 @@ public class Escape
 			sPeek.setFocusable(false);
 			sPeek.setFocusableWindowState(false);
 			sPeekText = new JTextField(40);
+			sPeekText.setFont(sMonoFnt);
 			sPeek.add(sPeekText);
 			sPeek.setLocationByPlatform(false);
 			sPeek.setLocation(sFrame.getX() + sFrame.getWidth(), sFrame.getY());
