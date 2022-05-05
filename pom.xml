@@ -15,6 +15,7 @@
     <module>Anagram</module>
     <module>Amazing</module>
     <module>Penrose</module>
+    <module>ClipHack</module>
   </modules>
 
   <properties>

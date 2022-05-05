@@ -312,7 +312,8 @@ public class Escape
 	
 	private void keyTyped(KeyEvent e) {
 		int modsEx = e.getModifiersEx();
-		System.out.printf("%5d (%c) %s%n", e.getKeyCode(), e.getKeyChar(), modString(modsEx)); // NON-NLS
+		// Enable this to debug keystrokes.
+//		System.out.printf("%5d (%c) %s%n", e.getKeyCode(), e.getKeyChar(), modString(modsEx)); // NON-NLS
 	}
 	
 	private static String modString(int modEx) {
