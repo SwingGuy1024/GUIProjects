@@ -8,6 +8,7 @@ import java.awt.Font;
 import java.awt.GraphicsEnvironment;
 import java.awt.Point;
 import java.awt.Toolkit;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -47,6 +48,7 @@ import javax.swing.KeyStroke;
 import javax.swing.RootPaneContainer;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
 import javax.swing.event.DocumentEvent;
@@ -289,20 +291,26 @@ public class Escape
 	}
 	
 	private static void showPeekWindow(String peekText) {
+		final int MAX_WIDTH = 10;
 		if (sPeek == null) {
 			sPeek = new JFrame();
+			sPeek.setType(Window.Type.UTILITY);
 			sPeek.setAlwaysOnTop(true);
 			sPeek.setFocusable(false);
+			sPeek.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+			sPeek.setResizable(false);
+			sPeek.getContentPane().setFocusCycleRoot(false);
 			sPeek.setFocusableWindowState(false);
-			sPeekText = new JTextField(40);
+			sPeekText = new JTextField(MAX_WIDTH);
 			sPeekText.setFont(sMonoFnt);
 			sPeek.add(sPeekText);
 			sPeek.setLocationByPlatform(false);
 			sPeek.setLocation(sFrame.getX() + sFrame.getWidth(), sFrame.getY());
 		}
-		sPeekText.setColumns(Math.max(40, peekText.length()));
+		sPeekText.setColumns(Math.max(MAX_WIDTH, peekText.length()));
 		sPeekText.setText(peekText);
 		sPeek.pack();
+		sPeek.setExtendedState(JFrame.NORMAL); // In case it was iconified.
 		sPeek.setVisible(true);
 	}
 	
