@@ -8,8 +8,14 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -40,7 +46,8 @@ import javax.swing.text.PlainDocument;
 public final class QuordleAid extends JPanel {
 
   private static final String FREQ = "EARIOTNSLCUDPMHGBFYWKVXZJQ        ";
-  private static final Font MONO = new Font(Font.MONOSPACED, Font.BOLD, 20);
+  private static final Font MONO = new Font(Font.MONOSPACED, Font.PLAIN, 20);
+  private static final Font MONO_BOLD = MONO.deriveFont(Font.BOLD);
   private static final Deque<Quart> quarts = new LinkedList<>();
   private static final FocusListener FOCUS_LISTENER = new FocusAdapter() {
     @Override
@@ -63,7 +70,6 @@ public final class QuordleAid extends JPanel {
     jFrame.add(new QuordleAid());
     jFrame.pack();
     jFrame.setVisible(true);
-//    System.out.printf("Mono name is %s, fam: %s, fName: %s%n", MONO.getName(), MONO.getFamily(), MONO.getFontName()); // NON-NLS
   }
   
   private QuordleAid() {
@@ -79,10 +85,9 @@ public final class QuordleAid extends JPanel {
     
     topPanel.add(frequencyLabel);
     played.addFocusListener(FOCUS_LISTENER);
-//    System.out.printf("Field size = %d%n", played.getFont().getSize()); // NON-NLS
     frequencyLabel.setBorder(played.getBorder());
-    frequencyLabel.setFont(MONO);
-    played.setFont(MONO);
+    frequencyLabel.setFont(MONO_BOLD);
+    played.setFont(MONO_BOLD);
     final PlainDocument document = (PlainDocument) played.getDocument();
     document.addDocumentListener(makeDocumentListener(frequencyLabel));
     document.setDocumentFilter(DOC_FILTER);
@@ -130,7 +135,7 @@ public final class QuordleAid extends JPanel {
       setBorder(border);
       final JLabel fLabel = new JLabel(FREQ);
       fLabel.setFont(MONO);
-      yellowAndGreen.setFont(MONO);
+      yellowAndGreen.setFont(MONO_BOLD);
       add(fLabel, BorderLayout.PAGE_START);
       add(yellowAndGreen, BorderLayout.CENTER);
       final PlainDocument document = (PlainDocument) yellowAndGreen.getDocument();
@@ -152,19 +157,48 @@ public final class QuordleAid extends JPanel {
     }
 
     private void doProcess(Document document, JLabel fLabel) {
-      String text = frequencyLabel.getText();
-      final StringBuilder prefix = new StringBuilder(0);
+      final Set<Character> prefix = new HashSet<>();
       try {
         String found = document.getText(0, document.getLength()).toUpperCase();
         found.chars()
             .filter(c -> Character.isLetter((char)c))
-            .filter(c -> !(prefix.indexOf(String.valueOf((char) c)) >= 0))
-            .forEach(c -> prefix.append((char) c));
+            .forEach(c -> prefix.add((char)c));
       } catch (BadLocationException e) {
         throw new IllegalStateException("Can't happen", e);
       }
-      prefix.append(":  ").append(text);
-      fLabel.setText(prefix.toString());
+      String text = frequencyLabel.getText();
+      List<Integer> indexList = new LinkedList<>();
+      for (int i=0; i<text.length(); ++i) {
+        char ch = FREQ.charAt(i);
+        if (prefix.contains(ch)) {
+          indexList.add(i); // put in the front, to get a reverse order // stone coral
+        }
+      }
+      indexList.sort(Comparator.reverseOrder());
+      
+      List<String> fragmentList = new ArrayList<>();
+      fragmentList.add(text);
+      for (int index: indexList) {
+//        String fragment = fragmentList.get(fragmentList.size()-1);
+        String fragment = fragmentList.get(0);
+        fragmentList.add(1, fragment.substring(index+1));
+        fragmentList.set(0, fragment.substring(0, index));
+      }
+      StringBuilder fullText = new StringBuilder("<html>");
+      int i=0;
+      Collections.sort(indexList);
+      for (int index: indexList) {
+        fullText.append(fragmentList.get(i++))
+            .append("<strong>")
+            .append(FREQ.charAt(index))
+            .append("</strong>");
+      }
+      fullText
+          .append(fragmentList.get(indexList.size()))
+          .append("</html>");
+      
+      // replace spaces
+      fLabel.setText(fullText.toString().replaceAll(" ", "&nbsp;"));
     }
 
     private DocumentListener makeQListener(JLabel fLabel) {

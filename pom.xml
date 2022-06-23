@@ -16,20 +16,21 @@
     <module>Amazing</module>
     <module>Penrose</module>
     <module>ClipHack</module>
+    <module>BeatCounter</module>
   </modules>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
     <mainClass>dummy</mainClass>
-    <iconFile></iconFile>
+    <iconFile>replace me in the module pom file</iconFile>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-      <version>22.0.0</version>
+      <version>23.0.0</version>
     </dependency>
   </dependencies>
 
