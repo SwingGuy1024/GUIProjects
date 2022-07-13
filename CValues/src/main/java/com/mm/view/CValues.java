@@ -5,7 +5,6 @@ import java.awt.Container;
 import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -13,10 +12,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.text.AttributedCharacterIterator;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.JApplet;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -24,7 +21,6 @@ import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
@@ -36,14 +32,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
-
-/*
-Wordle 210 3/6
-
-?????
-?????
-?????
- */
+import org.jetbrains.annotations.NotNull;
 
 /**
  * GUI utility to show the numeric values of any text character that get pasted in.
@@ -52,6 +41,7 @@ Wordle 210 3/6
  * <br>com.go2.ui.platform.unix.UnixPlatform
  * <br>com.go2.ui.platform.windows.WindowsPlatform
  */
+@SuppressWarnings({"CloneableClassWithoutClone", "HardCodedStringLiteral", "MagicNumber", "MagicCharacter"})
 public class CValues //extends JPanel
   implements
     DocumentListener
@@ -61,23 +51,21 @@ public class CValues //extends JPanel
 
 	public static void main(String[] args)
   {
-    System.out.println("Java version " + System.getProperty("java.version"));
-//    try { UIManager.setLookAndFeel(new MetalLookAndFeel()); }
-//    catch (Exception err) { }
+    //noinspection OverlyBroadCatchBlock
     try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
-    catch (Exception err) { /* Do Nothing */ }
+    catch (Exception ignore) { /* Do Nothing */ }
     JFrame mf = new JFrame("Character Values");
     mf.addWindowListener(new WindowAdapter()
-      { public void windowClosing(WindowEvent evt) { System.exit(0); } } );
+      { @Override
+      public void windowClosing(WindowEvent evt) { System.exit(0); } } );
     mf.setBounds(20, 20, 500, 400);
-    Container cp = mf.getContentPane();
-    CValues cval = new CValues(mf);
-//    cp.add(cval, BorderLayout.CENTER);
+    //noinspection ResultOfObjectAllocationIgnored
+    new CValues(mf);
     mf.setVisible(true);
   }
   
-  protected JTextArea myTextView = new JTextArea();
-  protected JTextArea myCharView = new JTextArea();
+  private final JTextArea myTextView = new JTextArea();
+  private final JTextArea myCharView = new JTextArea();
   
   public CValues(RootPaneContainer rpc)
   {
@@ -88,6 +76,7 @@ public class CValues //extends JPanel
     Action copy = new DefaultEditorKit.CopyAction();
     Action paste = new DefaultEditorKit.PasteAction()
       {
+        @Override
         public void actionPerformed(ActionEvent evt)
         {
           super.actionPerformed(evt);
@@ -97,6 +86,7 @@ public class CValues //extends JPanel
 
     Action exit = new AbstractAction("Exit")
       {
+        @Override
         public void actionPerformed(ActionEvent evt)
         {
           System.exit(0);
@@ -104,20 +94,23 @@ public class CValues //extends JPanel
       };
     Action courierFont = new AbstractAction("Courier")
     {
+      @Override
       public void actionPerformed(ActionEvent evt) { setCourier(); }
     };
     Action defFont = new AbstractAction("Default Font")
     {
+      @Override
       public void actionPerformed(ActionEvent evt) { setDefaultFont(); }
     };
     Action arielFont = new AbstractAction("Ariel")
     {
+      @Override
       public void actionPerformed(ActionEvent evt) { setAriel(); }
     };
-    exit.putValue(Action.MNEMONIC_KEY, new Integer('X'));
-    cut.putValue(Action.MNEMONIC_KEY, new Integer('T'));
-    copy.putValue(Action.MNEMONIC_KEY, new Integer('C'));
-    paste.putValue(Action.MNEMONIC_KEY, new Integer('P'));
+    exit.putValue(Action.MNEMONIC_KEY, (int) 'X');
+    cut.putValue(Action.MNEMONIC_KEY, (int) 'T');
+    copy.putValue(Action.MNEMONIC_KEY, (int) 'C');
+    paste.putValue(Action.MNEMONIC_KEY, (int) 'P');
     cut.putValue(Action.NAME, "Cut");
     copy.putValue(Action.NAME, "Copy");
     paste.putValue(Action.NAME, "Paste");
@@ -129,6 +122,7 @@ public class CValues //extends JPanel
     tb.add(courierFont);
     tb.add(defFont);
     tb.add(arielFont);
+    tb.add(getJavaVersion());
     cp.add(tb, BorderLayout.NORTH);
     JMenuBar mb = new JMenuBar();
     JMenu fileMenu = new JMenu("File");
@@ -156,7 +150,14 @@ public class CValues //extends JPanel
 	  cp.add(makeDisplayPanel(), BorderLayout.PAGE_END);
   }
 
-	private JComponent makeDisplayPanel() {
+  @NotNull
+  private JLabel getJavaVersion() {
+    final JLabel jLabel = new JLabel("  Java v" + System.getProperty("java.version"));
+    jLabel.setFont(jLabel.getFont().deriveFont(10.0f));
+    return jLabel;
+  }
+
+  private JComponent makeDisplayPanel() {
 		mDisplay = new JLabel(" ");
 		return mDisplay;
 	}
@@ -179,8 +180,11 @@ public class CValues //extends JPanel
     return vPanel;
   }
 
+  @Override
   public void insertUpdate(DocumentEvent e) { changed(e); }
+  @Override
   public void removeUpdate(DocumentEvent e) { changed(e); }
+  @Override
   public void changedUpdate(DocumentEvent e) { changed(e); }
   
   private void changed(DocumentEvent evt)
@@ -189,7 +193,7 @@ public class CValues //extends JPanel
     try
     {
 	    String doc = evt.getDocument().getText(0, length);
-      StringBuffer sb = new StringBuffer();
+      StringBuilder sb = new StringBuilder();
       for (int ii=0; ii<doc.length(); ++ii)
       {
         char theChar = doc.charAt(ii);
@@ -219,7 +223,7 @@ public class CValues //extends JPanel
           sb.append(theChar);
         }
         sb.append(" = 0x");
-        sb.append(pad(Integer.toHexString(theChar), 4));
+        sb.append(pad4(Integer.toHexString(theChar)));
         sb.append(" = ");
         sb.append((int)theChar);
         sb.append('\n');
@@ -233,11 +237,12 @@ public class CValues //extends JPanel
 	  mDisplay.setText(String.format("Length: %s characters", length));
   }
   
-  private static String pad(String input, int maxLen)
+  private static String pad4(String input)
   {
-    StringBuffer bf = new StringBuffer(input);
-    while (bf.length() < maxLen)
+    StringBuilder bf = new StringBuilder(input);
+    while (bf.length() < 4) {
       bf.insert(0, '0');
+    }
     return bf.toString();
   }
   
@@ -258,7 +263,7 @@ public class CValues //extends JPanel
   {
     int oldSize = myTextView.getFont().getSize();
     Font newFont = new Font("Ariel", Font.PLAIN, oldSize);
-    AttributedCharacterIterator.Attribute attribute;
+//    AttributedCharacterIterator.Attribute attribute;
     myTextView.setFont(newFont);
   }
 
@@ -272,18 +277,20 @@ public class CValues //extends JPanel
     addSize(18, sMenu);
     addSize(24, sMenu);
 	  sMenu.addSeparator();
-	  for (int ii=9; ii<=18; ++ii)
-	    addSize(ii, sMenu);
+	  for (int ii=9; ii<=18; ++ii) {
+      addSize(ii, sMenu);
+    }
   }
   
   private void addSize(int size, JMenu sMenu)
   {
-    Action szAct = new AbstractAction("" + size)
+    Action szAct = new AbstractAction(String.valueOf(size))
     {
+      @Override
       public void actionPerformed(ActionEvent evt)
       {
         Font tFont = myTextView.getFont();
-        myTextView.setFont(tFont.deriveFont(Float.valueOf((String)getValue(Action.NAME)).floatValue()));
+        myTextView.setFont(tFont.deriveFont(Float.parseFloat((String) getValue(Action.NAME))));
       }
     };
     sMenu.add(szAct);
@@ -294,9 +301,10 @@ public class CValues //extends JPanel
     Opener()
     {
       super("Open");
-      putValue(MNEMONIC_KEY, new Integer('O'));
+      putValue(MNEMONIC_KEY, (int) 'O');
     }
 
+    @Override
     public void actionPerformed(ActionEvent e)
     {
       doOpen();
@@ -304,38 +312,33 @@ public class CValues //extends JPanel
     
     void doOpen()
     {
-      JFileChooser chsr = new JFileChooser();
+      JFileChooser chooser = new JFileChooser();
       int ok = -1;
       while (ok != JFileChooser.APPROVE_OPTION)
       {
-        ok = chsr.showOpenDialog(mDisplay);
-        if (ok == JFileChooser.CANCEL_OPTION)
+        ok = chooser.showOpenDialog(mDisplay);
+        if (ok == JFileChooser.CANCEL_OPTION) {
           return;
-        File iFile = chsr.getSelectedFile();
-        try
+        }
+        File iFile = chooser.getSelectedFile();
+        try(FileReader rdr = new FileReader(iFile))
         {
-          FileReader rdr = new FileReader(iFile);
-          StringBuffer buf = new StringBuffer();
-          try
+          StringBuilder buf = new StringBuilder();
+          int rCh = rdr.read();
+          while (rCh >= 0)
           {
-            int rCh = rdr.read();
-            while (rCh >= 0)
-            {
-              char ch = (char)rCh;
-              buf.append(ch);
-              rCh = rdr.read();
-            }
-            myTextView.setText(buf.toString());
+            char ch = (char)rCh;
+            buf.append(ch);
+            rCh = rdr.read();
           }
-          catch (IOException e)
-          {
-            try { rdr.close(); }
-            catch (IOException e1) { e1.printStackTrace(); }
-          }
+          myTextView.setText(buf.toString());
         }
         catch (FileNotFoundException e)
         {
           JOptionPane.showMessageDialog(mDisplay, e.getMessage(), "File Not Found", JOptionPane.ERROR_MESSAGE);
+        }
+        catch (IOException ioe) {
+          ioe.printStackTrace();
         }
       }
     }
