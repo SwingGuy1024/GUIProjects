@@ -68,9 +68,10 @@ import static java.awt.event.KeyEvent.*;
  * todo: Look at flicker for large properties.
  * todo: Add a check box to control wrapping in the master.
  */
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "StringContatenationInLoop", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment", "CloneableClassWithoutClone"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "StringContatenationInLoop", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment", "CloneableClassWithoutClone", "UseOfSystemOutOrSystemErr"})
 public class Escape
 {
+	public static final Font SANS_SERIF = new Font("SansSerif", Font.PLAIN, 12);
 	private static final String specialSaveChars = ":\t\r\n\f#!";
 	private static final Font sMonoFnt = new Font("Monospaced", Font.PLAIN, 12);
 	private static final int sInitLoc = 20;
@@ -121,6 +122,7 @@ public class Escape
 		myParagraphView.setBounds(500, sInitLoc, 400, 400);
 		myPropView=new PropView();
 		myParagraphView.getContentPane().add(myPropView);
+		myMasterView.setFont(SANS_SERIF);
 		
 		Container cp = rpc.getContentPane();
 		cp.setLayout(new BorderLayout());
@@ -146,6 +148,7 @@ public class Escape
 			};
 		Action sansSerifFont = new FontAction("SansSerif");
 		Action serifFont = new FontAction("Serif");
+		Action timesFont = new FontAction("Times New Roman");
 		Action monospacedFont = new FontAction("Monospaced");
 		Action unicodeFont = new FontAction("Arial Unicode MS");
 		Action viewAction = new AbstractAction("View Property")
@@ -233,8 +236,15 @@ public class Escape
 		fontMenu.add(new FontAction("Monospaced"));
 		fontMenu.add(sansSerifFont);
 		fontMenu.add(serifFont);
+		fontMenu.add(timesFont);
+		fontMenu.add(new FontAction("Cambria"));
+		fontMenu.add(new FontAction("Calibri"));
 		fontMenu.add(new FontAction("Dialog"));
 		fontMenu.add(new FontAction("DialogInput"));
+		fontMenu.add(new FontAction("Lucida Bright"));
+		fontMenu.add(new FontAction("Lucida Console"));
+		fontMenu.add(new FontAction("Lucida Sans"));
+		fontMenu.add(new FontAction("Not Found"));
 		fontMenu.add(unicodeFont);
 		addSizeActions(fontMenu);
 		editMenu.addSeparator();
@@ -288,6 +298,10 @@ public class Escape
 				} catch (BadLocationException ignored) { }
 			}
 		});
+	}
+	
+	private static void showFont(Font font, String name) {
+		System.out.printf("%s font: name %s of family %s size %d style %d%n", name, font.getFontName(), font.getFamily(), font.getSize(), font.getStyle());
 	}
 	
 	private static void showPeekWindow(String peekText) {
@@ -368,7 +382,7 @@ public class Escape
 //		doc.setUpdateChange(true);
 		myMasterView.setDocument(doc);
 		myMasterView.getDocument().addDocumentListener(new Transformer(mySlaveView));
-		myMasterView.setText(makeInitialText());
+		myMasterView.setText(makeInitialText(myMasterView.getFont()));
 		mFileChanged = false;
 		setForWords(myMasterView);
 		setForWords(mySlaveView);
@@ -376,17 +390,16 @@ public class Escape
 		return vPanel;
 	}
 
-	private String makeInitialText() {
+	private String makeInitialText(Font font) {
 		StringBuilder initialTextBldr = new StringBuilder(initialText);
-		Font sansSerif = new Font("SansSerif", Font.PLAIN, 12);
 
-		addRange(sansSerif, initialTextBldr, '\u2100', '\u2200', "arrows"); // arrows
-		addRange(sansSerif, initialTextBldr, '\u2200', '\u2300', "Math"); // Math
-		addRange(sansSerif, initialTextBldr, '\u2300', '\u2400', "Misc. Tech."); // Misc. Tech
-		addRange(sansSerif, initialTextBldr, '\u2400', '\u2500', "Enclosed letters."); // Misc. Tech
-		addRange(sansSerif, initialTextBldr, '\u2500', '\u2600', "Boxes & Block drawing"); // box & block
-		addRange(sansSerif, initialTextBldr, '\u2600', '\u2800', "Dingbats"); // dingbats
-		addRange(sansSerif, initialTextBldr, '\uf000', '\uf0ff', "Private Use"); // private use
+		addRange(font, initialTextBldr, '\u2100', '\u2200', "arrows:"); // arrows
+		addRange(font, initialTextBldr, '\u2200', '\u2300', "Math:\n\u00d7 \u00f7"); // Math
+		addRange(font, initialTextBldr, '\u2300', '\u2400', "Misc. Tech:"); // Misc. Tech
+		addRange(font, initialTextBldr, '\u2400', '\u2500', "Enclosed letters:"); // Misc. Tech
+		addRange(font, initialTextBldr, '\u2500', '\u2600', "Boxes & Block drawing:"); // box & block
+		addRange(font, initialTextBldr, '\u2600', '\u2800', "Dingbats:"); // dingbats
+		addRange(font, initialTextBldr, '\uf000', '\uf0ff', "Private Use:"); // private use
 		initialTextBldr.append("\nJava version ");
 		initialTextBldr.append(System.getProperty("java.version"));
 		return initialTextBldr.toString();
@@ -394,7 +407,7 @@ public class Escape
 
 	@SuppressWarnings("CharacterComparison")
 	private void addRange(Font pFont, StringBuilder pInitialTextBldr, char start, char end, String label) {
-		pInitialTextBldr.append("\n\n").append(label).append(":\n");
+		pInitialTextBldr.append("\n\n").append(label).append('\n');
 		for (char cc = start; cc < end; cc++) {
 			if (pFont.canDisplay(cc)) {
 				pInitialTextBldr.append(cc).append(' ');
@@ -839,6 +852,9 @@ public class Escape
 				myMasterView.setFont(masterFont);
 				mySlaveView.setFont(mySlaveView.getFont().deriveFont(mFontSize));
 				myPropView.setFont(masterFont);
+				myMasterView.setText(makeInitialText(myMasterView.getFont()));
+				myMasterView.select(0, 0);
+				mySlaveView.select(0, 0);
 			}
 		};
 		sMenu.add(szAct);
@@ -1233,9 +1249,13 @@ public class Escape
 		public void actionPerformed(ActionEvent e)
 		{
 			Font newFont=makeFont(getFontName());
+			showFont(newFont, getFontName());
 			myMasterView.setFont(newFont);
 			myPropView.setFont(newFont);
 			mFontBox.getModel().setSelectedItem(getFontName());
+			myMasterView.setText(makeInitialText(newFont));
+			myMasterView.select(0, 0);
+			mySlaveView.select(0, 0);
 		}
 
 		protected String getFontName() { return getValue(Action.NAME).toString(); }
@@ -1249,7 +1269,7 @@ public class Escape
 	}
 	
 	@SuppressWarnings("FieldCanBeLocal")
-	private final String initialText = "This is a utility is to edit localized " +
+	private String initialText = "This is a utility is to edit localized " +
 		"properties files that use unicode characters. Since " +
 		"properties files only support 7-bit characters, this " +
 		"translates all characters with eight or more bits to " +
