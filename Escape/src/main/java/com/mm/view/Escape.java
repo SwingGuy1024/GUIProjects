@@ -100,7 +100,7 @@ public class Escape
     System.out.println("Java version " + System.getProperty("java.version"));
 //    try { UIManager.setLookAndFeel(new MetalLookAndFeel()); }
 //    catch (Exception err) { }
-		//noinspection CatchGenericClass
+		//noinspection CatchGenericClass,OverlyBroadCatchBlock
 		try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
 		catch (Exception ignore) { /* Do Nothing */ }
 		sFrame=new JFrame("Escape Code Editor");
@@ -260,6 +260,7 @@ public class Escape
 		ActionListener al = e -> {
 			JComboBox<String> src = (JComboBox<String>)e.getSource();
 			String chosenName = src.getSelectedItem().toString();
+			@SuppressWarnings("NumericCastThatLosesPrecision")
 			Font fnt = new Font(chosenName, Font.PLAIN, (int)(mFontSize+0.5));
 			myMasterView.setFont(fnt);
 		};
@@ -393,6 +394,7 @@ public class Escape
 	private String makeInitialText(Font font) {
 		StringBuilder initialTextBldr = new StringBuilder(initialText);
 
+		addRange(font, initialTextBldr, '\u0080', '\u0100', "Extended ASCII:");
 		addRange(font, initialTextBldr, '\u2100', '\u2200', "arrows:"); // arrows
 		addRange(font, initialTextBldr, '\u2200', '\u2300', "Math:\n\u00d7 \u00f7"); // Math
 		addRange(font, initialTextBldr, '\u2300', '\u2400', "Misc. Tech:"); // Misc. Tech
@@ -555,9 +557,9 @@ public class Escape
 	 */ 
 	private boolean askSaveAs()
 	{
-		boolean nameChosen = false;
+		boolean nameNotChosen = true;
 		JFileChooser fileDlg = makeChooser();
-		while (!nameChosen)
+		while (nameNotChosen)
 		{
 			int saveVal = askForFile(fileDlg);
 			if (saveVal == JFileChooser.CANCEL_OPTION) {
@@ -584,13 +586,13 @@ public class Escape
 					return false;
 				}
 				if (replace == JOptionPane.YES_OPTION) {
-					nameChosen = true;
+					nameNotChosen = false;
 				}
 			}
 			else
 			{
 				mOpenFile = newFile;
-				nameChosen = true;
+				nameNotChosen = false;
 			}
 		}
 		return true;
@@ -1269,7 +1271,7 @@ public class Escape
 	}
 	
 	@SuppressWarnings("FieldCanBeLocal")
-	private String initialText = "This is a utility is to edit localized " +
+	private final String initialText = "This is a utility is to edit localized " +
 		"properties files that use unicode characters. Since " +
 		"properties files only support 7-bit characters, this " +
 		"translates all characters with eight or more bits to " +
