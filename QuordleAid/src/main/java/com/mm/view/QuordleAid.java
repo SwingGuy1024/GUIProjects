@@ -81,7 +81,9 @@ public final class QuordleAid extends JPanel {
   
   private JPanel makeTopPanel() {
     JPanel topPanel = new JPanel(new GridLayout(0, 1));
-    topPanel.add(new JLabel(System.getProperty("java.version")));
+    final JLabel version = new JLabel(System.getProperty("java.version"));
+    version.setFont(version.getFont().deriveFont(Font.PLAIN, 10.0f));
+    topPanel.add(version);
     
     topPanel.add(frequencyLabel);
     played.addFocusListener(FOCUS_LISTENER);
