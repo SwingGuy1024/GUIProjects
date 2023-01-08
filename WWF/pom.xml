@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <parent>
+    <artifactId>GUIProjects</artifactId>
+    <groupId>com.mm</groupId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>WWF</artifactId>
+
+  <properties>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+    <mainClass>com.mm.WordsForWwf</mainClass>
+    <iconFile>WWF.icns</iconFile>
+    <extraJar>utilities-0.0.1_SNAPSHOT.jar</extraJar>
+  </properties>
+  <dependencies>
+    <dependency>
+      <groupId>com.mm</groupId>
+      <artifactId>utilities</artifactId>
+      <version>0.0.1_SNAPSHOT</version>
+    </dependency>
+  </dependencies>
+
+  <!--<build>-->
+  <!--  <plugins>-->
+  <!--    <plugin>-->
+  <!--      <artifactId>maven-assembly-plugin</artifactId>-->
+  <!--      <configuration>-->
+  <!--        &lt;!&ndash;<archive>&ndash;&gt;-->
+  <!--        &lt;!&ndash;  <manifest>&ndash;&gt;-->
+  <!--        &lt;!&ndash;    <mainClass>${mainClass}</mainClass>&ndash;&gt;-->
+  <!--        &lt;!&ndash;  </manifest>&ndash;&gt;-->
+  <!--        &lt;!&ndash;</archive>&ndash;&gt;-->
+  <!--        <descriptorRefs>-->
+  <!--          <descriptorRef>jar-with-dependencies</descriptorRef>-->
+  <!--        </descriptorRefs>-->
+  <!--        &lt;!&ndash;This "appendAssemblyId" tag removes the "with-dependencies" from the name.&ndash;&gt;-->
+  <!--        &lt;!&ndash;This is commented out because it overwrites the other jar file.&ndash;&gt;-->
+  <!--        &lt;!&ndash;That interferes with the creation of the Mac App Bundle.&ndash;&gt;-->
+  <!--        &lt;!&ndash;<appendAssemblyId>false</appendAssemblyId>&ndash;&gt;-->
+  <!--      </configuration>-->
+  <!--    </plugin>-->
+  
+  <!--  </plugins>-->
+  <!--</build>-->
+
+</project>

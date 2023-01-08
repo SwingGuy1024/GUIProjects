@@ -17,6 +17,9 @@
     <module>Penrose</module>
     <module>ClipHack</module>
     <module>BeatCounter</module>
+    <module>Paragraph</module>
+    <module>WWF</module>
+    <module>Utilities</module>
   </modules>
 
   <properties>
@@ -24,6 +27,7 @@
     <maven.compiler.target>8</maven.compiler.target>
     <mainClass>dummy</mainClass>
     <iconFile>replace me in the module pom file</iconFile>
+    <extraJar></extraJar> <!-- Leave blank, or add the name of a single jar dependency -->
   </properties>
 
   <dependencies>
@@ -109,6 +113,7 @@
           <!--suppress MavenModelInspection -->
           <!--<jrePath>${javaHome}/../..</jrePath>-->
           <!--<jrePath>${env.JAVA_HOME}/../..</jrePath>-->
+          <additionalClasspath>${extraJar}</additionalClasspath>
         </configuration>
         <executions>
           <execution>
