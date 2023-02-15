@@ -22,12 +22,14 @@
     <module>Utilities</module>
   </modules>
 
+  <!-- The extraJar property no longer works now that this is a base project. It turns out that you can't override properties-->
+  <!-- in Maven like you can in Java. But I leave them in to make it clear how to add extra jar files if needed.-->
   <properties>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
     <mainClass>dummy</mainClass>
     <iconFile>replace me in the module pom file</iconFile>
-    <extraJar></extraJar> <!-- Leave blank, or add the name of a single jar dependency -->
+    <!--<extraJar></extraJar> &lt;!&ndash; Leave blank, or add the name of a single jar dependency &ndash;&gt;-->
   </properties>
 
   <dependencies>
@@ -108,12 +110,12 @@
           <!--Put your custom Info.plist and Icon.icns under your maven resource paths (src/main/resources on default configuration).-->
           <mainClass>${mainClass}</mainClass>
           <!--<dictionaryFile>YourCustomInfo.plist</dictionaryFile>-->
+          <!--<additionalClasspath>${extraJar}</additionalClasspath>-->
           <iconFile>${iconFile}</iconFile>
           <!-- Put this line in to bundle the jdk with the app. -->
           <!--suppress MavenModelInspection -->
           <!--<jrePath>${javaHome}/../..</jrePath>-->
           <!--<jrePath>${env.JAVA_HOME}/../..</jrePath>-->
-          <additionalClasspath>${extraJar}</additionalClasspath>
         </configuration>
         <executions>
           <execution>
