@@ -86,7 +86,7 @@ public final class WordsForWwf extends JPanel {
 			char c1 = s1.charAt(i1);
 			char c2 = s2.charAt(i2);
 			if (c1 != c2) {
-				return (int) c1 - (int) c2;
+				return c1 - c2;
 			}
 		}
 		return n1 - n2;
@@ -98,7 +98,7 @@ public final class WordsForWwf extends JPanel {
 	private SortedSet<String> words=null;
 	private final SortedSet<String> reverseWords;
 	private static final Font MONOSPACED = getFont("Menlo,Lucida Console,Monospaced", Font.PLAIN, 14);
-	Preferences prefs = Preferences.userNodeForPackage(WordsForWwf.class);
+	private final Preferences prefs = Preferences.userNodeForPackage(WordsForWwf.class);
 	private static JFrame sFrame=null;
 	private final JCheckBox reverse = new JCheckBox("Rev");
 	private final JCheckBox tailSort = new JCheckBox("Tail Sort");
@@ -196,8 +196,8 @@ public final class WordsForWwf extends JPanel {
 		model.setSelected(!model.isSelected());
 	}
 	
-	private void setAccelerator(JToggleButton toggleButton, int keyEventKeyCode, String name) {
-		JMenuItem menuItem = new JMenuItem(name);
+	private void setAccelerator(JToggleButton toggleButton, int keyEventKeyCode) {
+		JMenuItem menuItem = new JMenuItem(toggleButton.getText());
 		int mods = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
 		menuItem.setAccelerator(KeyStroke.getKeyStroke(keyEventKeyCode, mods));
 		hiddenMenu.add(menuItem);
@@ -214,13 +214,13 @@ public final class WordsForWwf extends JPanel {
 		helper.add(version, 0, y++, GridBagConstraints.LINE_START);
 		helper.add(input, 0, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
 
-		setAccelerator(reverse, KeyEvent.VK_R, "Rev");
+		setAccelerator(reverse, KeyEvent.VK_R);
 
 		reverse.setRequestFocusEnabled(false);
 		int x=0;
 		helper.add(reverse, x++, y, GridBagConstraints.LINE_START, GridBagConstraints.BOTH);
 
-		setAccelerator(tailSort, KeyEvent.VK_S, "Tail Sort");
+		setAccelerator(tailSort, KeyEvent.VK_S);
 		
 		helper.add(tailSort, x++, y, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 1.0, 0.0);
 
@@ -786,7 +786,6 @@ public final class WordsForWwf extends JPanel {
 	 * @return The first font found from the list of font names. If none of the 
 	 * named fonts are found, returns Dialog
 	 */
-	@SuppressWarnings("MagicConstant")
 	private static Font getFont(String fontNameList, @MagicConstant(valuesFromClass = Font.class) int style, int size) {
 		String[] fonts = fontNameList.split(",");
 		for (String name: fonts) {
