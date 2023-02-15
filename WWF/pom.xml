@@ -10,13 +10,14 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>WWF</artifactId>
+  <name>Words For WWF</name>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
     <mainClass>com.mm.WordsForWwf</mainClass>
     <iconFile>WWF.icns</iconFile>
-    <extraJar>utilities-0.0.1_SNAPSHOT.jar</extraJar>
+    <!--<extraJar>utilities-0.0.1_SNAPSHOT.jar</extraJar>-->
   </properties>
   <dependencies>
     <dependency>
@@ -26,27 +27,39 @@
     </dependency>
   </dependencies>
 
-  <!--<build>-->
-  <!--  <plugins>-->
-  <!--    <plugin>-->
-  <!--      <artifactId>maven-assembly-plugin</artifactId>-->
-  <!--      <configuration>-->
-  <!--        &lt;!&ndash;<archive>&ndash;&gt;-->
-  <!--        &lt;!&ndash;  <manifest>&ndash;&gt;-->
-  <!--        &lt;!&ndash;    <mainClass>${mainClass}</mainClass>&ndash;&gt;-->
-  <!--        &lt;!&ndash;  </manifest>&ndash;&gt;-->
-  <!--        &lt;!&ndash;</archive>&ndash;&gt;-->
-  <!--        <descriptorRefs>-->
-  <!--          <descriptorRef>jar-with-dependencies</descriptorRef>-->
-  <!--        </descriptorRefs>-->
-  <!--        &lt;!&ndash;This "appendAssemblyId" tag removes the "with-dependencies" from the name.&ndash;&gt;-->
-  <!--        &lt;!&ndash;This is commented out because it overwrites the other jar file.&ndash;&gt;-->
-  <!--        &lt;!&ndash;That interferes with the creation of the Mac App Bundle.&ndash;&gt;-->
-  <!--        &lt;!&ndash;<appendAssemblyId>false</appendAssemblyId>&ndash;&gt;-->
-  <!--      </configuration>-->
-  <!--    </plugin>-->
+  <build>
+    <plugins>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <!--<archive>-->
+          <!--  <manifest>-->
+          <!--    <mainClass>${mainClass}</mainClass>-->
+          <!--  </manifest>-->
+          <!--</archive>-->
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <!--This "appendAssemblyId" tag is supposed to remove the "with-dependencies" from the name.-->
+          <!--I'm glad it doesn't, because now I can package the regular jar with the utilities library,-->
+          <!--which works as a bundled app, but fails if I try to run jar file. This way, if I want to-->
+          <!--run from the jar file, I can launch the one with the dependencies.-->
+          <!--The only reason to launch from the jar file so far is to diagnose launch problems that-->
+          <!--don't show up when running from the IDE.-->
+          <appendAssemblyId>true</appendAssemblyId>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id> <!-- this is used for inheritance merges -->
+            <phase>package</phase> <!-- bind to the packaging phase -->
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
   
-  <!--  </plugins>-->
-  <!--</build>-->
+    </plugins>
+  </build>
 
 </project>

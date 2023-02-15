@@ -9,22 +9,12 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
-import java.awt.Window;
 import java.awt.event.AWTEventListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.ContainerAdapter;
-import java.awt.event.ContainerEvent;
-import java.awt.event.ContainerListener;
-import java.awt.event.HierarchyBoundsListener;
-import java.awt.event.HierarchyEvent;
-import java.awt.event.HierarchyListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -35,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Locale;
@@ -43,6 +34,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.prefs.Preferences;
+import javax.swing.ButtonModel;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -50,25 +42,23 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JRootPane;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 import javax.swing.ListCellRenderer;
-import javax.swing.RootPaneContainer;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
-//import com.apple.eawt.AppEvent;
-//import com.apple.eawt.Application;
-//import com.apple.eawt.QuitHandler;
-//import com.apple.eawt.QuitResponse;
 import com.mm.util.GridHelper;
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.NotNull;
@@ -88,6 +78,7 @@ public final class WordsForWwf extends JPanel {
 	public static final String[] EMPTY = new String[0];
 	private static final int LIMIT = 15;
 	private static final String CHECK_MARK = "\u2714 ";
+	private static final Comparator<? super String> FORWARD_COMPARE = null; // defaults to natural order
 	private static final Comparator<String> REVERSE_COMPARE = (s1, s2) -> {
 		int n1=s1.length();
 		int n2=s2.length();
@@ -110,12 +101,15 @@ public final class WordsForWwf extends JPanel {
 	Preferences prefs = Preferences.userNodeForPackage(WordsForWwf.class);
 	private static JFrame sFrame=null;
 	private final JCheckBox reverse = new JCheckBox("Rev");
+	private final JCheckBox tailSort = new JCheckBox("Tail Sort");
+	private final JMenu hiddenMenu = new JMenu("");
 	private SpinnerIntModel minModel;
 	private SpinnerIntModel maxModel;
 	private final TileCount mTileCount;
 
 	public static void main(String[] args) {
 		sFrame = new JFrame("Words For WWF");
+		sFrame.setJMenuBar(new JMenuBar());
 		final WordsForWwf wwf = new WordsForWwf();
 
 		sFrame.add(wwf, BorderLayout.CENTER);
@@ -153,17 +147,8 @@ public final class WordsForWwf extends JPanel {
 		}
 		reverseWords = new TreeSet<String>(REVERSE_COMPARE);
 		reverseWords.addAll(words);
-//		for (String s: words) {
-//			if (s.length() == 2) {
-//				System.out.println(s);
-//			}
-//		}
-//		for (String s: words) {
-//			if (s.length() == 3) {
-//				System.out.println(s);
-//			}
-//		}
 
+		sFrame.getJMenuBar().add(hiddenMenu);
 		add(makeInputPanel(), BorderLayout.PAGE_START);
 
 		JScrollPane scrollPane = new JScrollPane(wordList, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
@@ -171,7 +156,6 @@ public final class WordsForWwf extends JPanel {
 		wordList.setRequestFocusEnabled(false);
 		wordList.setVisibleRowCount(32);
 		wordList.setFont(Font.getFont(Font.MONOSPACED));
-//		wordList.set
 
 		addDataListener();
 		addRenderer();
@@ -207,6 +191,19 @@ public final class WordsForWwf extends JPanel {
 		return wordSet;
 	}
 	
+	private void toggleItem(JToggleButton button) {
+		ButtonModel model = button.getModel();
+		model.setSelected(!model.isSelected());
+	}
+	
+	private void setAccelerator(JToggleButton toggleButton, int keyEventKeyCode, String name) {
+		JMenuItem menuItem = new JMenuItem(name);
+		int mods = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+		menuItem.setAccelerator(KeyStroke.getKeyStroke(keyEventKeyCode, mods));
+		hiddenMenu.add(menuItem);
+		menuItem.addActionListener(e -> toggleItem(toggleButton));
+	}
+	
 	private JComponent makeInputPanel() {
 //		JPanel inputPanel = new JPanel(new GridBagLayout());
 		int y=0;
@@ -217,9 +214,15 @@ public final class WordsForWwf extends JPanel {
 		helper.add(version, 0, y++, GridBagConstraints.LINE_START);
 		helper.add(input, 0, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
 
-		reverse.setMnemonic('R');
+		setAccelerator(reverse, KeyEvent.VK_R, "Rev");
+
 		reverse.setRequestFocusEnabled(false);
-		helper.add(reverse, 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0);
+		int x=0;
+		helper.add(reverse, x++, y, GridBagConstraints.LINE_START, GridBagConstraints.BOTH);
+
+		setAccelerator(tailSort, KeyEvent.VK_S, "Tail Sort");
+		
+		helper.add(tailSort, x++, y, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 1.0, 0.0);
 
 		minModel = new SpinnerIntModel(1, 1, LIMIT);
 		JSpinner minSize = new JSpinner(minModel);
@@ -237,8 +240,8 @@ public final class WordsForWwf extends JPanel {
 			Integer max = (Integer) model.getValue();
 			minModel.setMaximum(max);
 		});
-		helper.add(minSize, 1, y);
-		helper.add(maxSize, 2, y);
+		helper.add(minSize, x++, y);
+		helper.add(maxSize, x, y);
 		return helper.getPanel();
 	}
 
@@ -263,6 +266,7 @@ public final class WordsForWwf extends JPanel {
 		});
 		
 		reverse.addItemListener(pItemEvent -> process(input.getText()));
+		tailSort.addItemListener(pItemEvent -> process(input.getText()));
 		
 		minModel.addChangeListener(pChangeEvent -> process(input.getText()));
 		
@@ -321,7 +325,19 @@ public final class WordsForWwf extends JPanel {
 			wordSet = reverseWords.subSet(text, lastWord);
 		}
 		// new TreeSet to alphabetize in forward order.
-		return new TreeSet<String>(wordSet);
+		return newTreeSet(wordSet);
+	}
+	
+	private TreeSet<String> newTreeSet(Collection<String> words) {
+		TreeSet<String> treeSet = newTreeSet();
+		treeSet.addAll(words);
+		return treeSet;
+	}
+
+	@NotNull
+	private TreeSet<String> newTreeSet() {
+		Comparator<? super String> comparator = tailSort.isSelected()? REVERSE_COMPARE : FORWARD_COMPARE;
+		return new TreeSet<>(comparator);
 	}
 
 	@Nullable
@@ -351,7 +367,7 @@ public final class WordsForWwf extends JPanel {
 		return ((char)(sub.charAt(0) +1)) + sub.substring(1);
 	}
 	private SortedSet<String> getRangedSubset(Set<String> source, int min, int max) {
-		SortedSet<String> range = new TreeSet<String>();
+		SortedSet<String> range = newTreeSet();
 		for (String word: source) {
 			int length = word.length();
 			if ((length >= min) && (length <= max)) {
@@ -371,14 +387,14 @@ public final class WordsForWwf extends JPanel {
 				
 				// set the foreground color
 				Color fg;
-				if (!Character.isLetter(text.charAt(0))) {
-					// hidden word count. Don't format it
-					newValue = text;
-					fg = Color.GRAY; // color it gray
-				} else {
+				if (Character.isLetter(text.charAt(0))) {
 					// Normal entry, formatted and colored black
 					newValue = String.format("%02d:   %s", text.length(), text);
 					fg = Color.BLACK;
+				} else {
+					// hidden word count. Don't format it
+					newValue = text;
+					fg = Color.GRAY; // color it gray
 				}
 				Component renderer = super.getListCellRendererComponent(list, newValue, index, isSelected, cellHasFocus);
 				renderer.setForeground(fg);
@@ -386,6 +402,7 @@ public final class WordsForWwf extends JPanel {
 				return renderer;
 			}
 		};
+		//noinspection unchecked
 		wordList.setCellRenderer(renderer);
 	}
 	
