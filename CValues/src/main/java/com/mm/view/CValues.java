@@ -31,6 +31,7 @@ import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Caret;
 import javax.swing.text.DefaultEditorKit;
 import org.jetbrains.annotations.NotNull;
 
@@ -148,6 +149,7 @@ public class CValues //extends JPanel
     mb.add(fontMenu);
     rpc.getRootPane().setJMenuBar(mb);
 	  cp.add(makeDisplayPanel(), BorderLayout.PAGE_END);
+    myTextView.getCaret().addChangeListener(c -> showTextLength());
   }
 
   @NotNull
@@ -234,9 +236,20 @@ public class CValues //extends JPanel
     {
       ble.printStackTrace();
     }
-	  mDisplay.setText(String.format("Length: %s characters", length));
+    showTextLength();
   }
-  
+
+  private void showTextLength() {
+    int length = myTextView.getDocument().getLength();
+    final Caret caret = myTextView.getCaret();
+    int selectionLength = Math.abs(caret.getDot() - caret.getMark());
+    if (selectionLength == 0) {
+      mDisplay.setText(String.format("Length: %s", length));
+    } else {
+      mDisplay.setText(String.format("Length: %d/%d", selectionLength, length));
+    }
+  }
+
   private static String pad4(String input)
   {
     StringBuilder bf = new StringBuilder(input);
