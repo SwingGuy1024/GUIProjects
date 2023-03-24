@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -173,7 +174,7 @@ public final class WordsForWwf extends JPanel {
 		InputStream fileReader = getClass().getResourceAsStream("enable1.txt");
 		assert fileReader != null;
 		SortedSet<String> wordSet = new TreeSet<String>();
-		BufferedReader reader = new BufferedReader(new InputStreamReader(fileReader));
+		BufferedReader reader = new BufferedReader(new InputStreamReader(fileReader, StandardCharsets.UTF_8));
 		try {
 			String line = reader.readLine();
 			while (line != null) {
@@ -378,10 +379,9 @@ public final class WordsForWwf extends JPanel {
 	}
 	
 	private void addRenderer() {
-		//noinspection rawtypes
-		ListCellRenderer renderer = new DefaultListCellRenderer() {
+		ListCellRenderer<Object> renderer = (ListCellRenderer<Object>) new DefaultListCellRenderer() {
 			@Override
-			public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
 				String text = value.toString();
 				String newValue;
 				
@@ -389,7 +389,7 @@ public final class WordsForWwf extends JPanel {
 				Color fg;
 				if (Character.isLetter(text.charAt(0))) {
 					// Normal entry, formatted and colored black
-					newValue = String.format("%02d:   %s", text.length(), text);
+					newValue = formatEntry(text);
 					fg = Color.BLACK;
 				} else {
 					// hidden word count. Don't format it
@@ -402,11 +402,17 @@ public final class WordsForWwf extends JPanel {
 				return renderer;
 			}
 		};
-		//noinspection unchecked
 		wordList.setCellRenderer(renderer);
 	}
 	
-	@SuppressWarnings("CharUsedInArithmeticContext")
+	private String formatEntry(String text) {
+		if (tailSort.isSelected()) {
+			return String.format("%02d::  %15s", text.length(), text); // right-justified
+		}
+		return String.format("%02d:   %s", text.length(), text);
+	}
+	
+	@SuppressWarnings({"CharUsedInArithmeticContext", "MagicCharacter"})
 	private final class TileCount extends JPanel {
 		private static final char DOT = '.';
 		private static final String TILE_DATA_KEY = "mappedData";

@@ -37,7 +37,7 @@ public class ReverseLookup extends JPanel{
 
 	public static final String[] EMPTY = new String[0];
 	private final JTextField input = new JTextField(21);
-	private final JList wordList = new JList();
+	private final JList<Object> wordList = new JList<>();
 	private SortedSet<String> words;
 	
 	public static void main(String[] args) {
@@ -71,7 +71,7 @@ public class ReverseLookup extends JPanel{
 
 	private SortedSet<String> load() throws IOException {
 		final SortedSet<String> sortedSet = new TreeSet<>(REVERSE_COMPARE);
-		InputStream stream = getClass().getResourceAsStream("com/mm/enable1.txt"); 
+		InputStream stream = getClass().getResourceAsStream("com/mm/englishWords.txt"); 
 		assert stream != null;
 		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
 		try {
@@ -158,9 +158,9 @@ public class ReverseLookup extends JPanel{
 	}
 	
 	private void addRenderer() {
-		ListCellRenderer renderer = new DefaultListCellRenderer() {
+		ListCellRenderer<Object> renderer = new DefaultListCellRenderer() {
 			@Override
-			public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
 				String text = value.toString();
 				String newValue = String.format("%02d :   %s", text.length(), text);
 				return super.getListCellRendererComponent(list, newValue, index, isSelected, cellHasFocus);
