@@ -68,7 +68,7 @@ import static java.awt.event.KeyEvent.*;
  * todo: Look at flicker for large properties.
  * todo: Add a check box to control wrapping in the master.
  */
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "StringContatenationInLoop", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment", "CloneableClassWithoutClone", "UseOfSystemOutOrSystemErr"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment", "CloneableClassWithoutClone", "UseOfSystemOutOrSystemErr"})
 public class Escape
 {
 	public static final Font SANS_SERIF = new Font("SansSerif", Font.PLAIN, 12);
@@ -244,7 +244,7 @@ public class Escape
 		fontMenu.add(new FontAction("Lucida Bright"));
 		fontMenu.add(new FontAction("Lucida Console"));
 		fontMenu.add(new FontAction("Lucida Sans"));
-		fontMenu.add(new FontAction("Not Found"));
+//		fontMenu.add(new FontAction("Not Found"));
 		fontMenu.add(unicodeFont);
 		addSizeActions(fontMenu);
 		editMenu.addSeparator();
@@ -259,10 +259,13 @@ public class Escape
 		mFontBox=new JComboBox<>(fnts);
 		ActionListener al = e -> {
 			JComboBox<String> src = (JComboBox<String>)e.getSource();
-			String chosenName = src.getSelectedItem().toString();
-			@SuppressWarnings("NumericCastThatLosesPrecision")
-			Font fnt = new Font(chosenName, Font.PLAIN, (int)(mFontSize+0.5));
-			myMasterView.setFont(fnt);
+			final Object selectedItem = src.getSelectedItem();
+			if (selectedItem != null) { // Shouldn't happen
+				String chosenName = selectedItem.toString();
+				@SuppressWarnings("NumericCastThatLosesPrecision")
+				Font fnt = new Font(chosenName, Font.PLAIN, (int)(mFontSize+0.5));
+				myMasterView.setFont(fnt);
+			}
 		};
 
 		String defFontName=myMasterView.getFont().getFamily();
@@ -740,8 +743,9 @@ public class Escape
 				if (aChar == '\\')
 				{
 					int saveX=x;
+					//noinspection ConstantValueVariableUse
 					char saveAChar = aChar;
-					//noinspection CatchGenericClass
+					//noinspection CatchGenericClass,OverlyBroadCatchBlock
 					try
 					{
 						aChar = theString.charAt(x++);
@@ -854,7 +858,6 @@ public class Escape
 				myMasterView.setFont(masterFont);
 				mySlaveView.setFont(mySlaveView.getFont().deriveFont(mFontSize));
 				myPropView.setFont(masterFont);
-				myMasterView.setText(makeInitialText(myMasterView.getFont()));
 				myMasterView.select(0, 0);
 				mySlaveView.select(0, 0);
 			}
@@ -1255,7 +1258,6 @@ public class Escape
 			myMasterView.setFont(newFont);
 			myPropView.setFont(newFont);
 			mFontBox.getModel().setSelectedItem(getFontName());
-			myMasterView.setText(makeInitialText(newFont));
 			myMasterView.select(0, 0);
 			mySlaveView.select(0, 0);
 		}
