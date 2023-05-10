@@ -20,6 +20,7 @@
     <module>Paragraph</module>
     <module>WWF</module>
     <module>Utilities</module>
+    <module>EinsteinTiles</module>
   </modules>
 
   <!-- The extraJar property no longer works now that this is a base project. It turns out that you can't override properties-->
@@ -42,6 +43,19 @@
 
   <build>
     <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <showWarnings>true</showWarnings>
+          <compilerArgs>
+            <arg>-Xlint:all</arg>
+            <!--<arg>-Werror</arg>-->
+          </compilerArgs>
+        </configuration>
+      </plugin>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
