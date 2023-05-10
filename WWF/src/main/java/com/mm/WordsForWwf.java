@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -164,6 +165,10 @@ public final class WordsForWwf extends JPanel {
 		mTileCount = new TileCount();
 		add(mTileCount, BorderLayout.PAGE_END);
 	}
+	
+	static InputStream getWordStream(Class<?> theClass) {
+		return Objects.requireNonNull(theClass.getResourceAsStream("englishWords.txt"));
+	}
 
 	private SortedSet<String> load() throws IOException {
 //		BufferedInputStream reader = new BufferedInputStream(fileReader);
@@ -171,7 +176,7 @@ public final class WordsForWwf extends JPanel {
 //		long start = System.currentTimeMillis();
 		//		int counter = 0;
 //        File file = new File(System.getProperty("user.home") + "/My Documents/Downloads", "enable1.txt");
-		InputStream fileReader = getClass().getResourceAsStream("enable1.txt");
+		InputStream fileReader = getWordStream(getClass());
 		assert fileReader != null;
 		SortedSet<String> wordSet = new TreeSet<String>();
 		BufferedReader reader = new BufferedReader(new InputStreamReader(fileReader, StandardCharsets.UTF_8));

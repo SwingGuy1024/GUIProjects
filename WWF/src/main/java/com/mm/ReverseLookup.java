@@ -71,7 +71,7 @@ public class ReverseLookup extends JPanel{
 
 	private SortedSet<String> load() throws IOException {
 		final SortedSet<String> sortedSet = new TreeSet<>(REVERSE_COMPARE);
-		InputStream stream = getClass().getResourceAsStream("com/mm/englishWords.txt"); 
+		InputStream stream = WordsForWwf.getWordStream(getClass()); 
 		assert stream != null;
 		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
 		try {
