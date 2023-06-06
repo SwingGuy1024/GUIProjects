@@ -58,7 +58,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * Example - create a new filter that filters out all files but gif and jpg
  * image files:
- * <p>
+ * <br>
  * <pre>
  * JFileChooser chooser = new JFileChooser();
  * ExtensionFileFilter filter = new ExtensionFileFilter( new String{"gif", "jpg"}, "JPEG & GIF Images")
@@ -217,7 +217,7 @@ public class ExtensionFileFilter
 
 
 	/**
-	 * Returns the human readable description of this filter. For example: "JPEG
+	 * Returns the human-readable description of this filter. For example: "JPEG
 	 * and GIF Image Files (*.jpg, *.gif)"
 	 *
 	 * @see #setDescription
@@ -251,7 +251,7 @@ public class ExtensionFileFilter
 	}
 
 	/**
-	 * Sets the human readable description of this filter. For example:
+	 * Sets the human-readable description of this filter. For example:
 	 * filter.setDescription("Gif and JPG Images");
 	 *
 	 * @see #getDescription
@@ -266,7 +266,7 @@ public class ExtensionFileFilter
 
 	/**
 	 * Determines whether the extension list (.jpg, .gif, etc) should show up in
-	 * the human readable description.
+	 * the human-readable description.
 	 * <p>
 	 * Only relevent if a description was provided in the constructor or using
 	 * setDescription();
@@ -283,9 +283,9 @@ public class ExtensionFileFilter
 
 	/**
 	 * Returns whether the extension list (.jpg, .gif, etc) should show up in the
-	 * human readable description.
+	 * human-readable description.
 	 * <p>
-	 * Only relevent if a description was provided in the constructor or using
+	 * Only relevant if a description was provided in the constructor or using
 	 * setDescription();
 	 *
 	 * @see #getDescription
