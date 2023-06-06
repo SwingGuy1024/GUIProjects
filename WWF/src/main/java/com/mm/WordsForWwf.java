@@ -68,6 +68,11 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * WordsForWwf (Words for "Words with Friends")
+ * <p>This used to use the enable1.txt file for its list of English words. This is a well known list
+ * that was compiled for use by games. I made a few updates for modern words and created the file 
+ * {@code englishWords.txt}, but both lists have a lot of garbage in them. Then I used AppleScript to
+ * remove all words that are not in the Microsoft Words spelling dictionary. This gave me the current
+ * list, called {@code englishWordsClean.txt}.</p>
  * <br>Created by IntelliJ IDEA.
  * <br>Date: 1/13/12
  * <br>Time: 4:09 PM
@@ -167,7 +172,7 @@ public final class WordsForWwf extends JPanel {
 	}
 	
 	static InputStream getWordStream(Class<?> theClass) {
-		return Objects.requireNonNull(theClass.getResourceAsStream("englishWords.txt"));
+		return Objects.requireNonNull(theClass.getResourceAsStream("englishWordsClean.txt"));
 	}
 
 	private SortedSet<String> load() throws IOException {
@@ -384,7 +389,7 @@ public final class WordsForWwf extends JPanel {
 	}
 	
 	private void addRenderer() {
-		ListCellRenderer<Object> renderer = (ListCellRenderer<Object>) new DefaultListCellRenderer() {
+		ListCellRenderer<Object> renderer = new DefaultListCellRenderer() {
 			@Override
 			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
 				String text = value.toString();
