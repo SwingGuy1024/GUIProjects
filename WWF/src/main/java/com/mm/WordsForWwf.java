@@ -107,8 +107,12 @@ public final class WordsForWwf extends JPanel {
 	private static final Font MONOSPACED = getFont("Menlo,Lucida Console,Monospaced", Font.PLAIN, 14);
 	private final Preferences prefs = Preferences.userNodeForPackage(WordsForWwf.class);
 	private static JFrame sFrame=null;
-	private final JCheckBox reverse = new JCheckBox("Rev");
-	private final JCheckBox tailSort = new JCheckBox("Tail Sort");
+	
+	// Not sure if there's a better way to mark the accelorators. I can do this by 
+	// setting a property in an Action if this were an ordinary Button, but I don't
+	// know if there's a way with a toggle button.
+	private final JCheckBox reverse = new JCheckBox("<html><u>R</u>ev</html>");
+	private final JCheckBox tailSort = new JCheckBox("<html>Tail <u>S</u>ort</html>");
 	private final JMenu hiddenMenu = new JMenu("");
 	private SpinnerIntModel minModel;
 	private SpinnerIntModel maxModel;
