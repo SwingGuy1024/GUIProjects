@@ -20901,6 +20901,7 @@ chimpanzee
 chimpanzees
 chimps
 chin
+china
 chinaberries
 chinaberry
 chinaware
@@ -67964,6 +67965,7 @@ kinas
 kinase
 kinases
 kind
+kinda
 kinder
 kindergarten
 kindergartener
