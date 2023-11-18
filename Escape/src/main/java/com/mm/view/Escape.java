@@ -59,6 +59,8 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.text.PlainDocument;
+
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.mm.util.ExtensionFileFilter;
 
 import static java.awt.event.KeyEvent.*;
@@ -98,11 +100,8 @@ public class Escape
 	public static void main(String[] args)
 	{
     System.out.println("Java version " + System.getProperty("java.version"));
-//    try { UIManager.setLookAndFeel(new MetalLookAndFeel()); }
-//    catch (Exception err) { }
+		FlatMacDarkLaf.setup();
 		//noinspection CatchGenericClass,OverlyBroadCatchBlock
-		try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
-		catch (Exception ignore) { /* Do Nothing */ }
 		sFrame=new JFrame("Escape Code Editor");
 		sFrame.setBounds(sInitLoc, sInitLoc, 600, 900);
 		sFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);

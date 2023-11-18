@@ -57,10 +57,13 @@ import javax.swing.JToggleButton;
 import javax.swing.KeyStroke;
 import javax.swing.ListCellRenderer;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
+
+import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.mm.util.GridHelper;
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.NotNull;
@@ -119,6 +122,7 @@ public final class WordsForWwf extends JPanel {
 	private final TileCount mTileCount;
 
 	public static void main(String[] args) {
+		FlatMacDarkLaf.setup();
 		sFrame = new JFrame("Words For WWF");
 		sFrame.setJMenuBar(new JMenuBar());
 		final WordsForWwf wwf = new WordsForWwf();
@@ -130,6 +134,10 @@ public final class WordsForWwf extends JPanel {
 //		wwf.handlePlatform();
 		sFrame.setVisible(true);
 	}
+
+	// This has to be declared after main() appears in this file, because
+	// it needs to execute after main() executes.
+	private final Color textFgColor = UIManager.getDefaults().getColor("Label.foreground");
 
 //	private void handlePlatform() {
 //		String os = System.getProperty("os.name");
@@ -213,7 +221,7 @@ public final class WordsForWwf extends JPanel {
 	
 	private void setAccelerator(JToggleButton toggleButton, int keyEventKeyCode) {
 		JMenuItem menuItem = new JMenuItem(toggleButton.getText());
-		int mods = Toolkit.getDefaultToolkit().getMenuShortcutKeyMask();
+		int mods = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
 		menuItem.setAccelerator(KeyStroke.getKeyStroke(keyEventKeyCode, mods));
 		hiddenMenu.add(menuItem);
 		menuItem.addActionListener(e -> toggleItem(toggleButton));
@@ -404,7 +412,7 @@ public final class WordsForWwf extends JPanel {
 				if (Character.isLetter(text.charAt(0))) {
 					// Normal entry, formatted and colored black
 					newValue = formatEntry(text);
-					fg = Color.BLACK;
+					fg = textFgColor;
 				} else {
 					// hidden word count. Don't format it
 					newValue = text;

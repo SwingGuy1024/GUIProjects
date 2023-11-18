@@ -1,5 +1,7 @@
 # GUIProjects
 Miscellaneous GUI projects, mostly for fun or specialty use in software development. Each project builds to a Mac executible and an executable jar file.
+### (Icon Notes)
+Icons may be converted at AnyConv.com, or using the Graphics Converter. The Converter file types are listed alphabetically, but you won't find the .icns files under I, but under Apple.
 
 ## Amazing
 My friend Wolf McNalley introduced me to Labyrinths, like the on drawn on the floor of the Cathedral at Chartes. That labyrinth has four axes, and Wolf showed
