@@ -47,7 +47,6 @@ import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.RootPaneContainer;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
@@ -70,7 +69,7 @@ import static java.awt.event.KeyEvent.*;
  * todo: Look at flicker for large properties.
  * todo: Add a check box to control wrapping in the master.
  */
-@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment", "CloneableClassWithoutClone", "UseOfSystemOutOrSystemErr"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicNumber", "HardcodedLineSeparator", "DuplicateStringLiteralInspection", "HardcodedFileSeparator", "StringConcatenation", "MagicCharacter", "MethodOnlyUsedFromInnerClass", "unchecked", "TryFinallyCanBeTryWithResources", "NestedAssignment", "CloneableClassWithoutClone", "UseOfSystemOutOrSystemErr", "UnnecessaryUnicodeEscape"})
 public class Escape
 {
 	public static final Font SANS_SERIF = new Font("SansSerif", Font.PLAIN, 12);
@@ -101,7 +100,7 @@ public class Escape
 	{
     System.out.println("Java version " + System.getProperty("java.version"));
 		FlatMacDarkLaf.setup();
-		//noinspection CatchGenericClass,OverlyBroadCatchBlock
+		//noinspection CatchGenericClass
 		sFrame=new JFrame("Escape Code Editor");
 		sFrame.setBounds(sInitLoc, sInitLoc, 600, 900);
 		sFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
@@ -336,8 +335,8 @@ public class Escape
 	}
 	
 	private void keyTyped(KeyEvent e) {
-		int modsEx = e.getModifiersEx();
-		// Enable this to debug keystrokes.
+		// Enable these to debug keystrokes.
+//		int modsEx = e.getModifiersEx();
 //		System.out.printf("%5d (%c) %s%n", e.getKeyCode(), e.getKeyChar(), modString(modsEx)); // NON-NLS
 	}
 	

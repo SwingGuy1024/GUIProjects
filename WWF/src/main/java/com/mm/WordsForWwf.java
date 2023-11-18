@@ -82,7 +82,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * @author Miguel Muñoz
  */
-@SuppressWarnings({"HardCodedStringLiteral", "MagicCharacter", "MagicNumber", "StringConcatenation", "TryWithIdenticalCatches", "Convert2Diamond", "TryFinallyCanBeTryWithResources", "UseOfSystemOutOrSystemErr"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicCharacter", "MagicNumber", "StringConcatenation", "TryWithIdenticalCatches", "Convert2Diamond", "TryFinallyCanBeTryWithResources", "UseOfSystemOutOrSystemErr", "UnnecessaryUnicodeEscape"})
 public final class WordsForWwf extends JPanel {
 
 	public static final String[] EMPTY = new String[0];
