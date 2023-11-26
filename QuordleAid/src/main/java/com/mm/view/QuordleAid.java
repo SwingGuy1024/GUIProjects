@@ -1,6 +1,7 @@
 package com.mm.view;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
@@ -22,7 +23,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
 import javax.swing.border.MatteBorder;
@@ -35,17 +35,20 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
 
+import com.formdev.flatlaf.FlatDarkLaf;
+
 /**
  * <p>Created by IntelliJ IDEA.
  * <p>Date: 2/14/22
  * <p>Time: 6:34 PM
  *
- * @author Miguel Mu\u00f1oz
+ * @author Miguel Mu–oz
  */
 @SuppressWarnings({"HardCodedStringLiteral", "UseOfSystemOutOrSystemErr"})
 public final class QuordleAid extends JPanel {
 
-  private static final String FREQ = "EARIOTNSLCUDPMHGBFYWKVXZJQ        ";
+  // The width of all the components is determined by the length of this String.
+  private static final String FREQ = "EARIOTNSLCUDPMHGBFYWKVXZJQ          ";
   private static final Font MONO = new Font(Font.MONOSPACED, Font.PLAIN, 20);
   private static final Font MONO_BOLD = MONO.deriveFont(Font.BOLD);
   private static final Deque<Quart> quarts = new LinkedList<>();
@@ -57,12 +60,15 @@ public final class QuordleAid extends JPanel {
       textComponent.select(length, length); // put cursor at the end.
     }
   };
+  public static final float FONT_SIZE = 10.0f;
   private final JLabel frequencyLabel = new JLabel(FREQ);
   private static final char SPACE = ' ';
   private final JTextField played = new JTextField(5);
 
-  public static void main(String[] args) throws UnsupportedLookAndFeelException, ClassNotFoundException, InstantiationException, IllegalAccessException {
-    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+  public static void main(String[] args) {
+//    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+    FlatDarkLaf.setup();
+    UIManager.getDefaults().put("TextField.background", Color.BLACK);
     //noinspection HardCodedStringLiteral
     JFrame jFrame = new JFrame("Quordle Aid");
     jFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -82,7 +88,7 @@ public final class QuordleAid extends JPanel {
   private JPanel makeTopPanel() {
     JPanel topPanel = new JPanel(new GridLayout(0, 1));
     final JLabel version = new JLabel(System.getProperty("java.version"));
-    version.setFont(version.getFont().deriveFont(Font.PLAIN, 10.0f));
+    version.setFont(version.getFont().deriveFont(Font.PLAIN, FONT_SIZE));
     topPanel.add(version);
     
     topPanel.add(frequencyLabel);
