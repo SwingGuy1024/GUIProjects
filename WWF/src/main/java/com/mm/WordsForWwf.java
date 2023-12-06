@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -103,7 +104,7 @@ public final class WordsForWwf extends JPanel {
 	};
 
 	private final JTextField input = new JTextField(LIMIT);
-//	@SuppressWarnings("rawtypes")
+	private final JTextField required = new JTextField(LIMIT);
 	private final JList<String> wordList = new JList<>();
 	private SortedSet<String> words=null;
 	private final SortedSet<String> reverseWords;
@@ -111,7 +112,7 @@ public final class WordsForWwf extends JPanel {
 	private final Preferences prefs = Preferences.userNodeForPackage(WordsForWwf.class);
 	private static JFrame sFrame=null;
 	
-	// Not sure if there's a better way to mark the accelorators. I can do this by 
+	// Not sure if there's a better way to mark the accelerators. I can do this by 
 	// setting a property in an Action if this were an ordinary Button, but I don't
 	// know if there's a way with a toggle button.
 	private final JCheckBox reverse = new JCheckBox("<html><u>R</u>ev</html>");
@@ -235,7 +236,10 @@ public final class WordsForWwf extends JPanel {
 		final JLabel version = new JLabel(System.getProperty("java.version"));
 		version.setFont(version.getFont().deriveFont(Font.PLAIN, 10.0f));
 		helper.add(version, 0, y++, GridBagConstraints.LINE_START);
-		helper.add(input, 0, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
+		helper.add(new JLabel("Find:"), 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 1, 1);
+		helper.add(input, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
+		helper.add(new JLabel("Req:"), 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 1, 1);
+		helper.add(required, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
 
 		setAccelerator(reverse, KeyEvent.VK_R);
 
@@ -269,24 +273,28 @@ public final class WordsForWwf extends JPanel {
 	}
 
 	private void addDataListener() {
-		Document document = input.getDocument();
-		document.addDocumentListener(new DocumentListener() {
-			@Override
-			public void insertUpdate(DocumentEvent e) {
-				process(input.getText());
-			}
+//		Document wordDocument = input.getDocument();
+//		Document requiredDoc = required.getDocument();
+		Document[] documents = {input.getDocument(), required.getDocument() };
+		for (Document doc : documents) {
+			doc.addDocumentListener(new DocumentListener() {
+				@Override
+				public void insertUpdate(DocumentEvent e) {
+					process(input.getText());
+				}
 
-			@Override
-			public void removeUpdate(DocumentEvent e) {
-				process(input.getText());
-			}
+				@Override
+				public void removeUpdate(DocumentEvent e) {
+					process(input.getText());
+				}
 
-			@Override
-			public void changedUpdate(DocumentEvent e) {
-				process(input.getText());
-			}
+				@Override
+				public void changedUpdate(DocumentEvent e) {
+					process(input.getText());
+				}
 
-		});
+			});
+		}
 		
 		reverse.addItemListener(pItemEvent -> process(input.getText()));
 		tailSort.addItemListener(pItemEvent -> process(input.getText()));
@@ -309,21 +317,40 @@ public final class WordsForWwf extends JPanel {
 			}
 			int max = maxModel.getInt();
 			int min = minModel.getInt();
+			int preFilterSize = wordSet.size();
 			if ((min > 1) || (max < LIMIT)) {
 				// rangedModel is a new set, not backed by the original.
-				Set<String> rangedModel = getRangedSubset(wordSet, min, max);
-				
-				// Add in hidden word count...
-				int hiddenCount = wordSet.size() - rangedModel.size();
-				if (hiddenCount == 1) {
-					rangedModel.add("(1 word hidden)");
-				} else if (hiddenCount > 1) {
-					rangedModel.add(String.format("(%d words hidden)", hiddenCount));
+				wordSet = getRangedSubset(wordSet, min, max);
+			}
+			filterForRequiredCharacters(wordSet);
+
+			// Add in hidden word count...
+			int hiddenCount = preFilterSize - wordSet.size();
+			if (hiddenCount == 1) {
+				wordSet.add("(1 word hidden)");
+			} else if (hiddenCount > 1) {
+				wordSet.add(String.format("(%d words hidden)", hiddenCount));
+			}
+			wordList.setListData(wordSet.toArray(EMPTY));
+		}
+	}
+
+	private void filterForRequiredCharacters(Set<String> wordSet) {
+		char[] requiredLetters = required.getText().toUpperCase().toCharArray();
+		if (requiredLetters.length > 0) {
+			int goal = requiredLetters.length;
+			Iterator<String> itr = wordSet.iterator();
+			while (itr.hasNext()) {
+				String word = itr.next();
+				int rCount = 0;
+				for (char c: requiredLetters) {
+					if (word.indexOf(c) >= 0) {
+						rCount++;
+					}
 				}
-				
-				wordList.setListData(rangedModel.toArray(EMPTY));
-			} else {
-				wordList.setListData(wordSet.toArray(EMPTY));
+				if (rCount < goal) {
+					itr.remove();
+				}
 			}
 		}
 	}
@@ -336,7 +363,7 @@ public final class WordsForWwf extends JPanel {
 		} else {
 			wordSet = words.subSet(pText, lastWord);
 		}
-		return wordSet;
+		return new TreeSet<>(wordSet); // return a set that's NOT backed by the original, so we can delete elements.
 	}
 
 	private Set<String> getReverseList(String text) {
@@ -350,7 +377,7 @@ public final class WordsForWwf extends JPanel {
 		// new TreeSet to alphabetize in forward order.
 		return newTreeSet(wordSet);
 	}
-	
+
 	private TreeSet<String> newTreeSet(Collection<String> words) {
 		TreeSet<String> treeSet = newTreeSet();
 		treeSet.addAll(words);
@@ -814,6 +841,7 @@ public final class WordsForWwf extends JPanel {
 	 * @return The first font found from the list of font names. If none of the 
 	 * named fonts are found, returns Dialog
 	 */
+	@SuppressWarnings("SameParameterValue")
 	private static Font getFont(String fontNameList, @MagicConstant(valuesFromClass = Font.class) int style, int size) {
 		String[] fonts = fontNameList.split(",");
 		for (String name: fonts) {
@@ -830,8 +858,8 @@ public final class WordsForWwf extends JPanel {
 			super(value, min, max, 1);
 		}
 
-		public int getMin() { return (Integer) getMinimum(); }
-		public int getMax() { return (Integer) getMaximum(); }
+//		public int getMin() { return (Integer) getMinimum(); }
+//		public int getMax() { return (Integer) getMaximum(); }
 		public int getInt() { return (Integer) getNumber(); }
 	}
 	
@@ -839,10 +867,12 @@ public final class WordsForWwf extends JPanel {
 		private Map<String, String> opMap=null;
 
 		public Map<String, String> getOpMap() {
+			//noinspection AssignmentOrReturnOfFieldWithMutableType
 			return opMap;
 		}
 
 		public void setOpMap(Map<String, String> pOpMap) {
+			//noinspection AssignmentOrReturnOfFieldWithMutableType
 			opMap = pOpMap;
 		}
 	}
