@@ -81099,6 +81099,7 @@ kinas
 kinase
 kinases
 kind
+kinda
 kinder
 kindergarten
 kindergartener

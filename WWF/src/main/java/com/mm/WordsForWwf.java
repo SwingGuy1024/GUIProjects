@@ -185,7 +185,9 @@ public final class WordsForWwf extends JPanel {
 	}
 	
 	static InputStream getWordStream(Class<?> theClass) {
-		return Objects.requireNonNull(theClass.getResourceAsStream("englishWordsClean.txt"));
+//		return Objects.requireNonNull(theClass.getResourceAsStream("englishWordsClean.txt"));
+		// returning to enable1.txt after adding gypsy, china, young, and needing to add copse to englishWordsClean.txt.
+		return Objects.requireNonNull(theClass.getResourceAsStream("enable1.txt"));
 	}
 
 	private SortedSet<String> load() throws IOException {
