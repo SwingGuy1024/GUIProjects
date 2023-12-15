@@ -1,10 +1,16 @@
 package com.mm.gui;
 
+import java.awt.Font;
 import java.awt.GridLayout;
 import java.text.Normalizer;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,7 +19,10 @@ import javax.swing.JTextArea;
  * Time: 8:35:34 PM
  * To change this template use File | Settings | File Templates.
  */
-public class Utils {
+@SuppressWarnings({"UnnecessaryUnicodeEscape", "MagicNumber"})
+public enum Utils {
+	;
+
 	public static void main(String[] args) {
 		String testString = "r\u00f4le\u030a, ro\u0302le 35\u00c5, A\u030arch \ufb01ne, first, 2\u2075 C\u0152R D\u00c6R";
 		
@@ -65,4 +74,47 @@ public class Utils {
 		}
 		return builder.toString();
 	}
-}
+	
+	public static JScrollPane wrap(JTextArea textArea, boolean monospace) {
+		Font originalFont = textArea.getFont();
+		if (monospace) {
+			Font monoFont = new Font(Font.MONOSPACED, originalFont.getStyle(), originalFont.getSize());
+			textArea.setFont(monoFont);
+		}
+		return wrap(textArea);
+	}
+	
+	public static JScrollPane wrap(JTextArea textArea) {
+		textArea.setWrapStyleWord(true);
+		textArea.setLineWrap(true);
+		return new JScrollPane(textArea,
+				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+	}
+
+	public static Iterable<Character> iter(String s) {
+
+		return new Iterable<Character>() {
+			private int i = 0;
+
+			@NotNull
+			@Override
+			public Iterator<Character> iterator() {
+				return new Iterator<Character>() {
+
+					@Override
+					public boolean hasNext() {
+						return i < s.length();
+					}
+
+					@Override
+					public Character next() {
+						if (!hasNext()) {
+							throw new NoSuchElementException(String.format("Index = %d", i));
+						}
+						return s.charAt(i++);
+					}
+				};
+			}
+		};
+	}}
