@@ -9,8 +9,12 @@ import java.awt.event.FocusListener;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextArea;
@@ -48,6 +52,7 @@ import static com.mm.gui.Utils.iter;
  * <p>WHOMP GIJUZQX VERY, DIFOLS BANK COT.</p>
  * <p>FLICK, QVXOZ, NEW TRAMP BASH JUG DRY.</p>
  * <p>QSO NELTZ JUPRF WPM VECKG PYOU QSO AIHD BPX.</p>
+ * <p>DZUZBC FZWO LZ HZDWC TOMSDB SDCPZQW, TL'O LZZ HQZKBWB! — CZFT UWQQS</p>
  * <P>SGD MTLADQR NM SGD OHDBDR NE OZODQ ZQD Z MHGHKHRS BHOGDQ, VGHBG MDDCR SVN CDBQXOSHNM JDXR: NMD SN LZJD SGD FQHC ZMC ZMNSGDQ ENQ SGD ZCCHSHUD RSDO.</P>
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 12/14/23</p>
@@ -68,6 +73,8 @@ public final class Crypto extends JPanel {
   private final JTextField clearKey = new JTextField(ALPHABET);
 
   private final Map<Character, Character> cipherMap = makeCipherMap(this);
+  private final JButton clearButton = new JButton("Clear");
+  private final JButton encryptButton = new JButton("Encrypt");
 
   public static void main(String[] args) {
     FlatDarkLaf.setup();
@@ -91,7 +98,7 @@ public final class Crypto extends JPanel {
         return rVal;
       }
     };
-    return packMap(cipherMap);
+    return initializeMap(cipherMap);
   }
 
   private void updateKeys() {
@@ -119,7 +126,7 @@ public final class Crypto extends JPanel {
   }
 
   @NotNull
-  private static Map<Character, Character> packMap(Map<Character, Character> cipherMap) {
+  private static Map<Character, Character> initializeMap(Map<Character, Character> cipherMap) {
     cipherMap.clear();
     for (char c = 'A'; c <= 'Z'; ++c) {
       cipherMap.put(c, DOT);
@@ -137,24 +144,34 @@ public final class Crypto extends JPanel {
     initialText.setFont(monoFont);
     cipherKey.setFont(monoFont);
     clearKey.setFont(monoFont);
-    FocusListener fl = new FocusListener() {
+    FocusListener initialFl = new FocusListener() {
       @Override
       public void focusGained(FocusEvent e) {
         initialText.selectAll();
       }
 
       @Override
-      public void focusLost(FocusEvent e) {
+      public void focusLost(FocusEvent e) { }
+    };
+    initialText.addFocusListener(initialFl);
+
+    FocusListener clearFl = new FocusListener() {
+      @Override
+      public void focusGained(FocusEvent e) {
         if (!e.isTemporary()) {
           cipherText.setText(initialText.getText());
           clearText.setText("");
           decode();
           clearText.requestFocusInWindow();
           updateKeys();
+          encryptButton.setEnabled(false);
         }
       }
+
+      @Override
+      public void focusLost(FocusEvent e) { }
     };
-    initialText.addFocusListener(fl);
+    clearText.addFocusListener(clearFl);
 
     DocumentFilter toUpperFilter = new DocumentFilter() {
 
@@ -266,19 +283,77 @@ public final class Crypto extends JPanel {
   }
 
   private void doClear() {
-    packMap(cipherMap);
+    initializeMap(cipherMap);
     initialText.setText("");
     cipherText.setText("");
     clearText.setText("");
+    encryptButton.setEnabled(true);
     initialText.requestFocus();
   }
   
-  private JPanel makeTopPane() {
-    JPanel panel = new JPanel(new BorderLayout());
+  private void doEncrypt() {
+    StringBuilder builder = new StringBuilder("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    initializeMap(cipherMap);
+    Random random = new Random(System.currentTimeMillis());
+    char cipherChar = 'A';
+    while (builder.length() > 2) {
+      boolean misMatch;
+      char clearChar;
+      int index;
+      do  {
+        // never match a character to itself!
+        index = random.nextInt(builder.length());
+        clearChar = builder.charAt(index);
+        misMatch = clearChar == cipherChar;
+      } while (misMatch);
+      builder.delete(index, index+1);
+      cipherMap.put(cipherChar++, clearChar);
+    }
+    
+    // Two letters remain to be mapped to Y and Z.
+    if (mapLastOnes(builder, 'Y', 'Z')) {
+      if (mapLastOnes(builder, 'Z', 'Y')) {
+        // Neither remaining character is Y nor Z, so there's no chance for a mismatch
+        int index = random.nextInt(2);
+        char clearChar = builder.charAt(index);
+        cipherMap.put('Y', clearChar);
+        clearChar = builder.charAt(0);
+        cipherMap.put('Z', clearChar);
+      }
+    }
+    
+    StringBuilder cipherBuilder = new StringBuilder();
+    for (char c: initialText.getText().toCharArray()) {
+      if (Character.isLetter(c)) {
+        c = cipherMap.get(c);
+      }
+      cipherBuilder.append(c);
+    }
+    doClear();
+    initialText.setText(cipherBuilder.toString());
+    updateKeys();
+  }
+
+  private boolean mapLastOnes(StringBuilder builder, char p1, char p2) {
+    int index = builder.indexOf(String.valueOf(p1));
+    if (index >= 0) {
+      int clearIndex = 1-index; // index is either 0 or 1. So clearIndex does NOT point to Y.
+      char clearChar = builder.charAt(clearIndex);
+      cipherMap.put(p1, clearChar);
+      builder.delete(clearIndex, clearIndex+1);
+      cipherMap.put(p2, builder.charAt(0));
+      return false;
+    }
+    return true; // True means it needs to keep looking.
+  }
+
+  private JComponent makeTopPane() {
+    var panel = new  Box(BoxLayout.X_AXIS);
     panel.add(BorderLayout.CENTER, initialText);
-    JButton clear = new JButton("Clear");
-    panel.add(BorderLayout.LINE_END, clear);
-    clear.addActionListener(e-> doClear());
+    panel.add(BorderLayout.LINE_END, clearButton);
+    clearButton.addActionListener(e-> doClear());
+    encryptButton.addActionListener(e -> doEncrypt());
+    panel.add(encryptButton);
     return panel;
   }
 
@@ -292,6 +367,8 @@ public final class Crypto extends JPanel {
   
   private JPanel makeBottomPane() {
     JPanel bottomPane = new JPanel(new GridLayout(0, 1));
+    cipherKey.setEditable(false);
+    clearKey.setEditable(false);
     bottomPane.add(cipherKey);
     bottomPane.add(clearKey);
     return bottomPane;
