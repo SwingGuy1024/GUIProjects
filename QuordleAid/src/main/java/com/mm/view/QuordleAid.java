@@ -47,7 +47,7 @@ import com.formdev.flatlaf.FlatDarkLaf;
 @SuppressWarnings({"HardCodedStringLiteral", "UseOfSystemOutOrSystemErr"})
 public final class QuordleAid extends JPanel {
 
-  // The width of all the components is determined by the length of this String.
+  // The initial width of all the components is determined by the length of this String.
   private static final String FREQ = "EARIOTNSLCUDPMHGBFYWKVXZJQ          ";
   private static final Font MONO = new Font(Font.MONOSPACED, Font.PLAIN, 20);
   private static final Font MONO_BOLD = MONO.deriveFont(Font.BOLD);
