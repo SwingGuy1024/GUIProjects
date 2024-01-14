@@ -5,16 +5,18 @@
 
 package csk.penrose;
 
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+
 import csk.taprats.general.ParseXML;
 import csk.taprats.general.XMLParseError;
 import csk.taprats.geometry.Point;
 import csk.taprats.geometry.Transform;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Enumeration;
-import java.util.Vector;
 import org.w3c.dom.Element;
 
+@SuppressWarnings({"AssignmentOrReturnOfFieldWithMutableType", "ImplicitCallToSuper", "MagicNumber", "AssignmentToSuperclassField", "unused", "NonReproducibleMathCall", "PublicStaticArrayField", "ReassignedVariable", "rawtypes", "StringConcatenation"})
 public class KiteDart extends PenroseTile {
   public static final double phi = 1.61803398875D;
   public static final Point A = new Point(0.0D, 0.0D);
@@ -22,17 +24,20 @@ public class KiteDart extends PenroseTile {
   public static final Point C = new Point(0.0D, 1.61803398875D);
   public static final Point D = new Point(-Math.cos(0.3141592653589793D), Math.sin(0.3141592653589793D));
   public static final Point E = new Point(0.0D, -1.0D);
-  public static final boolean[] keo = new boolean[]{false, false, false, true, false, true, false, true, true, true};
-  public static final boolean[] deo = new boolean[]{true, true, true, false, true, false, true, false, false, false};
+  public static final boolean[] keo = {false, false, false, true, false, true, false, true, true, true};
+  public static final boolean[] deo = {true, true, true, false, true, false, true, false, false, false};
 
+  @Override
   public boolean isFirstRotated(int var1) {
     return keo[var1];
   }
 
+  @Override
   public boolean isSecondRotated(int var1) {
     return deo[var1];
   }
 
+  @Override
   public Point[] getFirstEdge(int var1) {
     switch (var1) {
       case 0:
@@ -53,6 +58,7 @@ public class KiteDart extends PenroseTile {
     }
   }
 
+  @Override
   public void setFirstEdge(int var1, Point[] var2) {
     switch (var1) {
       case 0:
@@ -76,6 +82,7 @@ public class KiteDart extends PenroseTile {
     }
   }
 
+  @Override
   public Point[] getSecondEdge(int var1) {
     switch (var1) {
       case 0:
@@ -96,6 +103,7 @@ public class KiteDart extends PenroseTile {
     }
   }
 
+  @Override
   public void setSecondEdge(int var1, Point[] var2) {
     switch (var1) {
       case 0:
@@ -143,11 +151,13 @@ public class KiteDart extends PenroseTile {
     this.vs2 = new Point[]{A, var1, var2, var3, C, var4.apply(var3), var4.apply(var2), D, var5.apply(var2), var5.apply(var1)};
   }
 
+  @Override
   public void setParameter(int var1, double var2) {
     super.setParameter(var1, var2);
     this.setupTilingVertices();
   }
 
+  @Override
   public void setParameters(double[] var1) {
     super.setParameters(var1);
     this.setupTilingVertices();
@@ -159,48 +169,45 @@ public class KiteDart extends PenroseTile {
     int var4 = 0;
     Enumeration var5 = ParseXML.getChildren(var1);
 
-    while (true) {
-      while (var5.hasMoreElements()) {
-        Element var6 = (Element) ((Element) var5.nextElement());
-        Enumeration var8;
-        Element var9;
-        if (var6.getNodeName().equals("vertices")) {
-          int var10 = 0;
+    while (var5.hasMoreElements()) {
+      Element var6 = (Element) var5.nextElement();
+      Enumeration var8;
+      Element var9;
+      if ("vertices".equals(var6.getNodeName())) {
+        int var10 = 0;
 
-          for (var8 = ParseXML.getChildren(var6); var8.hasMoreElements(); ++var10) {
-            var9 = (Element) ((Element) var8.nextElement());
-            this.ps[var10] = ParseXML.getElementDouble(var9, "val", "param");
-          }
-
-          double[] var10000 = this.ps;
-          var10000[1] *= 6.283185307179586D;
-          var10000 = this.ps;
-          var10000[3] *= 6.283185307179586D;
-        } else if (var6.getNodeName().equals("edge_shape")) {
-          Vector var7 = new Vector();
-          var8 = ParseXML.getChildren(var6);
-
-          while (var8.hasMoreElements()) {
-            var9 = (Element) ((Element) var8.nextElement());
-            var7.addElement(ParseXML.getPoint(var9));
-          }
-
-          var3[var4] = new Point[var7.size()];
-          var7.copyInto(var3[var4]);
-          ++var4;
+        for (var8 = ParseXML.getChildren(var6); var8.hasMoreElements(); ++var10) {
+          var9 = (Element) (var8.nextElement());
+          this.ps[var10] = ParseXML.getElementDouble(var9, "val", "param");
         }
-      }
 
-      this.ea = var3[0];
-      this.eb = var3[1];
-      this.ec = var3[2];
-      this.ed = var3[3];
-      this.setupTilingVertices();
-      return;
+        double[] var10000 = this.ps;
+        var10000[1] *= 6.283185307179586D;
+        var10000[3] *= 6.283185307179586D;
+      } else if ("edge_shape".equals(var6.getNodeName())) {
+        List<Point> var7 = new ArrayList<>();
+        var8 = ParseXML.getChildren(var6);
+
+        while (var8.hasMoreElements()) {
+          var9 = (Element) var8.nextElement();
+          var7.add(ParseXML.getPoint(var9));
+        }
+
+        var3[var4] = new Point[var7.size()];
+        var7.toArray(var3[var4]);
+        ++var4;
+      }
     }
+
+    this.ea = var3[0];
+    this.eb = var3[1];
+    this.ec = var3[2];
+    this.ed = var3[3];
+    this.setupTilingVertices();
   }
 
-  public void write(PrintWriter var1, String var2) throws IOException {
+  @Override
+  public void write(PrintWriter var1, String var2) {
     var1.println(var2 + "<penrose type=\"P2\">");
     var1.println(var2 + "  <vertices>");
     var1.println(var2 + "    <param val=\"" + this.ps[0] + "\"/>");

@@ -16,6 +16,7 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.util.Vector;
 
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "ProtectedField", "unused", "AssignmentOrReturnOfFieldWithMutableType", "rawtypes", "LiteralAsArgToStringEquals", "ReassignedVariable", "UseOfObsoleteCollectionType", "unchecked", "RedundantThrows", "StringConcatenation", "override", "NestedTryStatement", "CatchMayIgnoreException", "ConcatenationWithEmptyString", "SingleCharacterStringConcatenation"})
 public class Viewer extends GeoView {
   protected PenroseTile tile;
   protected Transform[] first_xforms;
@@ -50,7 +51,7 @@ public class Viewer extends GeoView {
       Input var2 = new Input(var1);
       int var3 = var2.readInt();
       int var4 = var2.readInt();
-      Transform var5 = Transform.scale(1.0D / (double) Math.max(var3, var4));
+      Transform var5 = Transform.scale(1.0D / Math.max(var3, var4));
       Vector var6 = new Vector();
       Vector var7 = new Vector();
 

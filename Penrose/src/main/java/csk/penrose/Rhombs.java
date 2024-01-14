@@ -15,6 +15,7 @@ import java.util.Enumeration;
 import java.util.Vector;
 import org.w3c.dom.Element;
 
+@SuppressWarnings({"MagicNumber", "unused", "PublicStaticArrayField", "UnnecessaryConstantArrayCreationExpression", "AssignmentOrReturnOfFieldWithMutableType", "ImplicitCallToSuper", "AssignmentToSuperclassField", "rawtypes", "LoopStatementThatDoesntLoop", "RedundantCast", "LiteralAsArgToStringEquals", "ReassignedVariable", "UseOfObsoleteCollectionType", "unchecked", "RedundantThrows", "StringConcatenation", "NonReproducibleMathCall"})
 public class Rhombs extends PenroseTile {
   public static final double phi = 1.61803398875D;
   public static final double thinx = 1.0D / Math.tan(1.2566370614359172D);
@@ -74,11 +75,13 @@ public class Rhombs extends PenroseTile {
     this.vs2[11] = var2.apply(this.vs2[1]);
   }
 
+  @Override
   public void setParameter(int var1, double var2) {
     super.setParameter(var1, var2);
     this.setupTilingVertices();
   }
 
+  @Override
   public void setParameters(double[] var1) {
     super.setParameters(var1);
     this.setupTilingVertices();
@@ -105,7 +108,6 @@ public class Rhombs extends PenroseTile {
 
           double[] var10000 = this.ps;
           var10000[1] *= 6.283185307179586D;
-          var10000 = this.ps;
           var10000[3] *= 6.283185307179586D;
         } else if (var6.getNodeName().equals("edge_shape")) {
           Vector var7 = new Vector();
@@ -131,6 +133,7 @@ public class Rhombs extends PenroseTile {
     }
   }
 
+  @Override
   public void write(PrintWriter var1, String var2) throws IOException {
     var1.println(var2 + "<penrose type=\"P3\">");
     var1.println(var2 + "  <vertices>");
@@ -147,14 +150,17 @@ public class Rhombs extends PenroseTile {
     var1.println(var2 + "</penrose>");
   }
 
+  @Override
   public boolean isFirstRotated(int var1) {
     return rot_thin[var1];
   }
 
+  @Override
   public boolean isSecondRotated(int var1) {
     return rot_thick[var1];
   }
 
+  @Override
   public Point[] getFirstEdge(int var1) {
     switch (var1) {
       case 1:
@@ -173,6 +179,7 @@ public class Rhombs extends PenroseTile {
     }
   }
 
+  @Override
   public void setFirstEdge(int var1, Point[] var2) {
     switch (var1) {
       case 1:
@@ -194,6 +201,7 @@ public class Rhombs extends PenroseTile {
     }
   }
 
+  @Override
   public Point[] getSecondEdge(int var1) {
     switch (var1) {
       case 1:
@@ -214,6 +222,7 @@ public class Rhombs extends PenroseTile {
     }
   }
 
+  @Override
   public void setSecondEdge(int var1, Point[] var2) {
     switch (var1) {
       case 1:

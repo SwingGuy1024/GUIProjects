@@ -7,6 +7,7 @@ package csk.taprats.geometry;
 
 import csk.taprats.general.Loose;
 
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "unused", "UnnecessaryConstantArrayCreationExpression", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "override", "SingleCharacterStringConcatenation", "FinalStaticMethod", "MethodDoesntCallSuperMethod", "UnnecessaryLocalVariable", "ConditionalExpressionWithNegatedCondition", "StatementWithEmptyBody", "SimplifiableConditionalExpression", "NonFinalFieldReferencedInHashCode", "StringBufferMayBeStringBuilder", "NonReproducibleMathCall"})
 public class Point implements Cloneable {
   private static final double TRUNC = 1.0E7D;
   public static final Point ORIGIN = new Point(0.0D, 0.0D);
@@ -217,9 +218,9 @@ public class Point implements Cloneable {
   }
 
   public static final void main(String[] var0) {
-    Point var1 = new Point(new Double(var0[0]), new Double(var0[1]));
-    Point var2 = new Point(new Double(var0[2]), new Double(var0[3]));
-    Point var3 = new Point(new Double(var0[4]), new Double(var0[5]));
+    Point var1 = new Point(Double.parseDouble(var0[0]), Double.parseDouble(var0[1]));
+    Point var2 = new Point(Double.parseDouble(var0[2]), Double.parseDouble(var0[3]));
+    Point var3 = new Point(Double.parseDouble(var0[4]), Double.parseDouble(var0[5]));
     System.out.println(var1.distToSegment(var2, var3));
   }
 }

@@ -10,6 +10,7 @@ import java.awt.Frame;
 import java.io.File;
 import java.util.Hashtable;
 
+@SuppressWarnings({"UnclearExpression", "unused", "rawtypes", "ReassignedVariable", "UseOfObsoleteCollectionType", "unchecked", "RedundantThrows", "StringConcatenation", "deprecation", "SingleCharacterStringConcatenation", "NonFinalUtilityClass", "FinalStaticMethod", "UtilityClassWithPublicConstructor", "UtilityClassWithoutPrivateConstructor", "DataFlowIssue", "ReturnOfNull", "FinalPrivateMethod", "FieldMayBeFinal", "UnusedReturnValue"})
 public class LoadSave {
   private static Hashtable last_dir = new Hashtable();
 

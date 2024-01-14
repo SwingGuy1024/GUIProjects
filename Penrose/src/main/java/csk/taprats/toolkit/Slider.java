@@ -5,23 +5,25 @@
 
 package csk.taprats.toolkit;
 
-import csk.taprats.general.Signal;
-import java.awt.Container;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Label;
-import java.awt.Panel;
-import java.awt.Scrollbar;
-import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollBar;
+import javax.swing.JTextField;
 
+import csk.taprats.general.Signal;
+
+@SuppressWarnings({"MagicNumber", "NumericCastThatLosesPrecision", "UnclearExpression", "UnusedAssignment", "unused", "RedundantCast", "ReassignedVariable", "RedundantThrows", "Convert2Lambda", "override", "FieldMayBeFinal", "FloatingPointEquality", "UnusedReturnValue", "UnnecessaryExplicitNumericCast", "PublicField"})
 public class Slider {
-  private Label name;
-  private Scrollbar scroll;
-  private TextField field;
+  private JLabel name;
+  private JScrollBar scroll;
+  private JTextField field;
   private double min;
   private double max;
   private double val;
@@ -33,9 +35,9 @@ public class Slider {
     this.min = var4;
     this.max = var6;
     this.integral = false;
-    this.name = new Label(var1);
-    this.field = new TextField(this.ftoa(var2), 9);
-    this.scroll = new Scrollbar(0, this.getSlideLoc(var2), 1, 0, 257);
+    this.name = new JLabel(var1);
+    this.field = new JTextField(this.ftoa(var2), 9);
+    this.scroll = new JScrollBar(JScrollBar.HORIZONTAL, this.getSlideLoc(var2), 1, 0, 257);
     this.value_changed = new Signal();
     this.scroll.addAdjustmentListener(new AdjustmentListener() {
       public void adjustmentValueChanged(AdjustmentEvent var1) {
@@ -54,9 +56,8 @@ public class Slider {
     if (var1 != this.val) {
       this.field.setText(this.ftoa(var1));
       this.val = var1;
-      this.value_changed.signotify(new Double(this.val));
+      this.value_changed.signotify(this.val);
     }
-
   }
 
   private void updateFromField() {
@@ -65,7 +66,7 @@ public class Slider {
       if (this.integral) {
         var1 = (double) Integer.parseInt(this.field.getText());
       } else {
-        var1 = new Double(this.field.getText());
+        var1 = Double.parseDouble(this.field.getText());
       }
 
       if (var1 < this.min) {
@@ -78,7 +79,7 @@ public class Slider {
         this.field.setText(this.ftoa(var1));
         this.scroll.setValue(this.getSlideLoc(var1));
         this.val = var1;
-        this.value_changed.signotify(new Double(var1));
+        this.value_changed.signotify(var1);
       }
     } catch (NumberFormatException var3) {
       this.field.setText(this.ftoa(this.val));
@@ -126,7 +127,7 @@ public class Slider {
     this.field.setText(this.ftoa(var1));
     this.val = var1;
     if (var3) {
-      this.value_changed.signotify(new Double(var1));
+      this.value_changed.signotify(var1);
     }
 
   }
@@ -149,15 +150,15 @@ public class Slider {
     this.integral = var1;
   }
 
-  public Panel getAsPanel() {
-    Panel var1 = new Panel();
+  public JPanel getAsPanel() {
+    JPanel var1 = new JPanel();
     GridBagLayout var2 = new GridBagLayout();
     var1.setLayout(var2);
     this.insert(var1, var2, 0, 0);
     return var1;
   }
 
-  public void insert(Container var1, GridBagLayout var2, int var3, int var4) {
+  public void insert(JComponent var1, GridBagLayout var2, int var3, int var4) {
     GridBagConstraints var5 = new GridBagConstraints();
     var5.gridx = var3;
     var5.gridy = var4;

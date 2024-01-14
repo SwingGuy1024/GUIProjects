@@ -7,14 +7,15 @@ package csk.taprats;
 
 import java.util.StringTokenizer;
 
+@SuppressWarnings({"unused", "UnnecessaryConstantArrayCreationExpression", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "MagicCharacter", "OverlyBroadCatchBlock", "NonFinalUtilityClass", "FinalStaticMethod", "UtilityClassWithPublicConstructor", "UtilityClassWithoutPrivateConstructor", "ThrowInsideCatchBlockWhichIgnoresCaughtException", "UnnecessaryLocalVariable", "StringBufferMayBeStringBuilder", "UnusedReturnValue"})
 public class Taprats {
   public static final String NAME = "Taprats";
   public static final int MAJOR_VERSION = 0;
   public static final int MINOR_VERSION = 5;
   public static final int MICRO_VERSION = 0;
   public static final String AUTHOR = "Craig S. Kaplan";
-  public static boolean IS_APPLET = false;
-  public static boolean DEBUG = false;
+//  public static boolean IS_APPLET = false;
+//  public static boolean DEBUG = false;
 
   public Taprats() {
   }

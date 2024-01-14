@@ -17,6 +17,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
 
+@SuppressWarnings({"MagicNumber", "NumericCastThatLosesPrecision", "UnclearExpression", "ProtectedField", "PackageVisibleField", "UnusedAssignment"})
 public class Editor extends GeoView {
   protected PenroseTile tile;
   protected App app;
@@ -35,7 +36,7 @@ public class Editor extends GeoView {
     this.drag_edge = -1;
     this.setSink(true);
     this.setBackground(new Color(0.9372549F, 0.9372549F, 0.9372549F));
-    Editor.MouseGuy var4 = new Editor.MouseGuy();
+    MouseGuy var4 = new MouseGuy();
     this.addMouseListener(var4);
     this.addMouseMotionListener(var4);
     this.setBounds(var3.getLeft(), var3.getTop(), var3.getWidth());
@@ -67,6 +68,7 @@ public class Editor extends GeoView {
     this.setBounds(var2.getLeft(), var2.getTop(), var2.getWidth());
   }
 
+  @Override
   public void redraw(GeoGraphics var1) {
     Color var5 = Color.black;
     Color var6 = null;
@@ -139,21 +141,24 @@ public class Editor extends GeoView {
 
   }
 
+  @SuppressWarnings({"PublicConstructorInNonPublicClass", "ImplicitCallToSuper", "unused", "UnusedAssignment", "IfStatementWithIdenticalBranches"})
   class MouseGuy extends MouseAdapter implements MouseMotionListener {
     public MouseGuy() {
     }
 
+    @Override
     public void mouseReleased(MouseEvent var1) {
       Editor.this.drag_edge = -1;
       Editor.this.drag_vert = -1;
       Editor.this.app.doUpdate();
     }
 
+    @Override
     public void mousePressed(MouseEvent var1) {
       if (!GeoView.isShift(var1)) {
         Editor.this.drag_edge = -1;
         Editor.this.drag_vert = -1;
-        Point var5 = new Point((double) var1.getX(), (double) var1.getY());
+        Point var5 = new Point(var1.getX(), var1.getY());
         Point[] var2;
         Point[] var3;
         Point[][] var4;
@@ -266,9 +271,7 @@ public class Editor extends GeoView {
       }
     }
 
-    public void mouseMoved(MouseEvent var1) {
-    }
-
+    @Override
     public void mouseDragged(MouseEvent var1) {
       if (!GeoView.isShift(var1)) {
         if (Editor.this.drag_edge != -1) {

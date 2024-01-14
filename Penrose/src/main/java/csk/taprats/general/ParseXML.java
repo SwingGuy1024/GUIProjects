@@ -28,6 +28,7 @@ import org.w3c.dom.NodeList;
 import org.w3c.dom.ProcessingInstruction;
 import org.xml.sax.SAXException;
 
+@SuppressWarnings({"MagicNumber", "NumericCastThatLosesPrecision", "UnclearExpression", "ProtectedField", "PackageVisibleField", "UnusedAssignment", "unused", "PublicStaticArrayField", "UnnecessaryConstantArrayCreationExpression", "AssignmentOrReturnOfFieldWithMutableType", "ImplicitCallToSuper", "AssignmentToSuperclassField", "rawtypes", "LoopStatementThatDoesntLoop", "RedundantCast", "LiteralAsArgToStringEquals", "ReassignedVariable", "UseOfObsoleteCollectionType", "unchecked", "RedundantThrows", "StringConcatenation", "RedundantSuppression", "MagicCharacter", "Convert2Lambda", "deprecation", "OverlyBroadCatchBlock", "override", "NestedTryStatement", "CatchMayIgnoreException", "ConcatenationWithEmptyString", "SingleCharacterStringConcatenation", "NonFinalUtilityClass", "FinalStaticMethod", "UtilityClassWithPublicConstructor", "UtilityClassWithoutPrivateConstructor", "FieldCanBeLocal", "ThrowInsideCatchBlockWhichIgnoresCaughtException", "TryWithIdenticalCatches", "SizeReplaceableByIsEmpty", "DataFlowIssue", "UnnecessaryBoxing", "ReturnOfNull", "IOStreamConstructor"})
 public class ParseXML {
   protected Document doc;
   private static DocumentBuilderFactory doc_factory;
@@ -84,7 +85,7 @@ public class ParseXML {
     StringTokenizer var4 = new StringTokenizer(var1, ",");
 
     while (var4.hasMoreTokens()) {
-      var3.addElement(new Double(getPropDouble(var0, var4.nextToken())));
+      var3.addElement(getPropDouble(var0, var4.nextToken()));
     }
 
     double[] var5 = new double[var3.size()];
@@ -120,7 +121,7 @@ public class ParseXML {
 
   public static double getPropDouble(Element var0, String var1) throws XMLParseError {
     try {
-      return new Double(getProp(var0, var1));
+      return Double.valueOf(getProp(var0, var1));
     } catch (NumberFormatException var3) {
       throw new XMLParseError("Illegal floating point data in input");
     }
@@ -152,14 +153,14 @@ public class ParseXML {
     }
   }
 
-  public static Enumeration getChildren(Element var0) {
+  public static Enumeration<Node> getChildren(Element var0) {
     return new ChildEnum(var0);
   }
 
   public static int numChildren(Element var0) {
     int var1 = 0;
 
-    for (Enumeration var2 = getChildren(var0); var2.hasMoreElements(); ++var1) {
+    for (Enumeration<Node> var2 = getChildren(var0); var2.hasMoreElements(); ++var1) {
       var2.nextElement();
     }
 
@@ -167,7 +168,7 @@ public class ParseXML {
   }
 
   public static Element getOnlyChild(Element var0) throws XMLParseError {
-    Enumeration var1 = getChildren(var0);
+    Enumeration<Node> var1 = getChildren(var0);
     if (var1.hasMoreElements()) {
       Element var2 = (Element) var1.nextElement();
       if (var1.hasMoreElements()) {

@@ -5,6 +5,7 @@
 
 package csk.taprats.geometry;
 
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "unused", "RedundantThrows", "StringConcatenation", "override", "DataFlowIssue", "ReturnOfNull", "FieldMayBeFinal"})
 public class Rect {
   private double x;
   private double y;

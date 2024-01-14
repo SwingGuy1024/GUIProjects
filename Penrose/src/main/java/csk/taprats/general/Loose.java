@@ -7,6 +7,7 @@ package csk.taprats.general;
 
 import csk.taprats.geometry.Point;
 
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "unused", "ReassignedVariable", "RedundantThrows", "NonFinalUtilityClass", "FinalStaticMethod", "UtilityClassWithPublicConstructor", "UtilityClassWithoutPrivateConstructor"})
 public class Loose {
   public static final double TOL = 1.0E-7D;
   public static final double TOL2 = 1.0E-10D;

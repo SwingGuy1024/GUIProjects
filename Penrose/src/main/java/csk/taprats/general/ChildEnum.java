@@ -9,6 +9,7 @@ import java.util.Enumeration;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
+@SuppressWarnings({"rawtypes", "PackageVisibleField"})
 class ChildEnum implements Enumeration {
   NodeList list;
   int index;
@@ -19,10 +20,12 @@ class ChildEnum implements Enumeration {
     this.advance();
   }
 
+  @Override
   public final boolean hasMoreElements() {
     return this.index < this.list.getLength();
   }
 
+  @Override
   public final Object nextElement() {
     Node var1 = this.list.item(this.index);
     this.advance();

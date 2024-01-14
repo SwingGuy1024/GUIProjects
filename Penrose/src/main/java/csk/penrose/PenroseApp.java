@@ -5,24 +5,16 @@
 
 package csk.penrose;
 
-import csk.taprats.general.ParseXML;
-import csk.taprats.general.XMLParseError;
-import csk.taprats.toolkit.LoadSave;
-import csk.taprats.toolkit.Slider;
-import csk.taprats.toolkit.WindowCloser;
 import java.awt.BorderLayout;
-import java.awt.Button;
-import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
-import java.awt.MenuItem;
-import java.awt.Panel;
-import java.awt.PopupMenu;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.BufferedInputStream;
 import java.io.BufferedWriter;
 import java.io.FileInputStream;
@@ -32,11 +24,23 @@ import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Observable;
 import java.util.Observer;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JMenuItem;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+
+import csk.taprats.general.ParseXML;
+import csk.taprats.general.XMLParseError;
+import csk.taprats.toolkit.LoadSave;
+import csk.taprats.toolkit.Slider;
+import csk.taprats.toolkit.WindowCloser;
 import org.w3c.dom.Element;
 import org.w3c.dom.ProcessingInstruction;
 
-@SuppressWarnings({"HardCodedStringLiteral", "MagicCharacter", "MagicNumber", "UseOfSystemOutOrSystemErr"})
-public class PenroseApp extends Panel implements App {
+//@SuppressWarnings({"HardCodedStringLiteral", "MagicCharacter", "MagicNumber", "UseOfSystemOutOrSystemErr"})
+@SuppressWarnings({"MagicNumber", "ProtectedField", "unused", "ImplicitCallToSuper", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "MagicCharacter", "Convert2Lambda", "deprecation", "OverlyBroadCatchBlock", "override"})
+public class PenroseApp extends JPanel implements App {
   protected PenroseTile tile;
   protected Viewer viewer;
   protected Editor edit_first;
@@ -45,14 +49,14 @@ public class PenroseApp extends Panel implements App {
   protected Slider s2;
   protected Slider s3;
   protected Slider s4;
-  protected PopupMenu menu;
-  protected Frame parent;
+  protected JPopupMenu menu;
+  protected JFrame parent;
 
-  public PenroseApp(PenroseTile var1, Frame var2) {
+  public PenroseApp(PenroseTile var1, JFrame var2) {
     this(var1, var2, false);
   }
 
-  public PenroseApp(PenroseTile var1, Frame var2, boolean var3) {
+  public PenroseApp(PenroseTile var1, JFrame var2, boolean var3) {
     this.tile = var1;
     this.parent = var2;
     this.viewer = new Viewer(var1);
@@ -84,7 +88,7 @@ public class PenroseApp extends Panel implements App {
     this.s2 = new Slider("P2", 0.0D, 0.0D, 1.0D);
     this.s3 = new Slider("P3", 0.0D, 0.0D, 1.0D);
     this.s4 = new Slider("P4", 0.0D, 0.0D, 1.0D);
-    Panel var4 = new Panel();
+    JPanel var4 = new JPanel();
     GridBagLayout var5 = new GridBagLayout();
     var4.setLayout(var5);
     this.s1.insert(var4, var5, 0, 0);
@@ -118,31 +122,31 @@ public class PenroseApp extends Panel implements App {
     var5 = new GridBagLayout();
     this.setLayout(var5);
     GridBagConstraints var6 = new GridBagConstraints();
-    Button var7 = new Button("New P2");
+    JButton var7 = new JButton("New P2");
     var7.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         PenroseApp.this.doNewP2();
       }
     });
-    Button var8 = new Button("New P3");
+    JButton var8 = new JButton("New P3");
     var8.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         PenroseApp.this.doNewP3();
       }
     });
-    Button var9 = new Button("Save As...");
+    JButton var9 = new JButton("Save As...");
     var9.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         PenroseApp.this.doSaveAs();
       }
     });
-    Button var10 = new Button("Load...");
+    JButton var10 = new JButton("Load...");
     var10.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         PenroseApp.this.doLoad();
       }
     });
-    Button var11 = new Button("Quit");
+    JButton var11 = new JButton("Quit");
     var11.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         System.exit(0);
@@ -156,7 +160,7 @@ public class PenroseApp extends Panel implements App {
     var6.weighty = 1.0D;
     var6.anchor = 10;
     var6.fill = 2;
-    Panel var12 = new Panel();
+    JPanel var12 = new JPanel();
     if (var3) {
       var12.setLayout(new GridLayout(1, 2));
       var12.add(var7);
@@ -196,22 +200,39 @@ public class PenroseApp extends Panel implements App {
     var6.fill = 2;
     var5.setConstraints(var4, var6);
     this.add(var4);
-    this.menu = new PopupMenu("Penrose");
-    MenuItem var13 = new MenuItem("Save As...");
+    this.menu = new JPopupMenu("Penrose");
+    JMenuItem var13 = new JMenuItem("Save As...");
     var13.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         PenroseApp.this.doSaveAs();
       }
     });
     this.menu.add(var13);
-    var13 = new MenuItem("Quit");
+    var13 = new JMenuItem("Quit");
     var13.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         System.exit(0);
       }
     });
     this.menu.add(var13);
-    this.viewer.add(this.menu);
+    this.addMouseListener(new MouseAdapter() {
+      @Override
+      public void mousePressed(MouseEvent e) {
+        doPop(e);
+      }
+
+      @Override
+      public void mouseReleased(MouseEvent e) {
+        doPop(e);
+      }
+
+      private void doPop(MouseEvent e) {
+        if (e.isPopupTrigger()) {
+          menu.show(e.getComponent(), e.getX(), e.getY());
+        }
+      }
+    });
+//    this.viewer.add(this.menu);
     if (var1 instanceof KiteDart) {
       this.viewer.loadConfig(Places.p2_first, Places.p2_second);
     } else {
@@ -312,7 +333,7 @@ public class PenroseApp extends Panel implements App {
 
   public static void main(String[] var0) {
     KiteDart var1 = new KiteDart();
-    Frame var2 = new Frame("Penrose Tile Editor");
+    JFrame var2 = new JFrame("Penrose Tile Editor");
     PenroseApp var3 = new PenroseApp(var1, var2, false);
     var2.setLayout(new BorderLayout());
     var2.add("Center", var3);

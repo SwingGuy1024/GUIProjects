@@ -5,6 +5,7 @@
 
 package csk.taprats.general;
 
+@SuppressWarnings("ImplicitCallToSuper")
 public class XMLParseError extends Exception {
   public XMLParseError() {
   }

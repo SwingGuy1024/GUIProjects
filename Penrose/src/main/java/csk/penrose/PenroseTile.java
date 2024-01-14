@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Vector;
 
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "ProtectedField", "unused", "AssignmentOrReturnOfFieldWithMutableType", "rawtypes", "ReassignedVariable", "UseOfObsoleteCollectionType", "unchecked", "RedundantThrows", "StringConcatenation", "DataFlowIssue", "ReturnOfNull", "ForLoopReplaceableByForEach", "FinalStaticMethod", "NonReproducibleMathCall", "IfStatementWithNegatedCondition"})
 public class PenroseTile {
   protected Point[] ea;
   protected Point[] eb;
@@ -148,7 +149,7 @@ public class PenroseTile {
   }
 
   public void setParameter(int var1, double var2) {
-    if (var1 % 2 == 1) {
+    if (var1 % 2 != 0) {
       this.ps[var1] = var2 * 2.0D * 3.141592653589793D;
     } else {
       this.ps[var1] = var2;
@@ -164,7 +165,7 @@ public class PenroseTile {
   }
 
   public double getParameter(int var1) {
-    return var1 % 2 == 1 ? this.ps[var1] / 6.283185307179586D : this.ps[var1];
+    return var1 % 2 != 0 ? this.ps[var1] / 6.283185307179586D : this.ps[var1];
   }
 
   public void write(PrintWriter var1, String var2) throws IOException {

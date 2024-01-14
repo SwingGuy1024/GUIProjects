@@ -5,22 +5,24 @@
 
 package csk.taprats.toolkit;
 
-import csk.taprats.geometry.Point;
-import csk.taprats.geometry.Polygon;
-import csk.taprats.geometry.Transform;
+import java.awt.Canvas;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.util.Stack;
 
+import csk.taprats.geometry.Point;
+import csk.taprats.geometry.Polygon;
+import csk.taprats.geometry.Transform;
+
+@SuppressWarnings({"MagicNumber", "NumericCastThatLosesPrecision", "unused", "UnnecessaryConstantArrayCreationExpression", "rawtypes", "RedundantCast", "ReassignedVariable", "UseOfObsoleteCollectionType", "unchecked", "RedundantThrows", "DataFlowIssue", "FieldMayBeFinal"})
 public class GeoGraphics {
   private Graphics graphics;
   private Transform transform;
   private Stack pushed;
-  private Component component;
+  private Canvas component;
 
-  public GeoGraphics(Graphics var1, Transform var2, Component var3) {
+  public GeoGraphics(Graphics var1, Transform var2, Canvas var3) {
     this.graphics = var1;
     this.transform = var2;
     this.pushed = null;
@@ -28,7 +30,7 @@ public class GeoGraphics {
   }
 
   public GeoGraphics(Graphics var1, Transform var2) {
-    this(var1, var2, (Component) null);
+    this(var1, var2, (Canvas) null);
   }
 
   void dispose() {

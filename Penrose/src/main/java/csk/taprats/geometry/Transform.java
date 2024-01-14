@@ -5,6 +5,8 @@
 
 package csk.taprats.geometry;
 
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "unused", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "override", "SingleCharacterStringConcatenation", "FinalStaticMethod", "MethodDoesntCallSuperMethod", "NonFinalFieldReferencedInHashCode", "NonReproducibleMathCall", "ForLoopReplaceableByForEach", "IfStatementWithNegatedCondition", "FloatingPointEquality", "NonFinalFieldReferenceInEquals"})
+
 public class Transform implements Cloneable {
   public static final Transform ZERO = scale(0.0D);
   public static final Transform IDENTITY = scale(1.0D);
@@ -238,7 +240,12 @@ public class Transform implements Cloneable {
   }
 
   public final int hashCode() {
-    return (new Double(this.a)).hashCode() ^ (new Double(this.b)).hashCode() ^ (new Double(this.c)).hashCode() ^ (new Double(this.d)).hashCode() ^ (new Double(this.e)).hashCode() ^ (new Double(this.f)).hashCode();
+    return (Double.valueOf(this.a)).hashCode()
+        ^ (Double.valueOf(this.b)).hashCode()
+        ^ (Double.valueOf(this.c)).hashCode()
+        ^ (Double.valueOf(this.d)).hashCode()
+        ^ (Double.valueOf(this.e)).hashCode()
+        ^ (Double.valueOf(this.f)).hashCode();
   }
 
   public final boolean flips() {

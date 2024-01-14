@@ -11,6 +11,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+@SuppressWarnings({"unused", "ImplicitCallToSuper", "RedundantThrows", "override", "FieldMayBeFinal", "UnusedReturnValue"})
 public class WindowCloser extends WindowAdapter implements ActionListener {
   private Window window;
   private boolean quit;

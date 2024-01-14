@@ -5,7 +5,7 @@
 
 package csk.taprats.geometry;
 
-@SuppressWarnings("UseOfClone")
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "PackageVisibleField", "UnusedAssignment", "unused", "ReassignedVariable", "RedundantThrows", "override", "SingleCharacterStringConcatenation", "FinalStaticMethod", "MethodDoesntCallSuperMethod", "StringBufferMayBeStringBuilder", "FinalPrivateMethod"})
 public class Polygon implements Cloneable {
   Point[] pts;
   int size;

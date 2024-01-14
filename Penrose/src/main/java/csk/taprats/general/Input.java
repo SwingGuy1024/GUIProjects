@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.PushbackReader;
 import java.io.Reader;
 
+@SuppressWarnings({"unused", "LiteralAsArgToStringEquals", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "OverlyBroadCatchBlock", "SingleCharacterStringConcatenation", "FieldCanBeLocal", "FieldMayBeFinal", "OverlyBroadThrowsClause", "NewExceptionWithoutArguments", "ThrowInsideCatchBlockWhichIgnoresCaughtException", "FinalStaticMethod", "InfiniteLoopStatement"})
 public class Input {
   private Reader r;
   private PushbackReader pr;
@@ -67,7 +68,7 @@ public class Input {
     String var1 = this.readString();
 
     try {
-      return new Double(var1);
+      return Double.parseDouble(var1);
     } catch (NumberFormatException var3) {
       throw new IOException("Couldn't read a floating point number");
     }
@@ -100,7 +101,7 @@ public class Input {
         System.out.println("boolean {" + var7 + "}");
       }
     } catch (Exception var8) {
-      System.err.println(var8);
+      var8.printStackTrace();
     }
   }
 }

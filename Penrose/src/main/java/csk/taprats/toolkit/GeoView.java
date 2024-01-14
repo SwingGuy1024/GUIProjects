@@ -22,6 +22,7 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "ProtectedField", "unused", "UnnecessaryConstantArrayCreationExpression", "ImplicitCallToSuper", "rawtypes", "RedundantCast", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "deprecation", "OverlyBroadCatchBlock", "override", "CatchMayIgnoreException", "ConcatenationWithEmptyString", "SingleCharacterStringConcatenation", "FinalStaticMethod", "DataFlowIssue", "UnnecessaryLocalVariable", "FinalPrivateMethod", "FieldMayBeFinal", "UnusedReturnValue", "UnnecessaryExplicitNumericCast"})
 public class GeoView extends Canvas {
   private double left;
   private double top;
@@ -55,7 +56,7 @@ public class GeoView extends Canvas {
     this.last_size = new Dimension(200, 200);
     this.do_tracking = false;
     this.setBackground(Color.white);
-    GeoView.MouseENator var7 = new GeoView.MouseENator();
+    MouseENator var7 = new MouseENator();
     this.addMouseListener(var7);
     this.addMouseMotionListener(var7);
     this.j2d = false;
