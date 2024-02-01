@@ -334,7 +334,7 @@ public class Escape
 		sPeek.setVisible(false);
 	}
 	
-	private void keyTyped(KeyEvent e) {
+	private void keyTyped(KeyEvent ignored) {
 		// Enable these to debug keystrokes.
 //		int modsEx = e.getModifiersEx();
 //		System.out.printf("%5d (%c) %s%n", e.getKeyCode(), e.getKeyChar(), modString(modsEx)); // NON-NLS
@@ -396,13 +396,16 @@ public class Escape
 		StringBuilder initialTextBldr = new StringBuilder(initialText);
 
 		addRange(font, initialTextBldr, '\u0080', '\u0100', "Extended ASCII:");
+		addRange(font, initialTextBldr, '\u20a0', '\u20d0', "Currency:");
 		addRange(font, initialTextBldr, '\u2100', '\u2200', "arrows:"); // arrows
+		addRange(font, initialTextBldr, '\u27f0', '\u2800', "arrows A:"); // arrows
+		addRange(font, initialTextBldr, '\u2900', '\u2980', "arrows B:"); // arrows
+		addRange(font, initialTextBldr, '\u2b00', '\u2c00', "additional arrows:"); // arrows
 		addRange(font, initialTextBldr, '\u2200', '\u2300', "Math:\n\u00d7 \u00f7"); // Math
 		addRange(font, initialTextBldr, '\u2300', '\u2400', "Misc. Tech:"); // Misc. Tech
 		addRange(font, initialTextBldr, '\u2400', '\u2500', "Enclosed letters:"); // Misc. Tech
 		addRange(font, initialTextBldr, '\u2500', '\u2600', "Boxes & Block drawing:"); // box & block
 		addRange(font, initialTextBldr, '\u2600', '\u2800', "Dingbats:"); // dingbats
-		addRange(font, initialTextBldr, '\uf000', '\uf0ff', "Private Use:"); // private use
 		initialTextBldr.append("\nJava version ");
 		initialTextBldr.append(System.getProperty("java.version"));
 		return initialTextBldr.toString();
