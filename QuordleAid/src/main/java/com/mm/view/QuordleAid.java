@@ -1,7 +1,6 @@
 package com.mm.view;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
@@ -23,6 +22,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
 import javax.swing.border.MatteBorder;
@@ -34,8 +34,6 @@ import javax.swing.text.Document;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
-
-import com.formdev.flatlaf.FlatDarkLaf;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -65,10 +63,15 @@ public final class QuordleAid extends JPanel {
   private static final char SPACE = ' ';
   private final JTextField played = new JTextField(5);
 
-  public static void main(String[] args) {
-//    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-    FlatDarkLaf.setup();
-    UIManager.getDefaults().put("TextField.background", Color.BLACK);
+  public static void main(String[] args)
+      throws
+          UnsupportedLookAndFeelException,
+          ClassNotFoundException,
+          InstantiationException,
+          IllegalAccessException {
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+//    FlatDarkLaf.setup();
+//    UIManager.getDefaults().put("TextField.background", Color.BLACK);
     //noinspection HardCodedStringLiteral
     JFrame jFrame = new JFrame("Quordle Aid");
     jFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -98,7 +101,7 @@ public final class QuordleAid extends JPanel {
     played.setFont(MONO_BOLD);
     final PlainDocument document = (PlainDocument) played.getDocument();
     document.addDocumentListener(makeDocumentListener(frequencyLabel));
-    document.setDocumentFilter(DOC_FILTER);
+    document.setDocumentFilter(TO_UPPERCASE_FILTER);
     topPanel.add(played);
     return topPanel;
   }
@@ -143,12 +146,12 @@ public final class QuordleAid extends JPanel {
       setBorder(border);
       final JLabel fLabel = new JLabel(FREQ);
       fLabel.setFont(MONO);
-      yellowAndGreen.setFont(MONO_BOLD);
+      yellowAndGreen.setFont(MONO);
       add(fLabel, BorderLayout.PAGE_START);
       add(yellowAndGreen, BorderLayout.CENTER);
       final PlainDocument document = (PlainDocument) yellowAndGreen.getDocument();
       document.addDocumentListener(makeQListener(fLabel));
-      document.setDocumentFilter(DOC_FILTER);
+      document.setDocumentFilter(TO_UPPERCASE_FILTER);
       fLabel.setBorder(yellowAndGreen.getBorder());
 
       PropertyChangeListener pcl = evt -> {
@@ -165,48 +168,71 @@ public final class QuordleAid extends JPanel {
     }
 
     private void doProcess(Document document, JLabel fLabel) {
+      
+      // prefix becomes a set of all the letters in document
       final Set<Character> prefix = new HashSet<>();
       try {
         String found = document.getText(0, document.getLength()).toUpperCase();
         found.chars()
-            .filter(c -> Character.isLetter((char)c))
+            .filter(Character::isLetter)
             .forEach(c -> prefix.add((char)c));
       } catch (BadLocationException e) {
         throw new IllegalStateException("Can't happen", e);
       }
-      String text = frequencyLabel.getText();
+      String freqText = frequencyLabel.getText();
+
+      // indexList gets indices of all letters in frequencyLabel that are also in prefix, so they can get bolded.
       List<Integer> indexList = new LinkedList<>();
-      for (int i=0; i<text.length(); ++i) {
+
+      // indices of all letters in prefix missing from freqText. These will get colored red.
+      List<Integer> extraList = new LinkedList<>();
+      for (int i=0; i<freqText.length(); ++i) {
         char ch = FREQ.charAt(i);
         if (prefix.contains(ch)) {
           indexList.add(i); // put in the front, to get a reverse order // stone coral
+        }
+        if (freqText.indexOf(ch) < 0) {
+          extraList.add(i);
         }
       }
       indexList.sort(Comparator.reverseOrder());
       
       List<String> fragmentList = new ArrayList<>();
-      fragmentList.add(text);
+      fragmentList.add(freqText);
       for (int index: indexList) {
 //        String fragment = fragmentList.get(fragmentList.size()-1);
         String fragment = fragmentList.get(0);
         fragmentList.add(1, fragment.substring(index+1));
         fragmentList.set(0, fragment.substring(0, index));
       }
+      // replace spaces with &nbsp;
+      fragmentList.replaceAll(QuordleAid::noSpace);
       StringBuilder fullText = new StringBuilder("<html>");
       int i=0;
       Collections.sort(indexList);
       for (int index: indexList) {
+        String openTag;
+        String closeTag;
+        if (extraList.contains(index)) {
+          openTag = "<strong><span style=\"color: #bb0000;\">";
+          closeTag = "</span></strong>";
+        } else {
+          openTag = "<strong>";
+          closeTag = "</strong>";
+        }
         fullText.append(fragmentList.get(i++))
-            .append("<strong>")
+            .append(openTag)
             .append(FREQ.charAt(index))
-            .append("</strong>");
+            .append(closeTag);
       }
       fullText
           .append(fragmentList.get(indexList.size()))
           .append("</html>");
       
-      // replace spaces
-      fLabel.setText(fullText.toString().replaceAll(" ", "&nbsp;"));
+      // We used to replaces spaces here, but the openTag (above) also has spaces that can't get replaced.
+      String text = fullText.toString();
+      text = text.replaceAll("</strong><strong>", ""); // remove redundant tags
+      fLabel.setText(text);
     }
 
     private DocumentListener makeQListener(JLabel fLabel) {
@@ -265,7 +291,7 @@ public final class QuordleAid extends JPanel {
     };
   }
   
-  private static final DocumentFilter DOC_FILTER = new DocumentFilter() {
+  private static final DocumentFilter TO_UPPERCASE_FILTER = new DocumentFilter() {
     @Override
     public void insertString(final FilterBypass fb, final int offset, final String string, final AttributeSet attr)
         throws BadLocationException {
@@ -278,4 +304,8 @@ public final class QuordleAid extends JPanel {
       fb.replace(offset, length, text.toUpperCase(), attrs);
     }
   };
+  
+  private static String noSpace(String t) {
+    return t.replaceAll(" ", "&nbsp;");
+  }
 }
