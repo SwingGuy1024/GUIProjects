@@ -866,6 +866,7 @@ public class Escape
 		sMenu.add(szAct);
 	}
 
+	@SuppressWarnings("BooleanVariableAlwaysNegated")
 	private class PropView extends JPanel
 	{
 		private DocumentListener mSrcEar;
@@ -1294,7 +1295,7 @@ public class Escape
 		"to work on Microsoft Windows, you need the \"Arial Unicode MS\" " +
 		"font installed.)\n" +
 		"\nS\u2080 \u2081 \u2082 \u2083 \u2084 \u2085 \u2086 \u2087 \u2088 \u2089 \u208A \u208B \u208C \u208D \u208E \n" +
-			"S\u2070 \u00B9 \u00B2 \u00B3 \u2074 \u2075 \u2076 \u2077 \u2078 \u2079 \u207A \u207B \u207C \u207D \u207E \u207F"
+			"S\u2070 \u00B9 \u00B2 \u00B3 \u2074 \u2075 \u2076 \u2077 \u2078 \u2079 \u207A \u207B \u207C \u207D \u207E \u2071 \u207F"
 			;
 	
 	private class CharacterCounter extends JLabel {
