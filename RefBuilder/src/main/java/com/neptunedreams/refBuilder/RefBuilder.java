@@ -14,7 +14,9 @@ import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.swing.Box;
@@ -39,33 +41,46 @@ import javax.swing.text.Document;
 
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * <p>Utility to build Wikipedia Links using {@code cite}</p>
- * <p>Cite Values:</p>
+ * <p>Cite Subjects:</p>
  * <p>
  *   web<br>
  *   news<br>
  *   book<br>
  *   journal<br>
  * </p>
+ * <p>This class defines the following terms:<br>
+ * <strong>subject:</strong> One of the four types of "cite" values: web, news, book, and journal.<br>
+ * <strong>name:</strong> The name of a value in a citation, such as title in {{cite news | title = Trump Convicted}}<br>
+ * <strong>value:</strong> The value for a name in a citation, such as "Trump Convicted" in the previous example.<br>
+ * <strong>tag:</strong> A combination of a subject and a name, such as news.title<br>
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 3/13/24</p>
- * <p>Time: 4:01 AM</p>
+ * <p>Time: 4:01&nbsp;AM</p>
  * <p>@author Miguel Muñoz</p>
  */
 @SuppressWarnings("StringConcatenation")
 public class RefBuilder extends JPanel {
   
-  // Cite subects: book, news, journal, web
-  public static final String numeric = "first | last | editor-first | editor-last";
-  public static final String common = "title | year | date | url | page | pages | volume | language | publisher | " +
-      "access-date | url-access | url-status | archive-url | archive-date | ref";
-  public static final String sources = "book.isbn | book.location | book.orig-year | book.edition | book.oclc | " +
-      "book.chapter | book.chapter-url | book.author-link | " +
-      "journal.issue | journal.doi | journal.doi-access | journal.issn | journal.bibcode | " +
-      "news.newspaper | news.agency | news.work | web";
-  public static final String DELIMITER = "\\|";
+  // Cite subjects: book, news, journal, web
+  
+  private static final Set<String> authorPair = new HashSet<>(List.of("first", "last"));
+  private static final Set<String> editorPair = new HashSet<>(List.of("editor-first", "editor-last"));
+  private static final Set<Set<String>> numeric = new HashSet<>(List.of(authorPair, editorPair));
+  
+  private static final Set<String> common = new LinkedHashSet<>(
+      List.of("title", "year", "date", "url", "page", "pages", "volume", "language", "publisher", 
+          "access-date", "url-access", "url-status", "archive-url", "archive-date", "ref")
+  );
+  private static final Set<String> sources
+      = new LinkedHashSet<>(List.of("book.isbn", "book.location", "book.orig-year", "book.edition",
+      "book.oclc", "book.chapter", "book.chapter-url", "book.author-link", "journal.issue", "journal.doi",
+      "journal.doi-access", "journal.issn", "journal.bibcode", "news.newspaper", "news.agency", "news.work", "web")
+  );
+  public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
   public static final int TEXT_FIELD_LENGTH = 500;
 
@@ -89,41 +104,41 @@ public class RefBuilder extends JPanel {
     frame.addHierarchyListener(hierarchyListener);
     frame.setVisible(true);
   }
-  
+
   private final JTabbedPane tabPane = new JTabbedPane();
-  private final Map<String, Set<String>> tagMap;
-  private final @NonNls Map<String, Document> valueMap = new HashMap<>();
-  
+  private final Map<String, Set<String>> subjectMap;
+  private final @NonNls Map<String, Document> nameMap = new HashMap<>();
+
   private final Map<String, Integer> multipleMap = new HashMap<>();
-  
+
   RefBuilder() {
     super(new BorderLayout());
-    tagMap = new HashMap<>();
-    populate(tagMap);
-    populateCommon(tagMap);
+    subjectMap = new HashMap<>();
+    populate(subjectMap);
+    populateCommon(subjectMap);
     printMap();
-    for (String source: tagMap.keySet()) {
-      tabPane.add(source, makeTabContent(source));
+    for (String subject: subjectMap.keySet()) {
+      tabPane.add(subject, makeTabContent(subject));
     }
     add(tabPane, BorderLayout.CENTER);
     add(makeControlPane(), BorderLayout.PAGE_END);
   }
 
-  private JComponent makeTabContent(String source) {
-    JPanel content = new JPanel(new GridBagLayout());
-    content.add(hStrut(1), constrain(0));
-    content.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
-    Set<String> keys = tagMap.get(source);
-    for (String key: keys) {
-      makeFixedField(content, source, key);
+  private JComponent makeTabContent(String subject) {
+    JPanel tabContent = new JPanel(new GridBagLayout());
+    tabContent.add(hStrut(1), constrain(0));
+    tabContent.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
+    Set<String> nameSet = subjectMap.get(subject);
+    for (String name: nameSet) {
+      makeFixedField(tabContent, subject, name);
     }
     
     // We create one last invisible row and give it a weighty of 1.0 to push everything above it to the top of the
     // tab pane.
     GridBagConstraints constraints = constrain(1);
     constraints.weighty = 1.0f;
-    content.add(hStrut(1), constraints);
-    return content;
+    tabContent.add(hStrut(1), constraints);
+    return tabContent;
   }
 
   private Component makeControlPane() {
@@ -134,19 +149,20 @@ public class RefBuilder extends JPanel {
     JTextArea result = new JTextArea(6, 0);
     JComponent scrollPane = scrollWrapTextArea(result);
     controlPane.add(scrollPane, BorderLayout.CENTER);
-    ActionListener actionListener = e -> buildReference(result, nameField.getText().trim());
+    ActionListener actionListener = e -> buildReferenceText(result, nameField.getText().trim());
 
     JPanel goPane = makeGoPane(actionListener);
     controlPane.add(goPane, BorderLayout.PAGE_END);
     return controlPane;
   }
 
-  private void buildReference(JTextArea result, String name) {
+  private void buildReferenceText(JTextArea resultView, String name) {
     String tab = tabPane.getTitleAt(tabPane.getSelectedIndex());
     StringBuilder builder = new StringBuilder();
-    for (String key: valueMap.keySet()) {
+    for (String key: nameMap.keySet()) {
+      System.out.printf("ValueMap: %s%n", key); // NON-NLS
       if (key.startsWith(tab)) {
-        Document doc = valueMap.get(key);
+        Document doc = nameMap.get(key);
         final String fieldText = getText(doc);
         if (!fieldText.isEmpty()) {
           String fieldName = key.substring(key.indexOf(DOT) + 1);
@@ -164,7 +180,7 @@ public class RefBuilder extends JPanel {
     builder.insert(0, openRef);
     builder.append("</ref>");
     final String referenceText = builder.toString();
-    result.setText(referenceText);
+    resultView.setText(referenceText);
     StringSelection stringSelection = new StringSelection(referenceText);
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     clipboard.setContents(stringSelection, stringSelection);
@@ -204,20 +220,15 @@ public class RefBuilder extends JPanel {
     
   }
 
-  private void makeFixedField(JPanel content, String tab, String source) {
-    JComponent label = makeFakeLabel(source);
+  private void makeFixedField(JPanel content, String subject, String name) {
+    JComponent label = makeFakeLabel(name);
     content.add(label, constrain(0));
-    DisplayComponent valueField = new DisplayComponent(source);
+    DisplayComponent valueField = new DisplayComponent();
     content.add(valueField, constrain(1));
-    valueMap.put(tab + DOT + source, valueField.getDocument());
-//    return valueField;
+    nameMap.put(subject + DOT + name, valueField.getDocument());
   }
 
   private GridBagConstraints constrain(int column) {
-//    return constrain(column, GridBagConstraints.RELATIVE);
-//  }
-//  
-//  private GridBagConstraints constrain(int column, int row) {
     GridBagConstraints constraints = new GridBagConstraints();
     constraints.gridx = column;
     constraints.ipadx = 4;
@@ -232,62 +243,65 @@ public class RefBuilder extends JPanel {
     return constraints;
   }
 
-  private void populateCommon(Map<String, Set<String>> tagMap) {
-    String[] commonTags = common.split(DELIMITER);
-    for (String key: tagMap.keySet()) {
-      for (String tag : commonTags) {
-        Set<String> set = tagMap.get(key);
-        set.add(tag.trim());
+  private void populateCommon(Map<String, Set<String>> theSubjectMap) {
+    for (String subject: theSubjectMap.keySet()) {
+      Set<String> set = theSubjectMap.get(subject);
+      for (String name : common) {
+        set.add(name.trim());
       }
     }
   }
 
-  private void populate(Map<String, Set<String>> tagMap) {
-    String[] citeTags = sources.split(DELIMITER);
-    for (String tag: citeTags) {
-      final int dotSpot = tag.indexOf(DOT);
-      if (dotSpot < 0) {
-        tagMap.put(tag.trim(), new LinkedHashSet<>());
+  private void populate(Map<String, Set<String>> theSubjectMap) {
+    // sources each have a subject and a name, connected by a dot, like this: book.chapter, journal.issue
+    for (String rawTag: sources) {
+      Tag tag = new Tag(rawTag);
+//      final int dotSpot = tag.indexOf(DOT);
+      if (tag.getName() == null) {
+        theSubjectMap.put(tag.getSubject(), new LinkedHashSet<>());
       } else {
-        String tagName = tag.substring(0, dotSpot).trim();
-        String value = tag.substring(dotSpot+1).trim();
-        Set<String> map = tagMap.containsKey(tagName) ? tagMap.get(tagName) : mapNewValue(tagMap, tagName);
-        map.add(value);
+        String subject = tag.getSubject();
+        Set<String> nameSet = theSubjectMap.containsKey(subject) ? theSubjectMap.get(subject) : mapNewSubject(theSubjectMap, subject);
+        nameSet.add(tag.getName());
       }
     }
   }
   
-  private Set<String> mapNewValue(Map<String, Set<String>> tagMap, String key) {
+  private void increaseNameCount(String name, String tab) {
+    for (Set<String> set: numeric) {
+      if (set.contains(name)) {
+        for (String s: set) {
+          
+        }
+        return;
+      }
+    }
+  }
+  
+  private Set<String> mapNewSubject(Map<String, Set<String>> theSubjectMap, String subject) {
     Set<String> set = new LinkedHashSet<>();
-    tagMap.put(key, set);
+    theSubjectMap.put(subject, set);
     return set;
   }
-  
+
   public void printMap() {
-    for (String key: tagMap.keySet()) {
-      Set<String> set = tagMap.get(key);
-      for (String tag: set) {
-        System.out.printf("%s.%s%n", key, tag); // NON-NLS
+    for (String subject: subjectMap.keySet()) {
+      Set<String> nameSet = subjectMap.get(subject);
+      for (String name: nameSet) {
+        System.out.printf("%s.%s%n", subject, name); // NON-NLS
       }
     }
   }
-  
+
   private static class DisplayComponent extends JPanel {
     private final ButtonModel buttonModel;
     private final Document document;
 
-    DisplayComponent(String name) {
+    DisplayComponent() {
       super(new BorderLayout());
       JTextField textField = new JTextField(1);
       document = textField.getDocument();
 
-//      DocumentListener dListener = new DocumentListener() {
-//        @Override public void insertUpdate(DocumentEvent e) {System.out.println(textField.getBounds());}
-//        @Override public void removeUpdate(DocumentEvent e) {System.out.println(textField.getBounds());}
-//        @Override public void changedUpdate(DocumentEvent e) {System.out.println(textField.getBounds());}
-//      };
-//      document.addDocumentListener(dListener);
-      
       add(textField, BorderLayout.CENTER);
       JCheckBox big = new JCheckBox("Big");
       big.setSelected(false);
@@ -342,11 +356,9 @@ public class RefBuilder extends JPanel {
     textField.setForeground(textFieldForeground);
     Border textFieldBorder = textField.getBorder();
     Insets insets = textFieldBorder.getBorderInsets(textField);
-    System.out.printf("Border Insets: %s%n", insets); // NON-NLS
     if (textFieldBorder.getClass().toString().contains("Aqua")) {
       textFieldBorder = new MatteBorder(5, 5, 5, 5, bgColor);
       textField.setBorder(textFieldBorder);
-      System.out.println("Replacing Aqua Border.");
     }
 
 //    System.out.printf("Border: %s%n", textField.getBorder()); // NON-NLS
@@ -359,4 +371,30 @@ public class RefBuilder extends JPanel {
 //        .forEach(s -> System.out.printf("%-40s: %s%n", s, uiDefaults.get(s)));
     return textField;
   }
+  
+  private static class Tag {
+    private final String subject;
+    @Nullable
+    private final String name;
+    
+    Tag(String tag) {
+      String[] fields = tag.split(DELIMITER);
+      subject = fields[0].trim();
+      if (fields.length == 1) {
+        name = null;
+      } else {
+        name = fields[1].trim();
+      }
+    }
+
+    public String getSubject() {
+      return subject;
+    }
+
+    @Nullable
+    public String getName() {
+      return name;
+    }
+  }
 }
+
