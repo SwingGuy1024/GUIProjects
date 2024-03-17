@@ -6,7 +6,6 @@ import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Toolkit;
-import java.awt.Window;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionListener;
@@ -15,7 +14,7 @@ import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,8 +25,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import javax.swing.Box;
 import javax.swing.ButtonModel;
+import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -43,6 +44,7 @@ import javax.swing.WindowConstants;
 import javax.swing.border.Border;
 import javax.swing.border.MatteBorder;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableCellEditor;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 
@@ -71,17 +73,24 @@ import org.jetbrains.annotations.Nullable;
  */
 @SuppressWarnings("StringConcatenation")
 public class RefBuilder extends JPanel {
-  
+
   // Todo: Add buttons for lower case and title case. 
-  // Todo: Add Multiples
+  // DONE: Add Multiples
   // Todo: Add a Date Utility
-  // 
+  // TODO: Add URL Encoder. From 32 to 47  and 58 to 64 and 123 to 126 Need to experiment with > 128
+  //       Encode <>&()\#%[\]^`{|} 0xa0, 0xad (nbs and soft hyphen) & anything above 0xff
+  // TODO: Move subject-specific tags to the end. Maybe split off access and archive names into a second,
+  //       minor branch so they may be put at the end.
+  // TODO: Move page and pages & volume to news, journal, and book.
+  // TODO: Add a custom field?
+  // TODO: Try another L&F
+  // TODO: Put tab pane in a ScrollPane!
   
   // Cite subjects: book, news, journal, web
   
-  private static final Set<String> authorPair = new HashSet<>(List.of("first", "last"));
-  private static final Set<String> editorPair = new HashSet<>(List.of("editor-first", "editor-last"));
-  private static final Set<Set<String>> numeric = new HashSet<>(List.of(authorPair, editorPair));
+//  private static final Set<String> authorPair = new HashSet<>(List.of("first", "last"));
+//  private static final Set<String> editorPair = new HashSet<>(List.of("editor-first", "editor-last"));
+//  private static final Set<Set<String>> numeric = new HashSet<>(List.of(authorPair, editorPair));
   
   private static final Set<String> common = new LinkedHashSet<>(
       List.of("title", "year", "date", "url", "page", "pages", "volume", "language", "publisher", 
@@ -95,6 +104,22 @@ public class RefBuilder extends JPanel {
   public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
   public static final int TEXT_FIELD_LENGTH = 500;
+  private static final AuthorTableModel tableModel = new AuthorTableModel();
+  public static final int FIRST_COLUMN = 0;
+  public static final int LAST_COLUMN = 1;
+  public static final int ROLE_COLUMN = 2;
+  
+  private final Color textFieldForeground;
+
+  private final Color textFieldBgColor;
+  private final JTabbedPane tabPane = new JTabbedPane();
+
+  private final Map<String, Set<String>> subjectMap;
+  private final @NonNls Map<String, Document> nameMap = new HashMap<>();
+  
+  private final List<Runnable> editorTerminatorOperations = new LinkedList<>();
+
+//  private final Map<String, Integer> multipleMap = new HashMap<>();
   public static void main(String[] args) {
     JFrame frame = new JFrame("Reference Builder");
     final RefBuilder refBuilder = new RefBuilder();
@@ -102,7 +127,7 @@ public class RefBuilder extends JPanel {
     frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
     frame.setLocationByPlatform(true);
     frame.pack();
-    
+  
     // By setting the minimum size, we keep the left-side labels from vanishing when the window shrinks.
     // We need to wait until the window first appears, because we don't know the window size until after we show it.
     HierarchyListener hierarchyListener = new HierarchyListener() {
@@ -118,15 +143,6 @@ public class RefBuilder extends JPanel {
     frame.setVisible(true);
   }
 
-  private final Color textFieldForeground;
-  private final Color textFieldBgColor;
-
-  private final JTabbedPane tabPane = new JTabbedPane();
-  private final Map<String, Set<String>> subjectMap;
-  private final @NonNls Map<String, Document> nameMap = new HashMap<>();
-
-  private final Map<String, Integer> multipleMap = new HashMap<>();
-
   RefBuilder() {
     super(new BorderLayout());
     UIDefaults uiDefaults = UIManager.getDefaults();
@@ -141,7 +157,7 @@ public class RefBuilder extends JPanel {
     }
     add(tabPane, BorderLayout.CENTER);
     add(makeControlPane(), BorderLayout.PAGE_END);
-    add(new AuthorNameEditor(), BorderLayout.PAGE_START);
+    add(new AuthorNameEditorPane(editorTerminatorOperations), BorderLayout.PAGE_START);
   }
 
   private JComponent makeTabContent(String subject) {
@@ -177,19 +193,36 @@ public class RefBuilder extends JPanel {
   }
 
   private void buildReferenceText(JTextArea resultView, String name) {
-    String tab = tabPane.getTitleAt(tabPane.getSelectedIndex());
+    for (Runnable runner: editorTerminatorOperations) {
+      runner.run();
+    }
+
     StringBuilder builder = new StringBuilder();
+
+    // Count Writers and Editors
+    List<Integer> writerIndices = new LinkedList<>();
+    List<Integer> editorIndices = new LinkedList<>();
+    for (int row = 0; row < (tableModel.getRowCount() - 1); ++row) {
+      final Object valueAt = tableModel.getValueAt(row, 2);
+      Role role = (Role) valueAt;
+      if (role == Role.WRITER) {
+        writerIndices.add(row);
+      } else if (role == Role.EDITOR) {
+        editorIndices.add(row);
+      }
+    }
+    addRoleData(builder, Role.WRITER, writerIndices);
+    addRoleData(builder, Role.EDITOR, editorIndices);
+
+    String tab = tabPane.getTitleAt(tabPane.getSelectedIndex());
     for (String key: nameMap.keySet()) {
-      System.out.printf("ValueMap: %s%n", key); // NON-NLS
+//      System.out.printf("ValueMap: %s%n", key); // NON-NLS
       if (key.startsWith(tab)) {
         Document doc = nameMap.get(key);
         final String fieldText = getText(doc);
         if (!fieldText.isEmpty()) {
           String fieldName = key.substring(key.indexOf(DOT) + 1);
-          builder.append(" | ")
-              .append(fieldName)
-              .append(" = ")
-              .append(fieldText);
+          appendPair(builder, fieldName, fieldText);
         }
       }
     }
@@ -205,7 +238,54 @@ public class RefBuilder extends JPanel {
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     clipboard.setContents(stringSelection, stringSelection);
   }
-  
+
+  private static void appendPair(StringBuilder builder, String fieldName, String fieldText) {
+    builder.append(" | ")
+        .append(fieldName)
+        .append(" = ")
+        .append(fieldText);
+  }
+
+  private void addRoleData(StringBuilder builder, Role role, List<Integer> indices) {
+    // First, eliminate rows with no first or last name
+    for (Iterator<Integer> itr = indices.iterator(); itr.hasNext();) {
+      int row = itr.next();
+      final String first = tableModel.getValueAt(row, FIRST_COLUMN).toString().trim();
+      final String last = tableModel.getValueAt(row, LAST_COLUMN).toString().trim();
+      if (first.isEmpty() && last.isEmpty()) {
+        itr.remove();
+      }
+    }
+    
+    String firstName = role.namePrefix + "first";
+    String lastName = role.namePrefix + "last";
+    if (indices.size() == 1) {
+      int row = indices.get(0);
+      String firstText = tableModel.getValueAt(row, FIRST_COLUMN).toString().trim();
+      String lastText = tableModel.getValueAt(row, LAST_COLUMN).toString().trim();
+      if (!firstText.isEmpty()) {
+        appendPair(builder, firstName, firstText);
+      }
+      if (!lastText.isEmpty()) {
+        appendPair(builder, lastName, lastText);
+      }
+    } else {
+      for (int i=0; i<indices.size(); ++i) {
+        int userIndex = i+1;
+        int row = indices.get(i);
+        String firstText = tableModel.getValueAt(row, FIRST_COLUMN).toString().trim();
+        String lastText = tableModel.getValueAt(row, LAST_COLUMN).toString().trim();
+        if (!firstText.isEmpty()) {
+          appendPair(builder, firstName+userIndex, firstText);
+        }
+        if (!lastText.isEmpty()) {
+          appendPair(builder, lastName+userIndex, lastText);
+        }
+      }
+    }
+  }
+
+
   // Is this necessary?
   public void adjustTabPaneInitialSize() {
     tabPane.setMinimumSize(tabPane.getSize());
@@ -299,14 +379,14 @@ public class RefBuilder extends JPanel {
     return set;
   }
 
-  public void printMap() {
-    for (String subject: subjectMap.keySet()) {
-      Set<String> nameSet = subjectMap.get(subject);
-      for (String name: nameSet) {
-        System.out.printf("%s.%s%n", subject, name); // NON-NLS
-      }
-    }
-  }
+//  public void printMap() {
+//    for (String subject: subjectMap.keySet()) {
+//      Set<String> nameSet = subjectMap.get(subject);
+//      for (String name: nameSet) {
+//        System.out.printf("%s.%s%n", subject, name); // NON-NLS
+//      }
+//    }
+//  }
 
   private static class DisplayComponent extends JPanel {
     private final ButtonModel buttonModel;
@@ -383,10 +463,9 @@ public class RefBuilder extends JPanel {
     return textField;
   }
   
-  private static final class AuthorNameEditor extends JPanel {
-    private AuthorNameEditor() {
+  private static final class AuthorNameEditorPane extends JPanel {
+    private AuthorNameEditorPane(List<Runnable> terminatorOperationList) {
       super(new BorderLayout());
-      final AuthorTableModel tableModel = new AuthorTableModel();
       JTable table = new JTable(tableModel);
       table.setFillsViewportHeight(true);
       table.setPreferredScrollableViewportSize(getPreferredSize());
@@ -404,21 +483,28 @@ public class RefBuilder extends JPanel {
         @Override
         public void hierarchyChanged(HierarchyEvent e) {
           table.setPreferredScrollableViewportSize(table.getPreferredSize());
-          table.removeHierarchyListener(this); // I can't do this in a lambda!
+          table.removeHierarchyListener(this); // I can't do "this" in a lambda!
         }
       });
 //      JTableHeader tableHeader = table.getTableHeader();
+
+      JComboBox<Role> roleEditor = new JComboBox<>(new Role[]{Role.WRITER, Role.EDITOR});
+      table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(roleEditor));
+      
+      Runnable terminationOperation = () -> {
+        TableCellEditor editor = table.getCellEditor();
+        if (editor != null) {
+          editor.stopCellEditing();
+        }
+      };
+      terminatorOperationList.add(terminationOperation);
     }
   }
   
-  public static Window getWindow(JComponent component) {
-    return (Window) component.getRootPane().getParent();
-  }
-  
   private static class Author {
-    private String first;
-    private String last;
-    private Role role = Role.WRITER;
+    private String first="";
+    private String last="";
+    private Role role = Role.NONE;
 
     public String getFirst() {
       return first;
@@ -472,7 +558,7 @@ public class RefBuilder extends JPanel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
       if (rowIndex == rowModel.size()) {
-        return "";
+        return (columnIndex == ROLE_COLUMN) ? Role.NONE : "";
       }
       final Author author = rowModel.get(rowIndex);
       return columnList.get(columnIndex).getter.apply(author);
@@ -481,7 +567,12 @@ public class RefBuilder extends JPanel {
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
       if (rowIndex == rowModel.size()) {
-        rowModel.add(new Author());
+        final Author blankAuthor = new Author();
+        
+        // Role defaults to the value from the previous row, or WRITER for row zero.
+        Role defaultRole = (rowIndex == 0) ? Role.WRITER : (Role) getValueAt(rowIndex - 1, ROLE_COLUMN);
+        blankAuthor.setRole(defaultRole);
+        rowModel.add(blankAuthor);
       }
       final Author author = rowModel.get(rowIndex);
       setValueImpl(aValue, columnIndex, author);
@@ -530,9 +621,9 @@ public class RefBuilder extends JPanel {
       this.setter = setter;
     }
     
-    TableColumn(Class<C> vClass, String title, Function<R, C> getter){
-      this(vClass, title, getter, null);
-    }
+//    TableColumn(Class<C> vClass, String title, Function<R, C> getter){
+//      this(vClass, title, getter, null);
+//    }
     
     public boolean isEditable() {
       return setter != null;
@@ -544,8 +635,23 @@ public class RefBuilder extends JPanel {
   }
   
   private enum Role {
-    WRITER,
-    EDITOR
+    WRITER(""),
+    EDITOR("editor-"),
+    NONE("");
+    
+    final String namePrefix;
+    Role(String namePrefix) {
+      this.namePrefix = namePrefix;
+    }
+
+
+    @Override
+    public String toString() {
+      if (this == NONE) {
+        return "";
+      }
+      return super.toString();
+    }
   }
   
   private static class Tag {
