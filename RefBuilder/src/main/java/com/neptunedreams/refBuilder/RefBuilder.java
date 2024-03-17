@@ -5,20 +5,25 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.Toolkit;
+import java.awt.Window;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 import javax.swing.Box;
 import javax.swing.ButtonModel;
 import javax.swing.JButton;
@@ -29,6 +34,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.UIDefaults;
@@ -36,6 +42,7 @@ import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
 import javax.swing.border.MatteBorder;
+import javax.swing.table.AbstractTableModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
 
@@ -65,6 +72,11 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings("StringConcatenation")
 public class RefBuilder extends JPanel {
   
+  // Todo: Add buttons for lower case and title case. 
+  // Todo: Add Multiples
+  // Todo: Add a Date Utility
+  // 
+  
   // Cite subjects: book, news, journal, web
   
   private static final Set<String> authorPair = new HashSet<>(List.of("first", "last"));
@@ -83,10 +95,10 @@ public class RefBuilder extends JPanel {
   public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
   public static final int TEXT_FIELD_LENGTH = 500;
-
   public static void main(String[] args) {
-    JFrame frame = new JFrame("Reference Buildr");
-    frame.add(new RefBuilder());
+    JFrame frame = new JFrame("Reference Builder");
+    final RefBuilder refBuilder = new RefBuilder();
+    frame.add(refBuilder);
     frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
     frame.setLocationByPlatform(true);
     frame.pack();
@@ -98,12 +110,16 @@ public class RefBuilder extends JPanel {
       public void hierarchyChanged(HierarchyEvent e) {
         // This executes after the window first appears.
         frame.setMinimumSize(frame.getSize());
+        refBuilder.adjustTabPaneInitialSize();
         frame.removeHierarchyListener(this);
       }
     };
     frame.addHierarchyListener(hierarchyListener);
     frame.setVisible(true);
   }
+
+  private final Color textFieldForeground;
+  private final Color textFieldBgColor;
 
   private final JTabbedPane tabPane = new JTabbedPane();
   private final Map<String, Set<String>> subjectMap;
@@ -113,15 +129,19 @@ public class RefBuilder extends JPanel {
 
   RefBuilder() {
     super(new BorderLayout());
+    UIDefaults uiDefaults = UIManager.getDefaults();
+    textFieldForeground = uiDefaults.getColor("TextField.foreground");
+    textFieldBgColor = uiDefaults.getColor("Label.background");
+    uiDefaults.put("TextField.inactiveForeground", textFieldForeground);
     subjectMap = new HashMap<>();
     populate(subjectMap);
     populateCommon(subjectMap);
-    printMap();
     for (String subject: subjectMap.keySet()) {
       tabPane.add(subject, makeTabContent(subject));
     }
     add(tabPane, BorderLayout.CENTER);
     add(makeControlPane(), BorderLayout.PAGE_END);
+    add(new AuthorNameEditor(), BorderLayout.PAGE_START);
   }
 
   private JComponent makeTabContent(String subject) {
@@ -184,6 +204,12 @@ public class RefBuilder extends JPanel {
     StringSelection stringSelection = new StringSelection(referenceText);
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     clipboard.setContents(stringSelection, stringSelection);
+  }
+  
+  // Is this necessary?
+  public void adjustTabPaneInitialSize() {
+    tabPane.setMinimumSize(tabPane.getSize());
+    tabPane.setPreferredSize(tabPane.getSize());
   }
   
   private String getText(Document doc) {
@@ -267,17 +293,6 @@ public class RefBuilder extends JPanel {
     }
   }
   
-  private void increaseNameCount(String name, String tab) {
-    for (Set<String> set: numeric) {
-      if (set.contains(name)) {
-        for (String s: set) {
-          
-        }
-        return;
-      }
-    }
-  }
-  
   private Set<String> mapNewSubject(Map<String, Set<String>> theSubjectMap, String subject) {
     Set<String> set = new LinkedHashSet<>();
     theSubjectMap.put(subject, set);
@@ -344,20 +359,16 @@ public class RefBuilder extends JPanel {
         JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
   }
 
-  private static JComponent makeFakeLabel(String text) {
-    UIDefaults uiDefaults = UIManager.getDefaults();
-    final Color textFieldForeground = uiDefaults.getColor("TextField.foreground");
-    uiDefaults.put("TextField.inactiveForeground", textFieldForeground);
+  private JComponent makeFakeLabel(String text) {
 
     JTextField textField = new JTextField(text);
     textField.setEnabled(false);
-    final Color bgColor = uiDefaults.getColor("Label.background");
-    textField.setBackground(bgColor);
+    textField.setBackground(textFieldBgColor);
     textField.setForeground(textFieldForeground);
     Border textFieldBorder = textField.getBorder();
-    Insets insets = textFieldBorder.getBorderInsets(textField);
+//    Insets insets = textFieldBorder.getBorderInsets(textField);
     if (textFieldBorder.getClass().toString().contains("Aqua")) {
-      textFieldBorder = new MatteBorder(5, 5, 5, 5, bgColor);
+      textFieldBorder = new MatteBorder(5, 5, 5, 5, textFieldBgColor);
       textField.setBorder(textFieldBorder);
     }
 
@@ -372,10 +383,177 @@ public class RefBuilder extends JPanel {
     return textField;
   }
   
+  private static final class AuthorNameEditor extends JPanel {
+    private AuthorNameEditor() {
+      super(new BorderLayout());
+      final AuthorTableModel tableModel = new AuthorTableModel();
+      JTable table = new JTable(tableModel);
+      table.setFillsViewportHeight(true);
+      table.setPreferredScrollableViewportSize(getPreferredSize());
+      table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+      JScrollPane scrollPane
+          = new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_NEVER, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+      add(scrollPane, BorderLayout.CENTER);
+      tableModel.addRowCountListener(()-> {
+        table.setPreferredScrollableViewportSize(table.getPreferredSize());
+        revalidate();
+        paintImmediately(getBounds());
+      });
+      
+      table.addHierarchyListener(new HierarchyListener() {
+        @Override
+        public void hierarchyChanged(HierarchyEvent e) {
+          table.setPreferredScrollableViewportSize(table.getPreferredSize());
+          table.removeHierarchyListener(this); // I can't do this in a lambda!
+        }
+      });
+//      JTableHeader tableHeader = table.getTableHeader();
+    }
+  }
+  
+  public static Window getWindow(JComponent component) {
+    return (Window) component.getRootPane().getParent();
+  }
+  
+  private static class Author {
+    private String first;
+    private String last;
+    private Role role = Role.WRITER;
+
+    public String getFirst() {
+      return first;
+    }
+
+    public void setFirst(String first) {
+      this.first = first;
+    }
+
+    public String getLast() {
+      return last;
+    }
+
+    public void setLast(String last) {
+      this.last = last;
+    }
+
+    public Role getRole() {
+      return role;
+    }
+
+    public void setRole(Role role) {
+      this.role = role;
+    }
+  }
+  
+  private static class AuthorTableModel extends AbstractTableModel {
+    private final List<TableColumn<Author, ?>> columnList = new ArrayList<>();
+    private final List<Author> rowModel = new ArrayList<>();
+    
+    private final List<Runnable> rowCountListenerList = new LinkedList<>();
+    
+    AuthorTableModel() {
+      super();
+
+      columnList.add(new TableColumn<>(String.class, "First", Author::getFirst, Author::setFirst));
+      columnList.add(new TableColumn<>(String.class, "Last", Author::getLast, Author::setLast));
+      columnList.add(new TableColumn<>(Role.class, "Role", Author::getRole, Author::setRole));
+    }
+
+    @Override
+    public int getColumnCount() {
+      return columnList.size();
+    }
+
+    @Override
+    public int getRowCount() {
+      return rowModel.size() + 1;
+    }
+
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
+      if (rowIndex == rowModel.size()) {
+        return "";
+      }
+      final Author author = rowModel.get(rowIndex);
+      return columnList.get(columnIndex).getter.apply(author);
+    }
+
+    @Override
+    public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+      if (rowIndex == rowModel.size()) {
+        rowModel.add(new Author());
+      }
+      final Author author = rowModel.get(rowIndex);
+      setValueImpl(aValue, columnIndex, author);
+      fireTableRowsInserted(rowIndex+1, rowIndex+1);
+      for (Runnable listener: rowCountListenerList) {
+        listener.run();
+      }
+    }
+
+    private <T> void setValueImpl(T aValue, int columnIndex, Author author) {
+      @SuppressWarnings("unchecked")
+      final TableColumn<Author, T> column = (TableColumn<Author, T>) columnList.get(columnIndex);
+
+      // JTable won't call this method if column.setter is null, but this won't compile without the test.
+      if (column.setter != null) {
+        column.setter.accept(author, column.valueClass.cast(aValue));
+      }
+    }
+
+    @Override
+    public boolean isCellEditable(int rowIndex, int columnIndex) {
+      return columnList.get(columnIndex).isEditable();
+    }
+
+    @Override
+    public String getColumnName(int column) {
+      return columnList.get(column).getTitle();
+    }
+    
+    public void addRowCountListener(Runnable listener) {
+      rowCountListenerList.add(listener);
+    }
+  }
+  
+  private static class TableColumn<R, C> {
+    private final String title;
+    final Class<C> valueClass;
+    final Function<R, C> getter;
+    @Nullable
+    final BiConsumer<R, C> setter;
+    
+    TableColumn(Class<C> vClass, String title, Function<R, C> getter, @Nullable BiConsumer<R, C> setter) {
+      this.title = title;
+      this.valueClass = vClass;
+      this.getter = getter;
+      this.setter = setter;
+    }
+    
+    TableColumn(Class<C> vClass, String title, Function<R, C> getter){
+      this(vClass, title, getter, null);
+    }
+    
+    public boolean isEditable() {
+      return setter != null;
+    }
+    
+    public String getTitle() {
+      return title;
+    }
+  }
+  
+  private enum Role {
+    WRITER,
+    EDITOR
+  }
+  
   private static class Tag {
     private final String subject;
     @Nullable
     private final String name;
+    
+    private final int hash;
     
     Tag(String tag) {
       String[] fields = tag.split(DELIMITER);
@@ -385,6 +563,7 @@ public class RefBuilder extends JPanel {
       } else {
         name = fields[1].trim();
       }
+      hash = Objects.hash(subject, name);
     }
 
     public String getSubject() {
@@ -394,6 +573,27 @@ public class RefBuilder extends JPanel {
     @Nullable
     public String getName() {
       return name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+
+      if (this == o) {
+        return true;
+      }
+      if (!(o instanceof Tag that)) {
+        return false;
+      } // implicitly checks for null
+
+      if (!subject.equals(that.subject)) {
+        return false;
+      }
+      return Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+      return hash;
     }
   }
 }
