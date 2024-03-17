@@ -3,8 +3,11 @@ package com.neptunedreams.refBuilder;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.LayoutManager;
+import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
@@ -38,6 +41,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.Scrollable;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
@@ -84,7 +88,7 @@ public class RefBuilder extends JPanel {
   // TODO: Move page and pages & volume to news, journal, and book.
   // TODO: Add a custom field?
   // TODO: Try another L&F
-  // TODO: Put tab pane in a ScrollPane!
+  // Done: Put tab pane in a ScrollPane!
   
   // Cite subjects: book, news, journal, web
   
@@ -157,11 +161,16 @@ public class RefBuilder extends JPanel {
     }
     add(tabPane, BorderLayout.CENTER);
     add(makeControlPane(), BorderLayout.PAGE_END);
-    add(new AuthorNameEditorPane(editorTerminatorOperations), BorderLayout.PAGE_START);
   }
 
   private JComponent makeTabContent(String subject) {
-    JPanel tabContent = new JPanel(new GridBagLayout());
+    JPanel tabContent = new ScrollingPane(new GridBagLayout());
+
+    GridBagConstraints tableConstraint = (constrain(0));
+    tableConstraint.gridwidth = 3;
+    tableConstraint.ipadx = 0;
+    tableConstraint.ipady = 0;
+    tabContent.add(new AuthorNameEditorPane(editorTerminatorOperations), tableConstraint);
     tabContent.add(hStrut(1), constrain(0));
     tabContent.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
     Set<String> nameSet = subjectMap.get(subject);
@@ -174,7 +183,9 @@ public class RefBuilder extends JPanel {
     GridBagConstraints constraints = constrain(1);
     constraints.weighty = 1.0f;
     tabContent.add(hStrut(1), constraints);
-    return tabContent;
+    final JScrollPane scrollPane = new JScrollPane(tabContent, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    scrollPane.getViewport().setBackground(textFieldBgColor);
+    return scrollPane;
   }
 
   private Component makeControlPane() {
@@ -343,9 +354,9 @@ public class RefBuilder extends JPanel {
       constraints.anchor = GridBagConstraints.NORTHWEST;
       constraints.ipady = 4;
     } else {
-      constraints.fill = GridBagConstraints.BOTH;
       constraints.weightx = 1.0;
     }
+    constraints.fill = GridBagConstraints.BOTH;
     return constraints;
   }
 
@@ -388,6 +399,10 @@ public class RefBuilder extends JPanel {
 //    }
 //  }
 
+  /**
+   * <p>A DisplayComponent consists of a text editor and a checkbox called "Big." The check box toggles the 
+   * text editor between a JTextField and a JTextArea, both of which share the same data model, the Document.</p>
+   */
   private static class DisplayComponent extends JPanel {
     private final ButtonModel buttonModel;
     private final Document document;
@@ -429,6 +444,40 @@ public class RefBuilder extends JPanel {
     }
 
   }
+
+  private class ScrollingPane extends JPanel implements Scrollable {
+    private final int unitIncrement = 13;
+    ScrollingPane(LayoutManager layoutManager) {
+      super(layoutManager);
+      setBackground(textFieldBgColor);
+    }
+
+    @Override
+    public Dimension getPreferredScrollableViewportSize() {
+      return getPreferredSize();
+    }
+
+    @Override
+    public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+      return unitIncrement;
+    }
+
+    @Override
+    public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+      return visibleRect.height - unitIncrement;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+      return true;
+    }
+
+    @Override
+    public boolean getScrollableTracksViewportHeight() {
+      return false;
+    }
+  }
+
   @NotNull
   private static JScrollPane scrollWrapTextArea(JTextArea textArea) {
     textArea.setWrapStyleWord(true);
