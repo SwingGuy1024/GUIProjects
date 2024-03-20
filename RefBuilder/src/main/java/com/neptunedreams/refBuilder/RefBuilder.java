@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.LayoutManager;
@@ -15,6 +16,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 import javax.swing.Box;
 import javax.swing.ButtonModel;
 import javax.swing.DefaultCellEditor;
+import javax.swing.FocusManager;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -47,12 +50,15 @@ import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
 import javax.swing.border.MatteBorder;
+import javax.swing.event.CaretListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellEditor;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
+import javax.swing.text.Caret;
 import javax.swing.text.Document;
 import javax.swing.text.DocumentFilter;
+import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
 
 import org.jetbrains.annotations.NonNls;
@@ -81,14 +87,14 @@ import org.jetbrains.annotations.Nullable;
 @SuppressWarnings({"StringConcatenation", "MagicCharacter"})
 public class RefBuilder extends JPanel {
 
-  // Todo: Add buttons for lower case and title case. 
+  // Done: Add buttons for lower case and title case. 
   // DONE: Add Multiples
   // Todo: Add a Date Utility
   // Done: Add URL Encoder. From 32 to 47  and 58 to 64 and 123 to 126 Need to experiment with > 128
   //       Encode <>&()\#%[\]^`{|} 0xa0, 0xad (nbs and soft hyphen) & anything above 0xff
   // TODO: Move subject-specific tags to the end. Maybe split off access and archive names into a second,
   //       minor branch so they may be put at the end.
-  // TODO: Move page and pages & volume to news, journal, and book.
+  // Done: Move page and pages & volume to news, journal, and book.
   // TODO: Add a custom field?
   // TODO: Try another L&F
   // Done: Put tab pane in a ScrollPane!
@@ -380,17 +386,102 @@ public class RefBuilder extends JPanel {
    * @return The Go pane
    */
   @NotNull
-  private static JPanel makeGoPane(ActionListener actionListener) {
-    JButton goButton = new JButton("go");
+  private JPanel makeGoPane(ActionListener actionListener) {
+    JButton goButton = new JButton("Go");
     goButton.addActionListener(actionListener);
     JPanel goPane = new JPanel(new BorderLayout());
     goPane.add(goButton, BorderLayout.LINE_END);
+    
+    goPane.add(makeControlUtilityPane(), BorderLayout.LINE_START);
     return goPane;
+  }
+
+  private @Nullable JTextComponent focusedTextComponent = null;
+  private JComponent makeControlUtilityPane() {
+    JPanel utilityPane = new JPanel(new FlowLayout());
+    JButton toLowerCase = new JButton("lc");
+    JButton toUpperCase = new JButton("UC");
+    JButton toTitleCase = new JButton("Tc");
+    toLowerCase.setRequestFocusEnabled(false);
+    toTitleCase.setRequestFocusEnabled(false);
+    toUpperCase.setRequestFocusEnabled(false);
+    toLowerCase.setToolTipText("To Lower Case");
+    toUpperCase.setToolTipText("To Upper Case");
+    toTitleCase.setToolTipText("To Title Case");
+    toLowerCase.addActionListener(e -> toLowerCase());
+    toUpperCase.addActionListener(e -> toUpperCase());
+    toTitleCase.addActionListener(e -> toTitleCase());
+    utilityPane.add(toLowerCase);
+    utilityPane.add(toUpperCase);
+    utilityPane.add(toTitleCase);
+
+    final CaretListener caretListener = e -> processCaretEvent(e.getDot() != e.getMark(), toLowerCase, toUpperCase, toTitleCase);
+
+    PropertyChangeListener propertyChangeListener = evt -> {
+      if (focusedTextComponent != null) {
+        focusedTextComponent.removeCaretListener(caretListener);
+      }
+      if (evt.getNewValue() instanceof JTextComponent textComponent) {
+        focusedTextComponent = textComponent;
+        focusedTextComponent.addCaretListener(caretListener);
+        final Caret caret = focusedTextComponent.getCaret();
+        processCaretEvent(caret.getDot() != caret.getMark(), toLowerCase, toUpperCase, toTitleCase);
+      } else {
+        focusedTextComponent = null;
+        processCaretEvent(false, toLowerCase, toUpperCase, toTitleCase);
+      }
+    };
+
+    final FocusManager currentManager = FocusManager.getCurrentManager();
+    currentManager.addPropertyChangeListener("permanentFocusOwner", propertyChangeListener);
+    return utilityPane;
+  }
+  
+  private void processCaretEvent(boolean isSelection, JButton... buttons) {
+    for (JButton button : buttons) {
+      button.setEnabled(isSelection);
+    }
+  }
+
+  private static void toLowerCase() {
+    modifyText(String::toLowerCase);
+  }
+
+  private static void toUpperCase() {
+    modifyText(String::toUpperCase);
+  }
+
+  private static void toTitleCase() {
+    modifyText(RefBuilder::toTitleCase);
+  }
+
+  private static void modifyText(Function<String, String> mutator) {
+    Component focusOwner = FocusManager.getCurrentManager().getPermanentFocusOwner();
+    if (focusOwner instanceof JTextComponent textComponent) {
+      final String selectedText = textComponent.getSelectedText();
+      if (!selectedText.isEmpty()) {
+        int selectionStart = textComponent.getSelectionStart();
+        final String revisedText = mutator.apply(selectedText);
+        textComponent.replaceSelection(revisedText);
+        textComponent.select(selectionStart, selectionStart + revisedText.length());
+      }
+    }
+  }
+  
+  private static String toTitleCase(String input) {
+    String[] words = input.split(" ");
+    StringBuilder builder = new StringBuilder();
+    for (String word: words) {
+      String lower = word.toLowerCase();
+      builder.append(Character.toTitleCase(lower.charAt(0)));
+      builder.append(lower.substring(1));
+      builder.append(' ');
+    }
+    return builder.toString().trim();
   }
 
   private static Component hStrut(int length) {
     return Box.createHorizontalStrut(length);
-    
   }
 
   private void makeFixedField(JPanel content, String subject, String name) {
