@@ -17,7 +17,6 @@ import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,6 +25,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.swing.Box;
 import javax.swing.ButtonModel;
 import javax.swing.DefaultCellEditor;
@@ -49,8 +49,11 @@ import javax.swing.border.Border;
 import javax.swing.border.MatteBorder;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellEditor;
+import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
+import javax.swing.text.DocumentFilter;
+import javax.swing.text.PlainDocument;
 
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -75,13 +78,13 @@ import org.jetbrains.annotations.Nullable;
  * <p>Time: 4:01&nbsp;AM</p>
  * <p>@author Miguel Muñoz</p>
  */
-@SuppressWarnings("StringConcatenation")
+@SuppressWarnings({"StringConcatenation", "MagicCharacter"})
 public class RefBuilder extends JPanel {
 
   // Todo: Add buttons for lower case and title case. 
   // DONE: Add Multiples
   // Todo: Add a Date Utility
-  // TODO: Add URL Encoder. From 32 to 47  and 58 to 64 and 123 to 126 Need to experiment with > 128
+  // Done: Add URL Encoder. From 32 to 47  and 58 to 64 and 123 to 126 Need to experiment with > 128
   //       Encode <>&()\#%[\]^`{|} 0xa0, 0xad (nbs and soft hyphen) & anything above 0xff
   // TODO: Move subject-specific tags to the end. Maybe split off access and archive names into a second,
   //       minor branch so they may be put at the end.
@@ -92,9 +95,16 @@ public class RefBuilder extends JPanel {
   
   // Cite subjects: book, news, journal, web
   
-//  private static final Set<String> authorPair = new HashSet<>(List.of("first", "last"));
-//  private static final Set<String> editorPair = new HashSet<>(List.of("editor-first", "editor-last"));
-//  private static final Set<Set<String>> numeric = new HashSet<>(List.of(authorPair, editorPair));
+  /*
+    Filter Specs:
+    1. Filtering is done in two places: When text is entered into a field, and when a reference is being built.
+    2. There are two types of filters: url fields, and non-url fields, which I'll call normal fields.
+    3. When typing, we want to replace new lines with spaces.
+    4. When building, we want to do the following conversions:
+      a. nbsp -> &nbsp;
+      b. Url fields: url encode the following: <> and space and soft hyphen.
+      c. normal fields: url encode the following: <> and soft hyphen
+   */
   
   private static final Set<String> common = new LinkedHashSet<>(
       List.of("title", "year", "date", "url", "page", "pages", "volume", "language", "publisher", 
@@ -102,8 +112,9 @@ public class RefBuilder extends JPanel {
   );
   private static final Set<String> sources
       = new LinkedHashSet<>(List.of("book.isbn", "book.location", "book.orig-year", "book.edition",
-      "book.oclc", "book.chapter", "book.chapter-url", "book.author-link", "journal.issue", "journal.doi",
-      "journal.doi-access", "journal.issn", "journal.bibcode", "news.newspaper", "news.agency", "news.work", "web")
+      "book.oclc", "book.chapter", "book.chapter-url", "book.author-link", "journal.journal", "journal.issue",
+      "journal.doi", "journal.doi-access", "journal.issn", "journal.bibcode", "news.newspaper", "news.agency",
+      "news.work", "web")
   );
   public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
@@ -112,6 +123,22 @@ public class RefBuilder extends JPanel {
   public static final int FIRST_COLUMN = 0;
   public static final int LAST_COLUMN = 1;
   public static final int ROLE_COLUMN = 2;
+  
+  // http://www.strangeChars.com/!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ ¬­­/中文
+  
+  private static final Set<Integer> forbidden = "\n\r"
+      .chars()
+      .boxed()
+      .collect(Collectors.toUnmodifiableSet());
+  private static final Set<Integer> urlEncode = " <>\u00ad" // space, angle brackets, soft hyphen.
+      .chars()
+      .boxed()
+      .collect(Collectors.toUnmodifiableSet());
+  
+  private static final Set<Integer> normalEncode = "<>\u00ad" // angle brackets and soft hyphen
+      .chars()
+      .boxed()
+      .collect(Collectors.toUnmodifiableSet());
   
   private final Color textFieldForeground;
 
@@ -123,7 +150,6 @@ public class RefBuilder extends JPanel {
   
   private final List<Runnable> editorTerminatorOperations = new LinkedList<>();
 
-//  private final Map<String, Integer> multipleMap = new HashMap<>();
   public static void main(String[] args) {
     JFrame frame = new JFrame("Reference Builder");
     final RefBuilder refBuilder = new RefBuilder();
@@ -204,6 +230,7 @@ public class RefBuilder extends JPanel {
   }
 
   private void buildReferenceText(JTextArea resultView, String name) {
+    // Close all active editors first.
     for (Runnable runner: editorTerminatorOperations) {
       runner.run();
     }
@@ -225,29 +252,58 @@ public class RefBuilder extends JPanel {
     addRoleData(builder, Role.WRITER, writerIndices);
     addRoleData(builder, Role.EDITOR, editorIndices);
 
-    String tab = tabPane.getTitleAt(tabPane.getSelectedIndex());
-    for (String key: nameMap.keySet()) {
+    String selectedTab = tabPane.getTitleAt(tabPane.getSelectedIndex());
+    for (String tag: nameMap.keySet()) {
 //      System.out.printf("ValueMap: %s%n", key); // NON-NLS
-      if (key.startsWith(tab)) {
-        Document doc = nameMap.get(key);
-        final String fieldText = getText(doc);
+      if (tag.startsWith(selectedTab)) {
+        Document doc = nameMap.get(tag);
+        final String fieldText = clean(getText(doc), isForUrl(tag));
         if (!fieldText.isEmpty()) {
-          String fieldName = key.substring(key.indexOf(DOT) + 1);
+          String fieldName = tag.substring(tag.indexOf(DOT) + 1);
           appendPair(builder, fieldName, fieldText);
         }
       }
     }
-    builder.insert(0, tab);
+    builder.insert(0, selectedTab);
     builder.insert(0, "{{cite ");
     builder.append("}}");
     String openRef = name.isEmpty()? "<ref>" : String.format("<ref name=\"%s\">", name);
     builder.insert(0, openRef);
     builder.append("</ref>");
+    
     final String referenceText = builder.toString();
     resultView.setText(referenceText);
     StringSelection stringSelection = new StringSelection(referenceText);
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     clipboard.setContents(stringSelection, stringSelection);
+  }
+  
+  boolean isForUrl(String tag) {
+    return tag.endsWith("url"); // .url and .archive-url
+  }
+
+  /**
+   * <p>Clean text before putting it in the reference output.</p>
+   * <p>Cleaning consists of this: <br>
+   *       a. nbsp -> {@literal &nbsp;} <br>
+   *       b. Url fields: url encode the following: {@literal <>} and space. <br>
+   *       c. normal fields: url encode the following: {@literal <>}</p>
+   * @param s The text to clean
+   * @return The cleaned text
+   */
+  private String clean(String s, boolean isUrl) {
+    StringBuilder builder = new StringBuilder();
+    Set<Integer> banned = isUrl ? urlEncode : normalEncode;
+    for (char ch : s.toCharArray()) {
+      if (banned.contains((int) ch)) {
+        builder.append(String.format("%%%02x", (int) ch));
+      } else if (ch == '\u00a0') { // nbsp
+        builder.append("&nbsp;");
+      } else {
+        builder.append(ch);
+      }
+    }
+    return builder.toString();
   }
 
   private static void appendPair(StringBuilder builder, String fieldName, String fieldText) {
@@ -258,22 +314,23 @@ public class RefBuilder extends JPanel {
   }
 
   private void addRoleData(StringBuilder builder, Role role, List<Integer> indices) {
+    List<String> firstNames = new LinkedList<>();
+    List<String> lastNames = new LinkedList<>();
     // First, eliminate rows with no first or last name
-    for (Iterator<Integer> itr = indices.iterator(); itr.hasNext();) {
-      int row = itr.next();
-      final String first = tableModel.getValueAt(row, FIRST_COLUMN).toString().trim();
-      final String last = tableModel.getValueAt(row, LAST_COLUMN).toString().trim();
-      if (first.isEmpty() && last.isEmpty()) {
-        itr.remove();
+    for (int row : indices) {
+      final String first = clean(tableModel.getValueAt(row, FIRST_COLUMN).toString(), false).trim();
+      final String last = clean(tableModel.getValueAt(row, LAST_COLUMN).toString(), false).trim();
+      if (!first.isEmpty() || !last.isEmpty()) {
+        firstNames.add(first);
+        lastNames.add(last);
       }
     }
     
     String firstName = role.namePrefix + "first";
     String lastName = role.namePrefix + "last";
-    if (indices.size() == 1) {
-      int row = indices.get(0);
-      String firstText = tableModel.getValueAt(row, FIRST_COLUMN).toString().trim();
-      String lastText = tableModel.getValueAt(row, LAST_COLUMN).toString().trim();
+    if (firstNames.size() == 1) {
+      String firstText = firstNames.get(0);
+      String lastText = lastNames.get(0);
       if (!firstText.isEmpty()) {
         appendPair(builder, firstName, firstText);
       }
@@ -281,11 +338,10 @@ public class RefBuilder extends JPanel {
         appendPair(builder, lastName, lastText);
       }
     } else {
-      for (int i=0; i<indices.size(); ++i) {
-        int userIndex = i+1;
-        int row = indices.get(i);
-        String firstText = tableModel.getValueAt(row, FIRST_COLUMN).toString().trim();
-        String lastText = tableModel.getValueAt(row, LAST_COLUMN).toString().trim();
+      for (int row=0; row<firstNames.size(); ++row) {
+        int userIndex = row+1;
+        String firstText = firstNames.get(row);
+        String lastText = lastNames.get(row);
         if (!firstText.isEmpty()) {
           appendPair(builder, firstName+userIndex, firstText);
         }
@@ -390,27 +446,22 @@ public class RefBuilder extends JPanel {
     return set;
   }
 
-//  public void printMap() {
-//    for (String subject: subjectMap.keySet()) {
-//      Set<String> nameSet = subjectMap.get(subject);
-//      for (String name: nameSet) {
-//        System.out.printf("%s.%s%n", subject, name); // NON-NLS
-//      }
-//    }
-//  }
-
   /**
    * <p>A DisplayComponent consists of a text editor and a checkbox called "Big." The check box toggles the 
    * text editor between a JTextField and a JTextArea, both of which share the same data model, the Document.</p>
    */
+  @SuppressWarnings("MagicCharacter")
   private static class DisplayComponent extends JPanel {
     private final ButtonModel buttonModel;
     private final Document document;
+    
+    private static final DocumentFilter mainDocumentFilter = getMainDocumentFilter();
 
     DisplayComponent() {
       super(new BorderLayout());
       JTextField textField = new JTextField(1);
       document = textField.getDocument();
+      ((PlainDocument)document).setDocumentFilter(mainDocumentFilter);
 
       add(textField, BorderLayout.CENTER);
       JCheckBox big = new JCheckBox("Big");
@@ -420,6 +471,32 @@ public class RefBuilder extends JPanel {
       add(big, BorderLayout.LINE_END);
     }
 
+    private static DocumentFilter getMainDocumentFilter() {
+      return new DocumentFilter() {
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+          fb.insertString(offset, filter(string), attr);
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs) throws BadLocationException {
+          fb.replace(offset, length, filter(text), attrs);
+        }
+
+        private String filter(String string) {
+          StringBuilder builder = new StringBuilder();
+          for (char c : string.toCharArray()) {
+            if (forbidden.contains((int) c)) {
+              builder.append(' ');
+            } else {
+              builder.append(c);
+            }
+          }
+          return builder.toString();
+        }
+      };
+    }
+    
     private void toggleBig(ItemEvent e, ButtonModel buttonModel) {
       boolean isBig = buttonModel.isSelected();
       assert isBig == (e.getStateChange() == ItemEvent.SELECTED);
@@ -495,7 +572,6 @@ public class RefBuilder extends JPanel {
     textField.setBackground(textFieldBgColor);
     textField.setForeground(textFieldForeground);
     Border textFieldBorder = textField.getBorder();
-//    Insets insets = textFieldBorder.getBorderInsets(textField);
     if (textFieldBorder.getClass().toString().contains("Aqua")) {
       textFieldBorder = new MatteBorder(5, 5, 5, 5, textFieldBgColor);
       textField.setBorder(textFieldBorder);
@@ -643,7 +719,8 @@ public class RefBuilder extends JPanel {
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-      return columnList.get(columnIndex).isEditable();
+      // Role column is not editable in the last row.
+      return ((rowIndex < rowModel.size()) || (columnIndex < 2)) && columnList.get(columnIndex).isEditable();
     }
 
     @Override
@@ -669,10 +746,6 @@ public class RefBuilder extends JPanel {
       this.getter = getter;
       this.setter = setter;
     }
-    
-//    TableColumn(Class<C> vClass, String title, Function<R, C> getter){
-//      this(vClass, title, getter, null);
-//    }
     
     public boolean isEditable() {
       return setter != null;
