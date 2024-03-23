@@ -16,6 +16,9 @@ import javax.swing.border.MatteBorder;
 
 /**
  * <p>ASCII Table</p>
+ * <p>I created this because every ASCII table I found in a quick internet search was missing some of what I was
+ * looking for. Either some of the extended characters were missing, or they didn't show hex values, or didn't 
+ * show decimal values</p>
  * <p>Sources:</p>
  * <p>&nbsp;&nbsp;<a href="https://www.ascii-code.com/">https://www.ascii-code.com/</a></p>
  * <p>&nbsp;&nbsp;<a href="https://www.fileformat.info/info/charset/ISO-8859-1/list.htm">https://www.fileformat.info/info/charset/ISO-8859-1/list.htm</a></p>
