@@ -84,18 +84,25 @@ import org.jetbrains.annotations.Nullable;
  *
  * @author Miguel Mu\u00f1oz
  */
+@SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
 public class GridHelper {
 	public static final int labelSpace = 5;
 	private final JPanel panel;
 	public GridHelper(JPanel thePanel) { panel = thePanel; }
 	public GridHelper() { panel = new JPanel(new GridBagLayout()); }
 	public JPanel getPanel() { return panel; }
+	
+	public static GridBagConstraints makeConstraint() {
+		GridBagConstraints constraints = new GridBagConstraints();
+		constraints.fill = GridBagConstraints.BOTH;
+		return constraints;
+	}
 
 	public static GridBagConstraints makeConstraint(int x, int y) {
 		GridBagConstraints constraints = new GridBagConstraints();
 		constraints.gridx = x;
 		constraints.gridy = y;
-//		constraints.fill = GridBagConstraints.HORIZONTAL;
+		constraints.fill = GridBagConstraints.BOTH;
 		return constraints;
 	}
 
@@ -387,7 +394,7 @@ public class GridHelper {
 		return cns;
 	}
 
-	private static void copyFromTemplate(GridBagConstraints template, GridBagConstraints constraints) {
+	private static void copyFromTemplate(@Nullable GridBagConstraints template, GridBagConstraints constraints) {
 		if (template != null) {
 			int anchor = template.anchor;
 			if (anchor != GridBagConstraints.CENTER) {
@@ -461,6 +468,7 @@ public class GridHelper {
 		addHorizontalStrut(x, y, panel, width);
 	}
 
+	@SuppressWarnings("UnusedReturnValue")
 	public static GridBagConstraints addVerticalStrut(int gridX, int gridY, Container panel, int height) {
 		GridBagConstraints cns = makeConstraint(gridX, gridY);
 		panel.add(Box.createVerticalStrut(height), cns);

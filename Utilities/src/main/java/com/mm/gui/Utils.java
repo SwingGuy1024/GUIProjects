@@ -2,7 +2,11 @@ package com.mm.gui;
 
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
 import java.text.Normalizer;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import javax.swing.JFrame;
@@ -19,9 +23,11 @@ import org.jetbrains.annotations.NotNull;
  * Time: 8:35:34 PM
  * To change this template use File | Settings | File Templates.
  */
-@SuppressWarnings({"UnnecessaryUnicodeEscape", "MagicNumber"})
+@SuppressWarnings({"UnnecessaryUnicodeEscape", "MagicNumber", "unused"})
 public enum Utils {
 	;
+
+	public static final double toRadians = Math.PI / 180.0;
 
 	public static void main(String[] args) {
 		String testString = "r\u00f4le\u030a, ro\u0302le 35\u00c5, A\u030arch \ufb01ne, first, 2\u2075 C\u0152R D\u00c6R";
@@ -92,6 +98,28 @@ public enum Utils {
 				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 	}
 
+	/**
+	 * <p>This returns an Iterable that iterates over the characters of a String.</p>
+	 * <p>For most Strings, this is unnecessary, as you can easily iterate like this:</p>
+	 * <pre>
+	 *   String text = ...
+	 *   for (char ch: text.toCharArray()) {
+	 *     ...
+	 *   }
+	 * </pre>
+	 * <p>However, for long Strings, this is inefficient, because the {@code toCharArray()} method first copies the 
+	 * characters to a new array. For large Strings, or for heavy duty processing of many Strings, this method can
+	 * improve performance:
+	 * </p>
+	 * <pre>
+	 *   String text = ...
+	 *   for (char ch: iter(text)) {
+	 *     ...
+	 *   }
+	 * </pre>
+	 * @param s The String
+	 * @return an {@literal Iterable<Character>} for the String
+	 */
 	public static Iterable<Character> iter(String s) {
 
 		return new Iterable<Character>() {
@@ -117,4 +145,44 @@ public enum Utils {
 				};
 			}
 		};
-	}}
+	}
+
+	// Drawing and Geometry utilities
+
+	public static double toRad(double degrees) {
+		return toRadians * degrees;
+	}
+
+	/**
+	 * Returns an Affine Transform that will flip a shape across a ray or line through the origin, extending at the
+	 * specified angle.
+	 * @param degrees The angle from the X axis
+	 * @return The Affine Transform that can flip the shape.
+	 */
+	public static AffineTransform getFlipOverRayDegreesInstance(double degrees) {
+		final double radians = toRad(degrees);
+		AffineTransform transform = AffineTransform.getRotateInstance(-radians);
+		AffineTransform flipOverHorAxis = AffineTransform.getScaleInstance(1.0, -1.0);
+		AffineTransform rotateBack = AffineTransform.getRotateInstance(radians);
+		flipOverHorAxis.concatenate(transform);
+		rotateBack.concatenate(flipOverHorAxis);
+		return rotateBack;
+	}
+
+	public static Path2D toShape(Iterable<Point2D> collection) {
+		Path2D shape = new Path2D.Double();
+		Iterator<Point2D> iterator = collection.iterator();
+		Point2D start = iterator.next();
+		shape.moveTo(start.getX(), start.getX());
+		while (iterator.hasNext()) {
+			Point2D next = iterator.next();
+			shape.lineTo(next.getX(), next.getY());
+		}
+		shape.closePath();
+		return shape;
+	}
+
+	public static Path2D toShape(Point2D... pointArray) {
+		return toShape(Arrays.asList(pointArray));
+	}
+}

@@ -1,5 +1,9 @@
 package com.mm.gui;
 
+import java.awt.event.KeyEvent;
+import javax.swing.InputMap;
+import javax.swing.JComponent;
+import javax.swing.KeyStroke;
 import javax.swing.LookAndFeel;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
@@ -9,6 +13,10 @@ import javax.swing.plaf.DimensionUIResource;
 import javax.swing.plaf.metal.DefaultMetalTheme;
 import javax.swing.plaf.metal.MetalLookAndFeel;
 import javax.swing.plaf.metal.OceanTheme;
+import javax.swing.plaf.nimbus.NimbusLookAndFeel;
+import javax.swing.text.JTextComponent;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * More convenient way to set looks and feels. There are three ways to use this
@@ -31,11 +39,10 @@ import javax.swing.plaf.metal.OceanTheme;
  * Created using IntelliJ IDEA. Date: Oct 3, 2004 Time: 5:46:28 PM
  *
  * @author Miguel Mu\u00f1oz
- *         <p/>
- *         Copyright (c) 2004 Miguel Munoz
+ * Copyright (c) 2004 Miguel Munoz
  */
 
-@SuppressWarnings({"HardCodedStringLiteral"})
+@SuppressWarnings({"HardCodedStringLiteral", "unused", "UnnecessaryUnicodeEscape", "OverlyBroadCatchBlock"})
 public enum LandF
 {
               /** Platform's default Look and Feel */
@@ -71,7 +78,7 @@ public enum LandF
   Motif     ("motif", "com.sun.java.swing.plaf.motif.MotifLookAndFeel"), // NON-NLS
 
 							/** Nimbus Look and Feel */
-	Nimbus    ("nimbus", "com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel") {
+	Nimbus    ("nimbus", NimbusLookAndFeel.class.getName()) {
 
 								/**
 								 * This works around the problems with tables in Nimbus. It eliminates
@@ -79,7 +86,6 @@ public enum LandF
 								 * the Boolean renderer that Nimbus uses.
 								 * You may find this workaround in the bug parade, Bug 6723524.
 								 */
-								@SuppressWarnings({"MagicNumber"}) 
 								@Override 
 								protected void cleanup() {
 									LookAndFeel lookAndFeel = UIManager.getLookAndFeel();
@@ -92,14 +98,15 @@ public enum LandF
 									defaults.put("Table:\"Table.cellRenderer\".background", new ColorUIResource(242, 242, 242));
 								}}; // NON-NLS
 
+	@Nullable
   private final String      mName;
 	public  final String      mLabel;
 
-  private LandF(String pLabel, String pName) {
+  LandF(String pLabel, @Nullable String pName) {
 		mName = pName;
 		mLabel = pLabel;
 	}
-  private LandF(String pLabel)             { this(pLabel, null); }
+  LandF(String pLabel)             { this(pLabel, null); }
   public void setLookAndFeel()
     throws 
       UnsupportedLookAndFeelException,
@@ -107,10 +114,11 @@ public enum LandF
       InstantiationException,
       IllegalAccessException
   {
-    if (mName == null)
-      UIManager.setLookAndFeel(makeLF());
-    else
-      UIManager.setLookAndFeel(mName);
+    if (mName == null) {
+			UIManager.setLookAndFeel(makeLF());
+		} else {
+			UIManager.setLookAndFeel(mName);
+		}
 	  cleanup();
   }
   /**
@@ -121,9 +129,9 @@ public enum LandF
    */ 
   public void quickSetLF()
   {
-	  //noinspection CatchGenericClass
+		//noinspection CatchGenericClass,OverlyBroadCatchBlock
 	  try { setLookAndFeel(); }
-    catch(Exception ex) { }
+    catch(Exception ex) { ex.printStackTrace(); }
   }
 	
 	public void set() { quickSetLF(); }
@@ -132,7 +140,7 @@ public enum LandF
    * This only needs to be defined in instances that use the empty constructor.
    * @return The look and feel. 
    */ 
-  protected LookAndFeel makeLF() { //noinspection StringConcatenation
+  protected LookAndFeel makeLF() {
 	  throw new AssertionError("makeName called from " + mName);
   }
 	
@@ -167,7 +175,7 @@ public enum LandF
 					}
 				}
 				catch (Exception ex) {
-					if (firstException == null) firstException = ex;
+					if (firstException == null) { firstException = ex; }
 				}
 			}
 		}
@@ -177,6 +185,7 @@ public enum LandF
 		}
 	}
 
+	@SuppressWarnings("OverlyBroadCatchBlock")
 	public static void setLF(LandF... landf) {
 		Exception lastException=null;
 		for (LandF lf: landf) {
@@ -191,6 +200,94 @@ public enum LandF
 		}
 		//noinspection ProhibitedExceptionThrown
 		throw new RuntimeException(lastException);
+	}
+
+	/**
+	 * <p>Add Mac KeyStroke bindings to a JTextComponent. This tries to remove the
+	 * Windows bindings, but it doesn't work, becasue the Windows bindings 
+	 * aren't in the available InputMap. I don't know where they are or if I
+	 * can remove them.</p> 
+	 * @see LandF#addOSXKeyStrokesMac(InputMap) 
+	 * @param textComponent The JTextComponent subclass to fix.
+	 */
+	public static void addOSXKeyStrokesMac(JTextComponent textComponent) {
+		addOSXKeyStrokesMac(textComponent.getInputMap(JComponent.WHEN_FOCUSED));
+	}
+
+	/**
+	 * <p>This fix was suggested by 
+	 * <a href=https://stackoverflow.com/questions/9780028/mac-keyboard-shortcuts-with-nimbus-laf>This stackoverflow question</a>.
+	 * Most LookAndFeel classes install windows and unix key bindings. This makes them less usable on Macs. This
+	 * installs Mac keyboard bindings. (It doesn't get all of them.) It also tries to uninstall the Windows/Unix
+	 * bindings, but that doesn't work. So it leaves JTextComponents with both bindings working. These bindings
+	 * are for all JTextComponents. But they don't share the same InputMaps, so these need to be installed on
+	 * every JTextComponent instance to be useful.</p>
+	 * <p>Debugging Note. I tried to figure out why it didn't remove the old key bindings. I stepped through the
+	 * code and confirmed that the call to remove the key-binding was working, and I didn't even need to recurse
+	 * through the parents, which were null anyway. So I have no idea why the old key bindings are still in place.</p>
+	 * @param inputMap The InputMap
+	 */
+	public static void addOSXKeyStrokesMac(InputMap inputMap) {
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.META_DOWN_MASK), "copy-to-clipboard");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.META_DOWN_MASK), "cut-to-clipboard");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.META_DOWN_MASK), "paste-from-clipboard");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_V, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_A, KeyEvent.META_DOWN_MASK), "select-all");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_A, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, KeyEvent.ALT_DOWN_MASK), "delete-next-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT, KeyEvent.ALT_DOWN_MASK), "caret-next-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, KeyEvent.ALT_DOWN_MASK), "caret-next-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT, KeyEvent.ALT_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "selection-next-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_KP_RIGHT, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, KeyEvent.ALT_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "selection-next-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, KeyEvent.ALT_DOWN_MASK), "delete-previous-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, KeyEvent.ALT_DOWN_MASK), "caret-previous-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT, KeyEvent.ALT_DOWN_MASK), "caret-previous-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT, KeyEvent.CTRL_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, KeyEvent.ALT_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "selection-previous-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT, KeyEvent.ALT_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "selection-previous-word");
+		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_KP_LEFT, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+//		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.META_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK), "");
+//		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_, KeyEvent.CTRL_DOWN_MASK | KeyEvent.SHIFT_DOWN_MASK));
+//		inputMap.put()
+	}
+	
+	private static void remove(InputMap inputMap, KeyStroke keyStroke) {
+		InputMap parent = inputMap;
+		do {
+			final Object value = parent.get(keyStroke);
+			if (value != null) {
+				parent.remove(keyStroke);
+				return;
+			}
+			parent = parent.getParent();
+		} while (parent != null);
 	}
 	
 	protected void cleanup() { }
