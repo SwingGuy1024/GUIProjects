@@ -66,6 +66,7 @@ import javax.swing.text.JTextComponent;
 
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
 import com.mm.util.GridHelper;
+import com.mm.util.StringCollector;
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -105,6 +106,7 @@ public final class WordsForWwf extends JPanel {
 
 	private final JTextField input = new JTextField(LIMIT);
 	private final JTextField required = new JTextField(LIMIT);
+	private final JTextField forbidden = new JTextField(LIMIT);
 	private final JList<String> wordList = new JList<>();
 	private SortedSet<String> words=null;
 	private final SortedSet<String> reverseWords;
@@ -242,6 +244,8 @@ public final class WordsForWwf extends JPanel {
 		helper.add(input, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
 		helper.add(new JLabel("Req:"), 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 1, 1);
 		helper.add(required, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
+//		helper.add(new JLabel("Forb:"), 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 1, 1);
+//		helper.add(forbidden, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
 
 		setAccelerator(reverse, KeyEvent.VK_R);
 
@@ -277,8 +281,9 @@ public final class WordsForWwf extends JPanel {
 	private void addDataListener() {
 //		Document wordDocument = input.getDocument();
 //		Document requiredDoc = required.getDocument();
-		Document[] documents = {input.getDocument(), required.getDocument() };
-		for (Document doc : documents) {
+		JTextField[] textFields = {input, required, forbidden};
+		for (JTextField textField : textFields) {
+			Document doc = textField.getDocument();
 			doc.addDocumentListener(new DocumentListener() {
 				@Override
 				public void insertUpdate(DocumentEvent e) {
@@ -339,11 +344,28 @@ public final class WordsForWwf extends JPanel {
 
 	private void filterForRequiredCharacters(Set<String> wordSet) {
 		char[] requiredLetters = required.getText().toUpperCase().toCharArray();
-		if (requiredLetters.length > 0) {
+		char[] forbiddenLetters = forbidden
+				.getText()
+				.chars()
+				.sequential()
+				.filter(Character::isLetter)
+				.map(Character::toUpperCase)
+				.boxed()
+				.collect(StringCollector.instance())
+				.toCharArray();
+//		char[] forbiddenLetters = forbidden.getText().toUpperCase().toCharArray();
+		if ((requiredLetters.length > 0) || (forbiddenLetters.length > 0)) {
 			int goal = requiredLetters.length;
 			Iterator<String> itr = wordSet.iterator();
+			outer:
 			while (itr.hasNext()) {
 				String word = itr.next();
+				for (char c: forbiddenLetters) {
+					if (word.indexOf(c) >= 0) {
+						itr.remove();
+						continue outer;
+					}
+				}
 				int rCount = 0;
 				for (char c: requiredLetters) {
 					if (word.indexOf(c) >= 0) {
