@@ -36,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 
 import static com.mm.gui.Utils.iter;
 
+
 /**
  * <p>Tool to assist in solving cryptograms</p>
  * <p>Handling of typed characters:</p>
@@ -375,7 +376,6 @@ public final class Crypto extends JPanel {
   }
 
   private boolean isMappable(char clearChar, char cipherChar) {
-//    final Collection<Character> values = cipherMap.values();
     final Character key = mappedFrom(cipherMap, clearChar);
     if (key != null) {
       cipherMap.put(key, DOT);
