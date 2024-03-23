@@ -28,22 +28,28 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.swing.ActionMap;
 import javax.swing.Box;
 import javax.swing.ButtonModel;
 import javax.swing.DefaultCellEditor;
 import javax.swing.FocusManager;
+import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTree;
+import javax.swing.KeyStroke;
 import javax.swing.Scrollable;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
@@ -61,6 +67,8 @@ import javax.swing.text.DocumentFilter;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
 
+import com.mm.gui.Borders;
+import com.mm.gui.LandF;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -149,6 +157,7 @@ public class RefBuilder extends JPanel {
   private final Color textFieldForeground;
 
   private final Color textFieldBgColor;
+  private final Color fakeLabelColor = new Color(0, 0, 0, 0);
   private final JTabbedPane tabPane = new JTabbedPane();
 
   private final Map<String, Set<String>> subjectMap;
@@ -157,6 +166,8 @@ public class RefBuilder extends JPanel {
   private final List<Runnable> editorTerminatorOperations = new LinkedList<>();
 
   public static void main(String[] args) {
+    LandF.Nimbus.quickSetLF();
+    
     JFrame frame = new JFrame("Reference Builder");
     final RefBuilder refBuilder = new RefBuilder();
     frame.add(refBuilder);
@@ -173,6 +184,7 @@ public class RefBuilder extends JPanel {
         frame.setMinimumSize(frame.getSize());
         refBuilder.adjustTabPaneInitialSize();
         frame.removeHierarchyListener(this);
+//        examineInputMaps();
       }
     };
     frame.addHierarchyListener(hierarchyListener);
@@ -182,7 +194,7 @@ public class RefBuilder extends JPanel {
   RefBuilder() {
     super(new BorderLayout());
     UIDefaults uiDefaults = UIManager.getDefaults();
-    textFieldForeground = uiDefaults.getColor("TextField.foreground");
+    textFieldForeground = Color.black; // uiDefaults.getColor("Label.foreground");
     textFieldBgColor = uiDefaults.getColor("Label.background");
     uiDefaults.put("TextField.inactiveForeground", textFieldForeground);
     subjectMap = new HashMap<>();
@@ -193,10 +205,17 @@ public class RefBuilder extends JPanel {
     }
     add(tabPane, BorderLayout.CENTER);
     add(makeControlPane(), BorderLayout.PAGE_END);
+
+//    uiDefaults.keySet()
+//        .stream()
+////        .filter(s -> s.toString().contains("border") || s.toString().contains("font"))
+//        .filter(s -> s.toString().contains("ground"))
+//        .forEach(s -> System.out.printf("%-40s: %s%n", s, uiDefaults.get(s)));
   }
 
   private JComponent makeTabContent(String subject) {
     JPanel tabContent = new ScrollingPane(new GridBagLayout());
+    Borders.addMatte(tabContent, 0, 4, 0, 4);
 
     GridBagConstraints tableConstraint = (constrain(0));
     tableConstraint.gridwidth = 3;
@@ -223,9 +242,11 @@ public class RefBuilder extends JPanel {
   private Component makeControlPane() {
     JPanel controlPane = new JPanel(new BorderLayout());
     JTextField nameField = new JTextField();
+    LandF.addOSXKeyStrokesMac(nameField);
     controlPane.add(makeControlNorthPane(nameField), BorderLayout.PAGE_START);
     
     JTextArea result = new JTextArea(6, 0);
+    LandF.addOSXKeyStrokesMac(result);
     JComponent scrollPane = scrollWrapTextArea(result);
     controlPane.add(scrollPane, BorderLayout.CENTER);
     ActionListener actionListener = e -> buildReferenceText(result, nameField.getText().trim());
@@ -234,7 +255,45 @@ public class RefBuilder extends JPanel {
     controlPane.add(goPane, BorderLayout.PAGE_END);
     return controlPane;
   }
-
+  
+  private static void examineInputMaps() {
+    examineInputMap(new JTextField());
+    examineInputMap(new JFormattedTextField());
+    examineInputMap(new JList<>());
+    examineInputMap(new JTable());
+    examineInputMap(new JTree());
+    
+  }
+  
+  private static void examineInputMap(JComponent component) {
+    System.out.println("\n\n" + component.getClass().getSimpleName());
+    ActionMap actionMap = component.getActionMap();
+    Object[] aKeys = actionMap.keys();
+    if (aKeys == null) {
+      aKeys = new Object[0];
+    }
+    Object[] allAKeys = actionMap.allKeys();
+    System.out.printf("Action Map sizes: %d and %d%n", aKeys.length, allAKeys.length); // NON-NLS
+    for (Object key : allAKeys) {
+      System.out.printf("%32s: %20s - %s%n", key, key.getClass().getSimpleName(), actionMap.get(key)); // NON-NLS
+    }
+    System.out.println("---");
+    for (Object key : aKeys) {
+      System.out.printf("%32s: %20s - %s%n", key, key.getClass().getSimpleName(), actionMap.get(key)); // NON-NLS
+    }
+    System.out.println("---");
+    InputMap inputMap = component.getInputMap();
+    KeyStroke[] iKeys = emptyIfNull(inputMap.keys());
+    KeyStroke[] allIKeys = emptyIfNull(inputMap.allKeys());
+    System.out.printf("%n%nInput Map Sizes: %d and %d%n", iKeys.length, allIKeys.length); // NON-NLS
+    for (KeyStroke key : allIKeys) {
+      final Object o = inputMap.get(key);
+      System.out.printf("%32s: %20s - %s%n", key, o.getClass().getSimpleName(), o); // NON-NLS
+    }
+  }
+  
+  private static  KeyStroke[] emptyIfNull(KeyStroke[] array) { return (array == null) ?  new KeyStroke[0] : array; }
+  
   private void buildReferenceText(JTextArea resultView, String name) {
     // Close all active editors first.
     for (Runnable runner: editorTerminatorOperations) {
@@ -486,7 +545,9 @@ public class RefBuilder extends JPanel {
 
   private void makeFixedField(JPanel content, String subject, String name) {
     JComponent label = makeFakeLabel(name);
-    content.add(label, constrain(0));
+    final GridBagConstraints constrain = constrain(0);
+    constrain.fill = GridBagConstraints.HORIZONTAL; // Moves label to the top.
+    content.add(label, constrain);
     DisplayComponent valueField = new DisplayComponent();
     content.add(valueField, constrain(1));
     nameMap.put(subject + DOT + name, valueField.getDocument());
@@ -551,6 +612,23 @@ public class RefBuilder extends JPanel {
     DisplayComponent() {
       super(new BorderLayout());
       JTextField textField = new JTextField(1);
+//      System.out.printf("InputMap size = %d%n", textField.getInputMap(JComponent.WH).size()); // NON-NLS
+      LandF.addOSXKeyStrokesMac(textField);
+//      System.out.printf("InputMap revised size = %d%n", textField.getInputMap().size()); // NON-NLS
+//      showInputMapSizes(textField);
+//      textField.addHierarchyListener(new HierarchyListener() {
+//        @Override
+//        public void hierarchyChanged(HierarchyEvent e) {
+////          System.out.printf("Final InputMapSize = %d%n%n", textField.getInputMap().size()); // NON-NLS
+//          System.out.println("Final Sizes:");
+//          showInputMapSizes(textField);
+//          Component parent = textField.getParent();
+//          while (parent instanceof JComponent pc) {
+//            showInputMapSizes(pc);
+//            parent = parent.getParent();
+//          }
+//        }
+//      });
       document = textField.getDocument();
       ((PlainDocument)document).setDocumentFilter(mainDocumentFilter);
 
@@ -560,6 +638,17 @@ public class RefBuilder extends JPanel {
       buttonModel = big.getModel();
       big.addItemListener(e -> toggleBig(e, buttonModel));
       add(big, BorderLayout.LINE_END);
+    }
+    
+    private void showInputMapSizes(JComponent cmp) {
+      final int[] conditions = {
+          JComponent.WHEN_FOCUSED,
+          JComponent.WHEN_IN_FOCUSED_WINDOW,
+          JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT};
+      for (int i: conditions) {
+        System.out.printf("For %s inputMap %d, InputMap size = %d%n", cmp.getClass().getSimpleName(), i, cmp.getInputMap(i).size()); // NON-NLS
+      }
+      System.out.println();
     }
 
     private static DocumentFilter getMainDocumentFilter() {
@@ -595,11 +684,13 @@ public class RefBuilder extends JPanel {
         final int rows = 5;
         final int columns = 1;
         JTextArea textArea = new JTextArea(document, null, rows, columns);
+        LandF.addOSXKeyStrokesMac(textArea);
         JScrollPane scrollPane = scrollWrapTextArea(textArea);
         remove(0); // replace the existing JTextField
         addImpl(scrollPane, BorderLayout.CENTER, 0);
       } else {
         JTextField textField = new JTextField(document, null, 1);
+        LandF.addOSXKeyStrokesMac(textField);
         remove(0); // replace the existing JTextArea
         addImpl(textField, BorderLayout.CENTER, 0);
       }
@@ -660,14 +751,15 @@ public class RefBuilder extends JPanel {
 
     JTextField textField = new JTextField(text);
     textField.setEnabled(false);
-    textField.setBackground(textFieldBgColor);
+    textField.setBackground(fakeLabelColor);
     textField.setForeground(textFieldForeground);
+    textField.setOpaque(false);
     Border textFieldBorder = textField.getBorder();
     if (textFieldBorder.getClass().toString().contains("Aqua")) {
       textFieldBorder = new MatteBorder(5, 5, 5, 5, textFieldBgColor);
       textField.setBorder(textFieldBorder);
     }
-
+  
 //    System.out.printf("Border: %s%n", textField.getBorder()); // NON-NLS
 //    System.out.printf("    of  %s%n", textField.getBorder()); // NON-NLS
 //    System.out.println("Borders:");
