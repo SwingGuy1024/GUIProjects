@@ -204,9 +204,10 @@ public enum LandF
 
 	/**
 	 * <p>Add Mac KeyStroke bindings to a JTextComponent. This tries to remove the
-	 * Windows bindings, but it doesn't work, becasue the Windows bindings 
+	 * Windows bindings, but it doesn't work, because the Windows bindings 
 	 * aren't in the available InputMap. I don't know where they are or if I
 	 * can remove them.</p> 
+	 * <p>(This method does nothing when not run on a Mac, so it's safe for any platform.)</p>
 	 * @see LandF#addOSXKeyStrokesMac(InputMap) 
 	 * @param textComponent The JTextComponent subclass to fix.
 	 */
@@ -215,6 +216,24 @@ public enum LandF
 	}
 
 	/**
+	 * <p>Wrap a JTextComponent subclass to adapt it for Mac in a non-Mac look and feel like Nimbus.</p>
+	 * <p>(This method does nothing when not run on a Mac, so it's safe for any platform.)</p>
+	 * <p>For example:</p>
+	 * <pre>
+	 *   JTextArea textArea = wrapForMac(new JTextArea(6, 40));
+	 *   JTextField textField = wrapForMac(new JTextField(40));
+	 * </pre>
+	 * @param textComponent The text component.
+	 * @return The text component
+	 * @param <TC> The JTextComponent subclass for textComponent
+	 */
+	public static <TC extends JTextComponent> TC wrapForPlatform(TC textComponent) {
+		addOSXKeyStrokesMac(textComponent.getInputMap(JComponent.WHEN_FOCUSED));
+		return textComponent;
+	}
+
+	/**
+	 * <p>(This method does nothing when not run on a Mac, so it's safe for any platform.)</p>
 	 * <p>This fix was suggested by 
 	 * <a href=https://stackoverflow.com/questions/9780028/mac-keyboard-shortcuts-with-nimbus-laf>This stackoverflow question</a>.
 	 * Most LookAndFeel classes install windows and unix key bindings. This makes them less usable on Macs. This
@@ -228,6 +247,9 @@ public enum LandF
 	 * @param inputMap The InputMap
 	 */
 	public static void addOSXKeyStrokesMac(InputMap inputMap) {
+		if (!System.getProperty("os.name").startsWith("Mac")) {
+			return;
+		}
 		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.META_DOWN_MASK), "copy-to-clipboard");
 		remove(inputMap, KeyStroke.getKeyStroke(KeyEvent.VK_C, KeyEvent.CTRL_DOWN_MASK));
 		inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_X, KeyEvent.META_DOWN_MASK), "cut-to-clipboard");

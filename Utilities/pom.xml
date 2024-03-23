@@ -13,11 +13,12 @@
 
 
   <artifactId>utilities</artifactId>
-  <version>0.0.1_SNAPSHOT</version>
+  <version>0.0.1-SNAPSHOT</version>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <dependencies>

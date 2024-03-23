@@ -5,6 +5,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by IntelliJ IDEA.
@@ -12,16 +15,16 @@ import java.util.LinkedList;
  * Date: Aug 11, 2006
  * Time: 11:16:56 PM
  */
-@SuppressWarnings({"HardcodedFileSeparator", "MagicCharacter", "MagicNumber", "CallToStringEquals", "CallToStringEqualsIgnoreCase", "CallToNumericToString", "HardcodedLineSeparator", "HardCodedStringLiteral", "StringConcatenation"})
-public class StringUtil {
-	private StringUtil() { }
+@SuppressWarnings({"HardcodedFileSeparator", "MagicCharacter", "MagicNumber", "CallToStringEquals", "CallToStringEqualsIgnoreCase", "CallToNumericToString", "HardcodedLineSeparator", "HardCodedStringLiteral", "StringConcatenation", "unused"})
+public enum StringUtil {
+	;
 
 	public static final int[] EMPTY_INT_ARRAY = new int[0];
 
 	public static final String UNICODE_TRADEMARK = "\u2122";
 	public static final String UTF8 = "UTF-8";
 
-//	public static String format(String pattern, Object... values) {
+	//	public static String format(String pattern, Object... values) {
 //		StringBuilder bldr = new StringBuilder();
 //		Formatter fmt = new Formatter(bldr);
 //		fmt.format(pattern, values);
@@ -146,7 +149,7 @@ public class StringUtil {
 		StringBuilder b = new StringBuilder();
 		for (int i = 0; i < strings.length; ++i) {
 			b.append(strings[i].toString());
-			if (i != strings.length - 1) {
+			if (i != (strings.length - 1)) {
 				b.append(separator);
 			}
 		}
@@ -176,25 +179,27 @@ public class StringUtil {
 		return b.toString();
 	}
 
-	public static String join(Collection strings, String separator) {
+	public static String join(Collection<Object> strings, String separator) {
 		StringBuilder b = new StringBuilder();
-		Iterator i = strings.iterator();
-		if(!i.hasNext()) return "";
-		while(true) {
-			b.append(i.next().toString());
-			if(!i.hasNext()) break;
+		Iterator<Object> i = strings.iterator();
+		if(!i.hasNext()) {
+			return "";
+		}
+		b.append(i.next().toString());
+		while(i.hasNext()) {
 			b.append(separator);
+			b.append(i.next().toString());
 		}
 		return b.toString();
 	}
 
 	public static int[] intArrayFromString(String values) {
 		int[] a;
-		if(values.length() > 0) {
+		if(!values.isEmpty()) {
 			String[] s = values.split(" ");
 			a = new int[s.length];
 			for(int i = 0; i < a.length; i++) {
-				a[i] = Integer.valueOf(s[i]);
+				a[i] = Integer.parseInt(s[i]);
 			}
 		} else {
 			a = EMPTY_INT_ARRAY;
@@ -204,11 +209,10 @@ public class StringUtil {
 
 	public static String hexStringFromBytes(byte[] bytes) {
 		StringBuilder buf = new StringBuilder();
-		for(int i = 0; i < bytes.length; ++i)
-		{
-			int b = ((int)bytes[i] & 0xFF);
+		for (byte aByte : bytes) {
+			int b = (aByte & 0xFF);
 			String s = Integer.toString(b, 16);
-			if(s.length() == 1) {
+			if (s.length() == 1) {
 				//noinspection MagicCharacter
 				buf.append('0');
 			}
@@ -232,31 +236,39 @@ public class StringUtil {
 	}
 
 	public static boolean same(String s1, String s2) {
-		if(s1 == null && s2 == null) return true;
-		//noinspection SimplifiableIfStatement
-		if((s1 == null) != (s2 == null)) return false;
-		return s1.equals(s2);
+		//noinspection StringEquality
+		if(s1 == s2) { return true; }
+		return (s1 != null) && s1.equals(s2);
 	}
 
 	public static boolean sameIgnoreCase(String s1, String s2) {
-		if(s1 == null && s2 == null) return true;
+		if((s1 == null) && (s2 == null)) {
+			return true;
+		}
 		//noinspection SimplifiableIfStatement
-		if((s1 == null) != (s2 == null)) return false;
+		if((s1 == null) != (s2 == null)) {
+			return false;
+		}
 		return s1.equalsIgnoreCase(s2);
 	}
 
+	/**
+	 * Tests if the string is null or the trimmed string is empty
+	 * @param s The String
+	 * @return true iff s == null or consists of nothing but white space. 
+	 */
 	public static boolean isEmpty(String s) {
-		return s == null || s.trim().length() == 0;
+		return (s == null) || (s.trim().isEmpty());
 	}
 
-	private static HashMap<Character, String> charsMap = new HashMap<Character, String>();
-	@SuppressWarnings({"StringContatenationInLoop"})
+	private static final HashMap<Character, String> charsMap = new HashMap<>();
+	@SuppressWarnings("StringContatenationInLoop")
 	public static String chars(char c, int n) {
-		if(n < 1) return "";
+		if(n < 1) { return ""; }
 		//noinspection UnnecessaryLocalVariable
 		Character cc = c;
 		String s = charsMap.get(cc);
-		if(s == null || s.length() < n) {
+		if((s == null) || (s.length() < n)) {
 			if(s == null) {
 				s = cc.toString();
 			}
@@ -318,11 +330,11 @@ public class StringUtil {
 			throw new IllegalArgumentException("integer must be >= 0");
 		}
 
-		if(radix < 2 || radix > 36) {
+		if((radix < 2) || (radix > 36)) {
 			throw new IllegalArgumentException("radix must be in the range 2..36");
 		}
 
-		LinkedList<Integer> digits = new LinkedList<Integer>();
+		LinkedList<Integer> digits = new LinkedList<>();
 
 		int place = 1;
 		do {
@@ -339,20 +351,12 @@ public class StringUtil {
 	
 	public static void main(String[] args) {
 		for (int ii=0; ii<500; ++ii) {
-			System.out.println(String.format("%3d:  %s", ii, base26(ii)));
+			System.out.printf("%3d:  %s%n", ii, base26(ii));
 		}
 	}
 
 	public static String wrapWithTag(String text, String tag) {
-		StringBuilder buf = new StringBuilder(text.length() + 2*(tag.length()+2) + 1);
-		buf.append('<');
-		buf.append(tag);
-		buf.append('>');
-		buf.append(text);
-		buf.append("</");
-		buf.append(tag);
-		buf.append('>');
-		return buf.toString();
+		return String.format("<%s>%s</%s>", tag, text, tag);
 	}
 
 	public static String wrapWithTag(String text, String tag, String parameters) {
@@ -396,7 +400,7 @@ public class StringUtil {
 		int digitsCount = digits.length;
 		for(int i = 0; i < digitsCount; ++i) {
 			int digit = (Integer)digits[i];
-			if(offset && i != digitsCount - 1) --digit;
+			if(offset && (i != (digitsCount - 1))) { --digit; }
 			buf.append(digitChars.charAt(digit));
 		}
 
@@ -414,10 +418,15 @@ public class StringUtil {
 	public static final int ALIGN_LEFT = 0;
 	public static final int ALIGN_CENTER = 1;
 	public static final int ALIGN_RIGHT = 2;
+
+	/**
+	 * It has been a long time since I wrote this, but I beleive it's for a column in an HTML table.
+	 */
 	public static class Column {
-		String name;
-		private int length, align;
-		private Object object;
+		private final String name;
+		private final int length;
+		private final int align;
+		private @Nullable Object object;
 
 		public Column(String name, int length, int align) {
 			this.name = name;
@@ -446,7 +455,7 @@ public class StringUtil {
 			this.object = object;
 		}
 
-		public static String format(int length, int align, boolean last, Object o) {
+		public static String format(int length, int align, boolean last, @Nullable Object o) {
 			// todo: convert this to a StringBuilder
 			String s;
 			if(o == null) {
@@ -484,7 +493,7 @@ public class StringUtil {
 			StringBuilder b = new StringBuilder();
 			int count = columns.length;
 			for(int i = 0; i < count; ++i) {
-				b.append(columns[i].format(type, i == count - 1));
+				b.append(columns[i].format(type, i == (count - 1)));
 			}
 			b.append('\n');
 			return b.toString();
@@ -503,17 +512,16 @@ public class StringUtil {
 		}
 	}
 
-	public static Iterable<Character> stringIterable(final String source) {
-		return new Iterable<Character>() {
-			public Iterator<Character> iterator() {
-				//noinspection IteratorNextCanNotThrowNoSuchElementException
-				return new Iterator<Character>() {
-					private int index=0;
-					public boolean hasNext() { return index < source.length(); }
-					public Character next() { return source.charAt(index++); }
-					public void remove() { throw new AssertionError("remove() is not supported"); }
-				};
-			}
-		};
-	}
+	// Reserved for when we upgrade this to Java 11.
+//	/**
+//	 * Convert the String to an unmodifiable Set with all the characters in the String, as Integers.
+//	 * @param s The String to convert.
+//	 * @return An unmodifiable {@literal Set<Integer>} containing the integer values of all the characters in the original String.
+//	 */
+//	public static Set<Integer> toSet(String s) {
+//		return s
+//				.chars()
+//				.boxed()
+//				.collect(Collectors.toUnmodifiableSet());
+//	}
 }

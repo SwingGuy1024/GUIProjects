@@ -90,7 +90,7 @@ public class StringCollector implements Collector<Integer, StringBuilder, String
     return characteristics;
   }
   
-  public static StringCollector get() { return instance; }
+  public static StringCollector instance() { return instance; }
 
   /**
    * Filter out specified characters in a String based on the specified IntPredicate,

@@ -28,6 +28,7 @@ public enum Utils {
 	;
 
 	public static final double toRadians = Math.PI / 180.0;
+	public static final Object[] EMPTY = new Object[0];
 
 	public static void main(String[] args) {
 		String testString = "r\u00f4le\u030a, ro\u0302le 35\u00c5, A\u030arch \ufb01ne, first, 2\u2075 C\u0152R D\u00c6R";
@@ -120,7 +121,7 @@ public enum Utils {
 	 * @param s The String
 	 * @return an {@literal Iterable<Character>} for the String
 	 */
-	public static Iterable<Character> iter(String s) {
+	public static Iterable<Character> iterator(String s) {
 
 		return new Iterable<Character>() {
 			private int i = 0;
@@ -184,5 +185,14 @@ public enum Utils {
 
 	public static Path2D toShape(Point2D... pointArray) {
 		return toShape(Arrays.asList(pointArray));
+	}
+
+	public static <T> T[] emptyArray() {
+		//noinspection unchecked,SuspiciousArrayCast
+		return (T[]) EMPTY;
+	}
+
+	public static <T> T[] emptyIfNull(T[] array) {
+		return (array == null) ? emptyArray() : array;
 	}
 }
