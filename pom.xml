@@ -22,7 +22,10 @@
     <module>Utilities</module>
     <module>EinsteinTiles</module>
     <module>Crypto</module>
+    <module>FitGraph</module>
     <module>LinkBuilder</module>
+    <module>RefBuilder</module>
+    <module>AsciiTable</module>
   </modules>
 
   <!-- The extraJar property no longer works now that this is a base project. It turns out that you can't override properties-->
@@ -47,6 +50,13 @@
       <groupId>com.formdev</groupId>
       <artifactId>flatlaf</artifactId>
       <version>3.2.2</version>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/com.apple/AppleJavaExtensions -->
+    <dependency>
+      <groupId>com.apple</groupId>
+      <artifactId>AppleJavaExtensions</artifactId>
+      <version>1.4</version>
     </dependency>
   </dependencies>
 
