@@ -34,7 +34,7 @@ import com.mm.gui.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.mm.gui.Utils.iter;
+import static com.mm.gui.Utils.iterator;
 
 
 /**
@@ -107,7 +107,7 @@ public final class Crypto extends JPanel {
     if (cipherMap != null) {
       final String validChars = initialText.getText();
       Set<Character> validKeys = new HashSet<>();
-      for (char ch: iter(validChars)) {
+      for (char ch: iterator(validChars)) {
         validKeys.add(ch);
       }
       StringBuilder cipherKeys = new StringBuilder(ALPHABET);
@@ -237,7 +237,7 @@ public final class Crypto extends JPanel {
       allowDecode = false;
       String text = cipherText.getText();
       StringBuilder buff = new StringBuilder();
-      for (char c: iter(text)) {
+      for (char c: iterator(text)) {
         buff.append(decodeChar(c));
       }
       final Caret caret = clearText.getCaret();
@@ -253,7 +253,7 @@ public final class Crypto extends JPanel {
     if (allowDecode) {
       Document cipherDoc = cipherText.getDocument();
       int i=0;
-      for (char clearChar: iter(text)) {
+      for (char clearChar: iterator(text)) {
         char cipherChar = charFrom(cipherDoc, offset + i++);
         if (Character.isLetter(cipherChar) && Character.isLetter(clearChar)) {
           if (isMappable(clearChar, cipherChar)) { // remaps.
