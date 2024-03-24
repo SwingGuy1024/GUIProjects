@@ -73,6 +73,8 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static com.mm.gui.Utils.emptyIfNull;
+
 /**
  * <p>Utility to build Wikipedia Links using {@code cite}</p>
  * <p>Cite Subjects:</p>
@@ -268,10 +270,7 @@ public class RefBuilder extends JPanel {
   private static void examineInputMap(JComponent component) {
     System.out.println("\n\n" + component.getClass().getSimpleName());
     ActionMap actionMap = component.getActionMap();
-    Object[] aKeys = actionMap.keys();
-    if (aKeys == null) {
-      aKeys = new Object[0];
-    }
+    Object[] aKeys = emptyIfNull(actionMap.keys());
     Object[] allAKeys = actionMap.allKeys();
     System.out.printf("Action Map sizes: %d and %d%n", aKeys.length, allAKeys.length); // NON-NLS
     for (Object key : allAKeys) {
@@ -291,8 +290,6 @@ public class RefBuilder extends JPanel {
       System.out.printf("%32s: %20s - %s%n", key, o.getClass().getSimpleName(), o); // NON-NLS
     }
   }
-  
-  private static  KeyStroke[] emptyIfNull(KeyStroke[] array) { return (array == null) ?  new KeyStroke[0] : array; }
   
   private void buildReferenceText(JTextArea resultView, String name) {
     // Close all active editors first.
