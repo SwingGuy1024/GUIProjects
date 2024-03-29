@@ -290,6 +290,7 @@ public class Escape
 			int diff = e.getDot() - e.getMark();
 			boolean peekIsVisible = (sPeek != null) && sPeek.isVisible();
 			if ((diff == 0) && peekIsVisible) {
+				sPeekText.setText("");
 				hidePeekWindow();
 			} else if ((diff != 0)) {
 				int min = Math.min(e.getDot(), e.getMark());
@@ -328,6 +329,12 @@ public class Escape
 		sPeek.pack();
 		sPeek.setExtendedState(JFrame.NORMAL); // In case it was iconified.
 		sPeek.setVisible(true);
+	}
+	
+	private static void showPeekWindow() {
+		if ((sPeek != null) && !sPeekText.getText().isEmpty()) {
+			sPeek.setVisible(true);
+		}
 	}
 	
 	private static void hidePeekWindow() {
@@ -925,7 +932,12 @@ public class Escape
 			WindowListener mainEar = new WindowAdapter()
 			{
 				@Override
-				public void windowActivated(WindowEvent e) { listenToSource(); }
+				public void windowActivated(WindowEvent e) {
+					listenToSource();
+					showPeekWindow();
+				}
+
+				@Override public void windowDeactivated(WindowEvent e) { hidePeekWindow(); }
 			};
 			sFrame.addWindowListener(mainEar);
 			
