@@ -1,4 +1,4 @@
-//#! /usr/bin/java/ --source 17
+//#! /usr/bin/java --source 17
 package com.neptunedreams;
 
 import java.io.IOException;
@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -76,28 +77,29 @@ public class MultiFilter {
 
   private void match(
       Consumer<List<String>> consumer,
-      Map<Character, Character> cipher,
+      Map<Character, Character> cipherKey,
       List<String> pastWords,
       String cipherWord,
       String... futureWords
   ) {
     Set<String> clearWords = wordsForSize(cipherWord);
 
+    Set<Character> newKeyChars = new HashSet<>();
     for (String clearWord: clearWords) {
-      Map<Character, Character> privateCipher = new HashMap<>(cipher);
       char[] clearLetters = clearWord.toCharArray();
       int index = 0;
       boolean match = true;
       for (char c: cipherWord.toCharArray()) {
         final char clearChar = clearLetters[index++];
-        if (privateCipher.containsKey(clearChar) || privateCipher.containsValue(c)) {
-          final Character ch = privateCipher.get(clearChar);
+        if (cipherKey.containsKey(clearChar) || cipherKey.containsValue(c)) {
+          final Character ch = cipherKey.get(clearChar);
           if ((ch == null) || (ch != c)) {
             match = false;
             break;
           }
         } else {
-          privateCipher.put(clearChar, c);
+          cipherKey.put(clearChar, c);
+          newKeyChars.add(clearChar);
         }
       }
       if (match) {
@@ -108,9 +110,13 @@ public class MultiFilter {
           consumer.accept(allWords); // NON-NLS
         } else {
           allWords.add(clearWord);
-          match(consumer, privateCipher, allWords, futureWords[0], Arrays.copyOfRange(futureWords, 1, futureWords.length));
+          final String[] nextFutureWords = Arrays.copyOfRange(futureWords, 1, futureWords.length);
+          match(consumer, cipherKey, allWords, futureWords[0], nextFutureWords); // recurse
         }
       }
+      // Remove all new characters from cipherKey that were added by this clearWord.
+      newKeyChars.forEach(cipherKey::remove);
+      newKeyChars.clear();
     }
   }
   
