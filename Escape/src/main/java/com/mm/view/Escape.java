@@ -408,6 +408,8 @@ public class Escape
 		addRange(font, initialTextBldr, '\u27f0', '\u2800', "arrows A:"); // arrows
 		addRange(font, initialTextBldr, '\u2900', '\u2980', "arrows B:"); // arrows
 		addRange(font, initialTextBldr, '\u2b00', '\u2c00', "additional arrows:"); // arrows
+		addRange(font, initialTextBldr, '\u0391', '\u03aa', "Greek");
+		addRange(font, initialTextBldr, '\u03b1', '\u03ca', "");
 		addRange(font, initialTextBldr, '\u2200', '\u2300', "Math:\n\u00d7 \u00f7"); // Math
 		addRange(font, initialTextBldr, '\u2300', '\u2400', "Misc. Tech:"); // Misc. Tech
 		addRange(font, initialTextBldr, '\u2400', '\u2500', "Enclosed letters:"); // Misc. Tech
@@ -420,7 +422,11 @@ public class Escape
 
 	@SuppressWarnings("CharacterComparison")
 	private void addRange(Font pFont, StringBuilder pInitialTextBldr, char start, char end, String label) {
-		pInitialTextBldr.append("\n\n").append(label).append('\n');
+		if (label.isEmpty()) {
+			pInitialTextBldr.append('\n');
+		} else {
+			pInitialTextBldr.append("\n\n").append(label).append('\n');
+		}
 		for (char cc = start; cc < end; cc++) {
 			if (pFont.canDisplay(cc)) {
 				pInitialTextBldr.append(cc).append(' ');
@@ -1136,7 +1142,6 @@ public class Escape
 		 * Sets the font for this component.
 		 *
 		 * @param font the desired {@code Font} for this component
-		 *
 		 * description: The font for the component.
 		 * @see Component#getFont
 		 */
