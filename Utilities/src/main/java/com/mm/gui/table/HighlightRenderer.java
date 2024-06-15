@@ -3,7 +3,10 @@ package com.mm.gui.table;
 import java.awt.Component;
 import java.awt.Insets;
 import java.awt.Rectangle;
-import java.util.List;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import javax.swing.JLabel;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
@@ -40,9 +43,29 @@ public class HighlightRenderer extends DefaultTableCellRenderer {
    * <p>As with the {@code String.substring(...)} method, start is inclusive,
    * and end is exclusive.</p>
    */
-  public interface TextRange {
+  public interface TextRange extends Comparable<TextRange> {
     int getStart();
     int getEnd();
+
+    /**
+     *  Returns true if {@code this} range intersects {@code that} range.
+     *  Ranges that touch but don't overlap are not considered to be 
+     *  intersecting, so a range from 10 to 20 does not intersect a range from 20 to 30, but does intersect a range
+     *  from 19 to 30.
+     * @param that The other TextRange 
+     * @return true if this intersects that, false otherwise.
+     */
+    default boolean intersects(TextRange that) {
+      // This method assumes that start < end for both ranges.
+      if (this.getStart() >= that.getEnd()) {
+        return false;
+      }
+      //noinspection RedundantIfStatement
+      if (that.getStart() >= this.getEnd()) {
+        return false;
+      }
+      return true;
+    }
   }
 
   /**
@@ -107,7 +130,7 @@ public class HighlightRenderer extends DefaultTableCellRenderer {
 
     @Override
     public String toString() {
-      return String.format("(%s -> %s)", startInclusive, endExclusive);
+      return String.format("(%s <-> %s)", startInclusive, endExclusive);
     }
 
     public static TextRange of(int start, int width) {
@@ -127,13 +150,13 @@ public class HighlightRenderer extends DefaultTableCellRenderer {
   @FunctionalInterface
   public interface HighlightRangeSource {
     /**
-7     * <p>Return a list of non-overlapping {@code TextRange} instances, in
+7     * <p>Return an ordered Collection of non-overlapping {@code TextRange} instances, in
      * increasing order, specifying the text that should get highlighted.</p>
      * @param text The text to inspect for possible highlights
      * @return An ordered array, in increasing order, of non-overlapping text
      * ranges to highlight.
      */
-    List<TextRange> getOrderedTextRanges(String text);
+    Collection<TextRange> getOrderedTextRanges(String text);
   }
   
   
@@ -193,25 +216,28 @@ public class HighlightRenderer extends DefaultTableCellRenderer {
         );
     String fullText = value.toString();
 
-    // 3 is for the three dots at the end.
+    // 3 is for the three dots at the end. (The renderer does not use the ellipsis character.)
     int maxDisplayLength = fullText.equals(displayText) ? fullText.length() : (displayText.length() - 3);
 
     if (highlightRangeSource != null) {
-      List<TextRange> highlightRanges = highlightRangeSource.getOrderedTextRanges(fullText);
+      Collection<TextRange> highlightRanges = highlightRangeSource.getOrderedTextRanges(fullText);
+      highlightRanges.forEach(System.out::println);
+      System.out.println();
       if (!highlightRanges.isEmpty()) {
         StringBuilder builder = new StringBuilder();
         // Text below this number has been completely highlighted.
         int indexCompleted = 0;
         int previousHigh = 0;
         for (TextRange textRange: highlightRanges) {
-          assert textRange.getStart() < textRange.getEnd();
-          assert textRange.getStart() >= 0;
-          assert textRange.getStart() >= previousHigh;
+          assert textRange.getStart() < textRange.getEnd() : String.format("%d < %d ?", textRange.getStart(), textRange.getEnd());
+          assert textRange.getStart() >= 0 : String.format("%d >= 0 ?", textRange.getStart());
+          assert textRange.getStart() >= previousHigh : String.format("%d >= %d ?", textRange.getStart(), previousHigh);
           previousHigh = textRange.getEnd();
 
           final int start = textRange.getStart();
           assert start >= 0 : String.format("Start = %d < 0", start);
           if (start < maxDisplayLength) {
+            assert start >= indexCompleted : String.format("%d > %d ?", start, indexCompleted);
             builder
                 .append(fullText, indexCompleted, start)
                 .append("<span style=\"")
@@ -270,6 +296,7 @@ public class HighlightRenderer extends DefaultTableCellRenderer {
     return highlightRangeSource;
   }
   
+  @SuppressWarnings("NullableProblems")
   public void setHighlightRangeSource(HighlightRangeSource highlightRangeSource) {
     this.highlightRangeSource = highlightRangeSource;
   }
@@ -294,6 +321,10 @@ public class HighlightRenderer extends DefaultTableCellRenderer {
     PinkHighlight("background-color: #ffaaaa;"),
     YellowHighlight("background-color: #f5d51b;"),
     BlueHighlight("background-color: #aaddff;"),
+    BlackHighlight("background-color: #44444ff; color: #ffffff;"),
+    LavenderHighlight("background-color: #8888ff; color: #ffffff"),
+    DarkBlueHighlight("background-color: #2244ff; color: #ffffff;"),
+    RedBgYellowTextHighlight("background-color: #ff0000; color: #ffff00;")
     ;
     private final String style;
     HighlightMode(String style) {
@@ -301,5 +332,87 @@ public class HighlightRenderer extends DefaultTableCellRenderer {
     }
     
     public String getStyle() { return style; }
+  }
+                                  
+  public static class RangeSet extends TreeSet<TextRange> {
+    /**
+     * Adds a new TextRange to the set, rejecting any that overlap an existing TextRange.
+     * @param textRange element to add
+     * @return true if it added the range, false otherwise.
+     */
+    @Override
+    public boolean add(TextRange textRange) {
+      SortedSet<TextRange> headSet = headSet(textRange);
+      if (!headSet.isEmpty()) {
+        final TextRange last = headSet.last();
+        if (last.intersects(textRange)) {
+          return doubleCheck(false);
+        }
+      }
+      SortedSet<TextRange> tailSet = tailSet(textRange);
+      if (tailSet.isEmpty()) {
+        return doubleCheck(super.add(textRange));
+      }
+      final TextRange first = tailSet.first();
+      if (first.intersects(textRange)) {
+        return doubleCheck(false);
+      }
+      return doubleCheck(super.add(textRange));
+    }
+
+    /**
+     * This double-checks that there are no overlapping TextRanges in the RangeSet. It does this inside
+     * an assert, so it can be turned off in production by leaving assertions disabled.
+     * @param rValue the return value
+     * @return rValue
+     */
+    private boolean doubleCheck(boolean rValue) {
+      // yeah, this calls noOverlaps twice, but only if it detects an overlap. 
+      assert noOverlaps().isEmpty() : noOverlaps();
+      return rValue;
+    }
+    
+    private String noOverlaps() {
+      Iterator<TextRange> iterator = iterator();
+      TextRange previous = iterator.next();
+      while (iterator.hasNext()) {
+        TextRange current = iterator.next();
+        if (current.intersects(previous)) {
+          return String.format("Overlap: (%s) & (%s)", previous, current);
+        }
+        previous = current;
+      }
+      return "";
+    }
+
+    /**
+     * If textRange starts earlier than last, replaces last in the TreeSet with textRange, and returns true;
+     * otherwise, leaves the TreeSet unchanged and returns false.
+     * @param textRange The TextRange to possibly insert
+     * @param headSet The set of values before TextRange.
+     * @param last last element of headSet
+     * @return True if this method changed the Set.
+     */
+    private static boolean insertedValue(TextRange textRange, SortedSet<TextRange> headSet, TextRange last) {
+      final int lastStart = last.getStart();
+      final int nextStart = textRange.getStart();
+      if ((lastStart > nextStart) || ((lastStart == nextStart) && (textRange.getEnd() > last.getEnd()))) {
+        headSet.remove(last);
+        headSet.add(textRange);
+        return true;
+      }
+      return false; // The mispelled word shoud appear here.
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends TextRange> c) {
+      boolean modified = false;
+      for (TextRange e : c) {
+        if (add(e)) {
+          modified = true;
+        }
+      }
+      return modified;
+    }
   }
 }
