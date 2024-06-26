@@ -2,9 +2,6 @@
 package com.neptunedreams;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -44,7 +41,7 @@ public class MultiFilter {
   // "QKYEXS", "WSDVML", "YQOFS"
   public MultiFilter() throws IOException {
     for (int i = 1; i<= MAX_WORD_LENGTH; ++i) {
-      Path path = getPath(String.format("/words/words_%d.txt", i));
+      Path path = getPath(String.format("words/words_%d.txt", i));
       try (Stream<String> stream = Files.lines(path)) {
         Set<String> set = stream.collect(Collectors.toCollection(TreeSet::new));
         lengthMap.put(i, set);
@@ -91,7 +88,10 @@ public class MultiFilter {
       boolean match = true;
       for (char c: cipherWord.toCharArray()) {
         final char clearChar = clearLetters[index++];
-        if (cipherKey.containsKey(clearChar) || cipherKey.containsValue(c)) {
+        if (clearChar == c) {
+          match = false;
+          break;
+        } else if (cipherKey.containsKey(clearChar) || cipherKey.containsValue(c)) {
           final Character ch = cipherKey.get(clearChar);
           if ((ch == null) || (ch != c)) {
             match = false;
@@ -137,20 +137,13 @@ public class MultiFilter {
 //        .flatMap()
 //  }
 
-  public Path getPath(String path) {
-    try {
-      return Path.of(getResource(path));
-    } catch (URISyntaxException e) {
-      throw new IllegalStateException("Should not happen", e);
+  private static Path getPath(String relativeFilePath) {
+    // This is the only way to get the source file's path in a shebang class.
+    String basePath = System.getProperty("jdk.launcher.sourcefile"); // Only works as a shebang file
+    if (basePath == null) {
+      basePath = System.getProperty("user.dir"); // for when you're testing before you make it a shebang file
     }
-  }
-
-  private URI getResource(String path) throws URISyntaxException {
-    final URL resource = getClass().getResource(path);
-    if (resource == null) {
-      //noinspection ProhibitedExceptionThrown
-      throw new NullPointerException(String.format("From %s", path));
-    }
-    return resource.toURI();
+    Path parent = Path.of(basePath).getParent();
+    return parent.resolve(relativeFilePath);
   }
 }
