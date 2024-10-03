@@ -1,0 +1,74 @@
+#!/usr/bin/java --source 17
+package com.neptunedreams;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Path;
+
+/**
+ * <p>On a Mac, the ClipboardTray should run as an agent, which means it won't appear on the task bar when
+ * it's running. For this to work, the bundled application's {@code Info.plist} file needs to have this:</p>
+ * <pre>
+ *   {@literal <key>LSUIElement</key>}
+ *   {@literal <string>true</string>}
+ * </pre>
+ * <p>Unfortunately, the current Mac-bundle plug-in puts this in:</p>
+ * <pre>
+ *   {@literal <key>LSUIElement</key>}
+ *   {@literal <true/>}
+ * </pre>
+ * <p>This follows the <a 
+ * href="https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/LaunchServicesKeys.html">
+ * spec</a>, but the spec is wrong! The spec says it's a Boolean, but it won't work unless it's a string. So
+ * there's no way to get the plugin to set this value correctly.</p>
+ * <p>This tool replaces the incorrect value in the Info.plist file with the correct one. It's written as a
+ * shebang file, so it can be run from the command line from this directory. After building this project,
+ * just change to this directory and type {@code ./ClipboardFix}.</p>
+ * <p>Here's the <a href="https://stackoverflow.com/questions/5825684/lsuielement-application-be-responsive">
+ *   StackOverflow page</a>that led me to this solution.</p>
+ * <p>Created by IntelliJ IDEA.</p>
+ * <p>Date: 9/17/24</p>
+ * <p>Time: 1:02 AM</p>
+ * <p>@author Miguel Muñoz</p>
+ */
+public enum ClipboardFix {
+  ;
+
+  private static final String matchOne = "<key>LSUIElement</key>";
+  private static final String matchTwo = "<true/>";
+  private static final String replacement = "<string>true</string>";
+//  private static final String replacement = "<string>YES</string>"; // Both of these work!
+  public static final char NEW_LINE = '\n';
+
+  @SuppressWarnings("OverlyBroadThrowsClause")
+  public static void main(String[] args) throws IOException {
+    String alpha = String.format("x  %s  x", matchTwo);
+    String bravo = alpha.replaceAll(matchTwo, replacement);
+    System.out.printf("%s%n%s%n%n", alpha, bravo); // NON-NLS
+    Path path = Path.of(System.getProperty("user.dir"), "target/ClipboardTray.app/Contents/Info.plist");
+    System.out.println("Searching for " + path);
+    StringBuilder builder = new StringBuilder();
+    try (BufferedReader reader = new BufferedReader(new FileReader(path.toFile()))) {
+      String line = "";
+      while (line != null) {
+        if (line.contains(matchOne)) {
+          System.out.printf("Found!%n"); // NON-NLS
+          builder.append(line).append(NEW_LINE);
+          line = reader.readLine();
+          line = line.replaceAll(matchTwo, replacement);
+        }
+        builder.append(line).append(NEW_LINE);
+        line = reader.readLine();
+      }
+    }
+    builder.deleteCharAt(0); // delete leading new-line character
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(path.toFile()))) {
+      writer.write(builder.toString());
+      writer.flush();
+    }
+    System.out.printf("%s%n", builder); // NON-NLS
+  }
+}
