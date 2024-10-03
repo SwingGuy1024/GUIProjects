@@ -336,9 +336,11 @@ public class Escape
 			sPeek.setVisible(true);
 		}
 	}
-	
+
 	private static void hidePeekWindow() {
-		sPeek.setVisible(false);
+		if (sPeek != null) {
+			sPeek.setVisible(false);
+		}
 	}
 	
 	private void keyTyped(KeyEvent ignored) {
@@ -407,7 +409,7 @@ public class Escape
 		addRange(font, initialTextBldr, '\u2100', '\u2200', "arrows:"); // arrows
 		addRange(font, initialTextBldr, '\u27f0', '\u2800', "arrows A:"); // arrows
 		addRange(font, initialTextBldr, '\u2900', '\u2980', "arrows B:"); // arrows
-		addRange(font, initialTextBldr, '\u2b00', '\u2c00', "additional arrows:"); // arrows
+		addRange(font, initialTextBldr, '\u2b00', '\u2c00', "Misc. Symbols and Arrows:"); // arrows
 		addRange(font, initialTextBldr, '\u0391', '\u03aa', "Greek");
 		addRange(font, initialTextBldr, '\u03b1', '\u03ca', "");
 		addRange(font, initialTextBldr, '\u2200', '\u2300', "Math:\n\u00d7 \u00f7"); // Math
@@ -415,6 +417,7 @@ public class Escape
 		addRange(font, initialTextBldr, '\u2400', '\u2500', "Enclosed letters:"); // Misc. Tech
 		addRange(font, initialTextBldr, '\u2500', '\u2600', "Boxes & Block drawing:"); // box & block
 		addRange(font, initialTextBldr, '\u2600', '\u2800', "Dingbats:"); // dingbats
+		addDoubleWide(font, initialTextBldr, 0xd83d, '\udf00', '\ue000', "Double-Wide:");
 		initialTextBldr.append("\nJava version ");
 		initialTextBldr.append(System.getProperty("java.version"));
 		return initialTextBldr.toString();
@@ -430,6 +433,26 @@ public class Escape
 		for (char cc = start; cc < end; cc++) {
 			if (pFont.canDisplay(cc)) {
 				pInitialTextBldr.append(cc).append(' ');
+			}
+		}
+	}
+
+	@SuppressWarnings("CharacterComparison")
+	private void addDoubleWide(Font pFont, StringBuilder pInitialTextBldr, int firstChar, char start, char end, String label) {
+		char lead = (char)firstChar;
+		if (label.isEmpty()) {
+			pInitialTextBldr.append('\n');
+		} else {
+			pInitialTextBldr.append("\n\n").append(label).append('\n');
+		}
+		for (char cc = start; cc < end; cc++) {
+			// We don't test of the font can display the individual characters because that call 
+			// always return false for double characters. Instead, we call Font.canDisplayUpTo()
+			// Also, for some reason, on my Mac, these characters only display when the
+			// application is bundled into a Mac application.
+			String doubleCharacter = String.valueOf(lead) + cc;
+			if (pFont.canDisplayUpTo(doubleCharacter) < 0) {
+				pInitialTextBldr.append(lead).append(cc).append(' ');
 			}
 		}
 	}
