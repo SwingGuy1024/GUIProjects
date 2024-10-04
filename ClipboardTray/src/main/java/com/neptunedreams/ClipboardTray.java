@@ -14,9 +14,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -44,7 +49,7 @@ public enum ClipboardTray {
 
   public static void main(String[] args) throws AWTException {
     SystemTray systemTray = SystemTray.getSystemTray();
-    
+
     TrayIcon trayIcon = getTextTray();
 
     systemTray.add(trayIcon);
@@ -52,16 +57,17 @@ public enum ClipboardTray {
   }
 
   private static TrayIcon getTextTray() {
-//    ImageIcon imageIcon = getImageIcon("/hummingbird.png");
-    ImageIcon imageIcon = getImageIcon("/hummingbirdIcon8000.png");
+    ImageIcon imageIcon = getImageIcon("/hummingbird.png");
+//    ImageIcon imageIcon = getImageIcon("/hummingbirdIcon8000.png");
     TrayIcon trayIcon = new TrayIcon(imageIcon.getImage(), "Clipboard Tools");
     trayIcon.setImageAutoSize(true);
     PopupMenu popupMenu = new PopupMenu();
     trayIcon.setPopupMenu(popupMenu);
     System.out.printf("Popup Menu: %s%n", popupMenu); // NON-NLS
-    addFilter(popupMenu, "To Upper", Character::toUpperCase);
-    addFilter(popupMenu, "To Lower", Character::toLowerCase);
-    addFilter(popupMenu, "To Title", Character::toTitleCase);
+    addFilter(popupMenu, "To Plain Text", c -> c);
+    addFilter(popupMenu, "To Upper Case", Character::toUpperCase);
+    addFilter(popupMenu, "To Lower Case", Character::toLowerCase);
+    addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
     popupMenu.add(exitItem());
     return trayIcon;
   }
@@ -137,9 +143,86 @@ public enum ClipboardTray {
     }
     return builder.toString();
   }
+  
+  private static String toTitleCase(String text) {
+    String[] prepArray = preps.split("\n");
+    System.out.printf("%d chars to array of %d elements%n", text.length(), prepArray.length); // NON-NLS
+    Set<String> prepSet = new HashSet<>(Arrays.asList(prepArray));
+    for (String word: prepSet) {
+      System.out.printf("<%s>%n", word); // NON-NLS
+    }
+    StringBuilder builder = new StringBuilder();
+    List<String> tokens = new LinkedList<>();
+    StringTokenizer tokenizer = new StringTokenizer(text, " .,?!()@-+=<>/", true);
+    while (tokenizer.hasMoreTokens()) {
+      tokens.add(tokenizer.nextToken());
+    }
+    for (String word: tokens) {
+      final String lowWord = word.toLowerCase();
+      if (prepSet.contains(lowWord)) {
+        builder.append(lowWord);
+      } else {
+        final char firstLetter = word.charAt(0);
+        if (Character.isLetter(firstLetter)) {
+          builder.append(Character.toTitleCase(firstLetter));
+          builder.append(word.substring(1).toLowerCase());
+        } else {
+          builder.append(word);
+        }
+      }
+    }
+    return builder.toString();
+  }
 
+  /**
+   * <p>Immutable Collector to use when using a stream to filter text. I wrote this because the {@code String.chars()} method returns
+   * an {@code IntStream}, which doesn't have a method that takes a Collector, which would look something like this:</p>
+   * <pre>
+   *   {@literal <R, A> R collect(Collector<? super T, A, R> collector);}
+   * </pre>
+   * <p>Instead, it has this clumsier method:</p>
+   * <pre>
+   * {@literal <R> R collect(Supplier<R> supplier, ObjIntConsumer<R> accumulator, BiConsumer<R, R> combiner);}
+   * </pre>
+   * <p>(This is because there are no Colllectors that work with primitive types like {@code int}.)</p>
+   * <p>Here's an example. (This is an silly example, since this particular task can be done very easily
+   * using Regex, but this class was written to handle more complex processing that was well beyond what Regex
+   * could do.)</p>
+   * <p>To filter out all white-space from a String, we can use this collector to write this:</p>
+   * <pre>
+   *   private String filterOutWhiteSpace(String input) {
+   *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
+   *   return input.chars()                  // returns an IntStream
+   *       .filter(isNotWhiteSpace)
+   *       .boxed()                          // converts IntStream to a{@literal Stream<Integer>}
+   *       .collect(StringCollector.instance());
+   *   }
+   * </pre>
+   *
+   * <p>Without this StringCollector, it's still doable, but it's clumsier and harder to remember:</p>
+   *
+   * <pre>
+   *   public static String filterOutWhiteSpace(String input) {
+   *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
+   *   return input.chars()
+   *       .filter(isNotWhiteSpace)
+   *       .collect(
+   *           StringBuilder::new,
+   *           (sb, i) -> sb.append((char) i),
+   *           (sb1, sb2) -> sb1.append(sb2.toString()) )
+   *       .toString();
+   *   }
+   * </pre>
+   *
+   * <p>Created by IntelliJ IDEA.</p>
+   * <p>Date: 6/22/22</p>
+   * <p>Time: 5:38 PM</p>
+   *
+   * @author Miguel Muñoz
+   * @see #filterString(String, IntPredicate)
+   */
   @SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
-  private static class StringCollector implements Collector<Integer, StringBuilder, String> {
+  private static final class StringCollector implements Collector<Integer, StringBuilder, String> {
     private final Supplier<StringBuilder> supplier = StringBuilder::new;
     private final BiConsumer<StringBuilder, Integer> accumulator = (sb, i) -> sb.append((char) i.intValue());
     private final BinaryOperator<StringBuilder> combiner = (t, u) -> t.append(u.toString());
@@ -242,4 +325,143 @@ public enum ClipboardTray {
           .collect(instance);
     }
   }
+
+  // Articles, prepositions and conjunctions:
+  private static final String preps = """
+a
+aboard
+about
+above
+absent
+across
+after
+against
+aloft
+along
+alongside
+amid
+amidst
+and
+mid
+midst
+among
+amongst
+anti
+apropos
+around
+round
+as
+astride
+at
+atop
+bar
+barring
+before
+behind
+below
+beneath
+beside
+besides
+between
+beyond
+but
+by
+chez
+circa
+come
+concerning
+contra
+counting
+cum
+despite
+down
+during
+effective
+ere
+except
+excepting
+excluding
+failing
+following
+for
+from
+in
+including
+inside
+into
+less
+like
+minus
+modulo
+near
+nearer
+nearest
+next
+notwithstanding
+of
+off
+offshore
+on
+onto
+opposite
+out
+outside
+over
+o'er
+pace
+past
+pending
+per
+plus
+post
+pre
+pro
+qua
+re
+regarding
+respecting
+sans
+save
+saving
+since
+sub
+than
+the
+through
+thru
+throughout
+thruout
+till
+times
+to
+toward
+towards
+under
+underneath
+unlike
+until
+unto
+up
+upon
+versus
+vs
+via
+with
+w
+within
+without
+either
+or
+neither
+nor
+both
+whether
+so
+not
+rather
+once
+when
+whenever
+while
+""";
 }
