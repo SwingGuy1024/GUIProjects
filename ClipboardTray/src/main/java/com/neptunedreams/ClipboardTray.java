@@ -68,6 +68,7 @@ public enum ClipboardTray {
     addFilter(popupMenu, "To Upper Case", Character::toUpperCase);
     addFilter(popupMenu, "To Lower Case", Character::toLowerCase);
     addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
+    addStringFilter(popupMenu, "Combine Lines", ClipboardTray::combineLines);
     popupMenu.add(exitItem());
     return trayIcon;
   }
@@ -172,6 +173,27 @@ public enum ClipboardTray {
       }
     }
     return builder.toString();
+  }
+  
+  private static String combineLines(String text) {
+
+    StringBuilder data = new StringBuilder(text.trim());
+    swapAll(data, " \r\n", "\r\n");
+    swapAll(data, "\r\n ", "\r\n");
+    swapAll(data, "\r\n", " ");
+    swapAll(data, "\n ", "\n");
+    swapAll(data, " \n", "\n");
+    swapAll(data, "\n", " ");
+    return data.toString();
+  }
+
+  private static void swapAll(StringBuilder src, String bad, String good) {
+    int badLen = bad.length();
+    int lastIndex = src.lastIndexOf(bad);
+    while (lastIndex >= 0) {
+      src.replace(lastIndex, lastIndex + badLen, good);
+      lastIndex = src.lastIndexOf(bad);
+    }
   }
 
   /**
