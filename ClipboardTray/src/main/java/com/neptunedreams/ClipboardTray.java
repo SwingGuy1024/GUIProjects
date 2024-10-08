@@ -69,6 +69,7 @@ public enum ClipboardTray {
     addFilter(popupMenu, "To Lower Case", Character::toLowerCase);
     addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
     addStringFilter(popupMenu, "Combine Lines", ClipboardTray::combineLines);
+    popupMenu.addSeparator();
     popupMenu.add(exitItem());
     return trayIcon;
   }
