@@ -46,6 +46,7 @@ public enum ClipboardTray {
   ;
 
   public static final char NEW_LINE = '\n';
+  public static final char SPACE = ' ';
 
   public static void main(String[] args) throws AWTException {
     SystemTray systemTray = SystemTray.getSystemTray();
@@ -63,7 +64,6 @@ public enum ClipboardTray {
     trayIcon.setImageAutoSize(true);
     PopupMenu popupMenu = new PopupMenu();
     trayIcon.setPopupMenu(popupMenu);
-    System.out.printf("Popup Menu: %s%n", popupMenu); // NON-NLS
     addFilter(popupMenu, "To Plain Text", c -> c);
     addFilter(popupMenu, "To Upper Case", Character::toUpperCase);
     addFilter(popupMenu, "To Lower Case", Character::toLowerCase);
@@ -147,11 +147,7 @@ public enum ClipboardTray {
   
   private static String toTitleCase(String text) {
     String[] prepArray = preps.split("\n");
-    System.out.printf("%d chars to array of %d elements%n", text.length(), prepArray.length); // NON-NLS
     Set<String> prepSet = new HashSet<>(Arrays.asList(prepArray));
-    for (String word: prepSet) {
-      System.out.printf("<%s>%n", word); // NON-NLS
-    }
     StringBuilder builder = new StringBuilder();
     List<String> tokens = new LinkedList<>();
     StringTokenizer tokenizer = new StringTokenizer(text, " .,?!()@-+=<>/", true);
@@ -176,47 +172,48 @@ public enum ClipboardTray {
   }
   
   private static String combineLines(String text) {
+    StringBuilder builder = new StringBuilder();
+    try (BufferedReader reader = new BufferedReader(new StringReader(text))) {
+      String line = reader.readLine();
+      while (line != null) {
+        line = line.trim();
 
-    StringBuilder data = new StringBuilder(text.trim());
-    swapAll(data, " \r\n", "\r\n");
-    swapAll(data, "\r\n ", "\r\n");
-    swapAll(data, "\r\n", " ");
-    swapAll(data, "\n ", "\n");
-    swapAll(data, " \n", "\n");
-    swapAll(data, "\n", " ");
-    return data.toString();
-  }
-
-  private static void swapAll(StringBuilder src, String bad, String good) {
-    int badLen = bad.length();
-    int lastIndex = src.lastIndexOf(bad);
-    while (lastIndex >= 0) {
-      src.replace(lastIndex, lastIndex + badLen, good);
-      lastIndex = src.lastIndexOf(bad);
+        // test for empty to handle multiple blank lines correctly.
+        if (!line.isEmpty()) {
+          builder
+              .append(line)
+              .append(SPACE);
+        }
+        line = reader.readLine();
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
     }
+    return builder.toString().trim();
   }
 
   /**
-   * <p>Immutable Collector to use when using a stream to filter text. I wrote this because the {@code String.chars()} method returns
-   * an {@code IntStream}, which doesn't have a method that takes a Collector, which would look something like this:</p>
+   * <p>Immutable Collector to use when using a stream to filter text. I wrote this because the 
+   * {@code String.chars()} method returns an {@code IntStream}, which doesn't have a method that takes a Collector,
+   * which would look something like this:</p>
    * <pre>
    *   {@literal <R, A> R collect(Collector<? super T, A, R> collector);}
    * </pre>
    * <p>Instead, it has this clumsier method:</p>
    * <pre>
-   * {@literal <R> R collect(Supplier<R> supplier, ObjIntConsumer<R> accumulator, BiConsumer<R, R> combiner);}
+   * {@literal <R> R collect(
+   *     Supplier<R> supplier,
+   *     ObjIntConsumer<R> accumulator,
+   *     BiConsumer<R, R> combiner);}
    * </pre>
    * <p>(This is because there are no Colllectors that work with primitive types like {@code int}.)</p>
-   * <p>Here's an example. (This is an silly example, since this particular task can be done very easily
-   * using Regex, but this class was written to handle more complex processing that was well beyond what Regex
-   * could do.)</p>
-   * <p>To filter out all white-space from a String, we can use this collector to write this:</p>
+   * <p>Here's an example. To remove all characters from a String that match the specified {@code IntPredicate},
+   * we can use this collector to write this:</p>
    * <pre>
-   *   private String filterOutWhiteSpace(String input) {
-   *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
-   *   return input.chars()                  // returns an IntStream
-   *       .filter(isNotWhiteSpace)
-   *       .boxed()                          // converts IntStream to a{@literal Stream<Integer>}
+   *   private String customFilterOut(String input, IntPredicate cFilter) {
+   *     return input.chars()  // returns an IntStream
+   *       .filter(cFilter)
+   *       .boxed()            // converts IntStream to a{@literal Stream<Integer>}
    *       .collect(StringCollector.instance());
    *   }
    * </pre>
@@ -224,10 +221,9 @@ public enum ClipboardTray {
    * <p>Without this StringCollector, it's still doable, but it's clumsier and harder to remember:</p>
    *
    * <pre>
-   *   public static String filterOutWhiteSpace(String input) {
-   *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
-   *   return input.chars()
-   *       .filter(isNotWhiteSpace)
+   *   public static String customFilterOut(String input, IntPredicate cFilter) {
+   *     return input.chars()
+   *       .filter(cFilter)
    *       .collect(
    *           StringBuilder::new,
    *           (sb, i) -> sb.append((char) i),
@@ -314,13 +310,32 @@ public enum ClipboardTray {
      * </pre>
      * <p>instead of this</p>
      * <pre>
-     *   stream.filter((({@literal Predicate<Character>)} Character::isWhitespace).negate() ...
+     *  {@literal stream.filter((Predicate<Character>)} Character::isWhitespace).negate() ...
      * </pre>
      *
      * @param p A predicate
      * @return The negated predicate
      */
     public static <T> Predicate<T> negate(Predicate<T> p) {
+//      System.out.println("Predicate");
+      return p.negate();
+    }
+
+    /**
+     * <p>Convenience method to negate an {@code IntPredicate} that's less verbose. This way, we can write this</p>
+     * <pre>
+     *   stream.filter(negate(Character::isWhitespace)) ...
+     * </pre>
+     * <p>instead of this</p>
+     * <pre>
+     *   stream.filter((IntPredicate) Character::isWhitespace).negate() ...
+     * </pre>
+     *
+     * @param p A predicate
+     * @return The negated predicate
+     */
+    public static IntPredicate negateI(IntPredicate p) {
+//      System.out.println("IntPredicate");
       return p.negate();
     }
 
