@@ -51,10 +51,8 @@ public enum ClipboardTray {
   public static void main(String[] args) throws AWTException {
     SystemTray systemTray = SystemTray.getSystemTray();
 
-    TrayIcon trayIcon = getTextTray();
-
-    systemTray.add(trayIcon);
     systemTray.add(getIndentTray());
+    systemTray.add(getTextTray());
   }
 
   private static TrayIcon getTextTray() {
