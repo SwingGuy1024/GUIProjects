@@ -417,7 +417,7 @@ public class Escape
 		addRange(font, initialTextBldr, '\u2400', '\u2500', "Enclosed letters:"); // Misc. Tech
 		addRange(font, initialTextBldr, '\u2500', '\u2600', "Boxes & Block drawing:"); // box & block
 		addRange(font, initialTextBldr, '\u2600', '\u2800', "Dingbats:"); // dingbats
-		addDoubleWide(font, initialTextBldr, 0xd83d, '\udf00', '\ue000', "Double-Wide:");
+		addDoubleWide(font, initialTextBldr, 0xd83d, '\ud000', '\ue000', "Double-Wide:");
 		initialTextBldr.append("\nJava version ");
 		initialTextBldr.append(System.getProperty("java.version"));
 		return initialTextBldr.toString();
@@ -437,7 +437,7 @@ public class Escape
 		}
 	}
 
-	@SuppressWarnings("CharacterComparison")
+	@SuppressWarnings({"CharacterComparison", "SameParameterValue"})
 	private void addDoubleWide(Font pFont, StringBuilder pInitialTextBldr, int firstChar, char start, char end, String label) {
 		char lead = (char)firstChar;
 		if (label.isEmpty()) {
