@@ -12,7 +12,7 @@
   <name>CValues</name>
 
   <artifactId>CValues</artifactId>
-  <version>1.0.1-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
 
   <properties>
     <maven.compiler.source>8</maven.compiler.source>
