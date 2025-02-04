@@ -18,7 +18,6 @@ import java.awt.event.WindowEvent;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -65,9 +64,10 @@ import javax.swing.text.Document;
 import javax.swing.text.JTextComponent;
 
 import com.formdev.flatlaf.themes.FlatMacDarkLaf;
+import com.mm.gui.Utils;
 import com.mm.util.GridHelper;
+import com.mm.util.ReverseCompare;
 import com.mm.util.StringCollector;
-import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,25 +84,14 @@ import org.jetbrains.annotations.Nullable;
  *
  * @author Miguel Muñoz
  */
-@SuppressWarnings({"HardCodedStringLiteral", "MagicCharacter", "MagicNumber", "StringConcatenation", "TryWithIdenticalCatches", "Convert2Diamond", "TryFinallyCanBeTryWithResources", "UseOfSystemOutOrSystemErr", "UnnecessaryUnicodeEscape"})
+@SuppressWarnings({"HardCodedStringLiteral", "MagicCharacter", "MagicNumber", "StringConcatenation", "TryWithIdenticalCatches", "Convert2Diamond", "TryFinallyCanBeTryWithResources", "UseOfSystemOutOrSystemErr", "UnnecessaryUnicodeEscape", "CallToPrintStackTrace"})
 public final class WordsForWwf extends JPanel {
 
 	public static final String[] EMPTY = new String[0];
 	private static final int LIMIT = 15;
 	private static final String CHECK_MARK = "\u2714 ";
 	private static final Comparator<? super String> FORWARD_COMPARE = null; // defaults to natural order
-	private static final Comparator<String> REVERSE_COMPARE = (s1, s2) -> {
-		int n1=s1.length();
-		int n2=s2.length();
-		for (int i1=n1-1, i2=n2-1; (i1 >= 0) && (i2 >= 0); i1--, i2--) {
-			char c1 = s1.charAt(i1);
-			char c2 = s2.charAt(i2);
-			if (c1 != c2) {
-				return c1 - c2;
-			}
-		}
-		return n1 - n2;
-	};
+	private static final Comparator<String> REVERSE_COMPARE = ReverseCompare.INSTANCE;
 
 	private final JTextField input = new JTextField(LIMIT);
 	private final JTextField required = new JTextField(LIMIT);
@@ -110,7 +99,8 @@ public final class WordsForWwf extends JPanel {
 	private final JList<String> wordList = new JList<>();
 	private SortedSet<String> words=null;
 	private final SortedSet<String> reverseWords;
-	private static final Font MONOSPACED = getFont("Menlo,Lucida Console,Monospaced", Font.PLAIN, 14);
+	private static final Font MONOSPACED = Utils.getFont("Menlo,Lucida Console,Monospaced", Font.PLAIN, 14);
+	
 	private final Preferences prefs = Preferences.userNodeForPackage(WordsForWwf.class);
 	private static JFrame sFrame=null;
 	
@@ -118,7 +108,7 @@ public final class WordsForWwf extends JPanel {
 	// setting a property in an Action if this were an ordinary Button, but I don't
 	// know if there's a way with a toggle button.
 	private final JCheckBox reverse = new JCheckBox("<html><u>R</u>ev</html>");
-	private final JCheckBox tailSort = new JCheckBox("<html>Tail <u>S</u>ort</html>");
+	private final JCheckBox tailSort = new JCheckBox("<html><u>T</u>ail Sort</html>");
 	private final JMenu hiddenMenu = new JMenu("");
 	private SpinnerIntModel minModel;
 	private SpinnerIntModel maxModel;
@@ -162,8 +152,6 @@ public final class WordsForWwf extends JPanel {
 		try {
 //			FileReader reader = new FileReader(file);
 			words = load();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -193,11 +181,6 @@ public final class WordsForWwf extends JPanel {
 	}
 
 	private SortedSet<String> load() throws IOException {
-//		BufferedInputStream reader = new BufferedInputStream(fileReader);
-		// 172820 lines total, 168548 lines < 15 characters
-//		long start = System.currentTimeMillis();
-		//		int counter = 0;
-//        File file = new File(System.getProperty("user.home") + "/My Documents/Downloads", "enable1.txt");
 		InputStream fileReader = getWordStream(getClass());
 		assert fileReader != null;
 		SortedSet<String> wordSet = new TreeSet<String>();
@@ -244,8 +227,8 @@ public final class WordsForWwf extends JPanel {
 		helper.add(input, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
 		helper.add(new JLabel("Req:"), 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 1, 1);
 		helper.add(required, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
-//		helper.add(new JLabel("Forb:"), 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 1, 1);
-//		helper.add(forbidden, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
+		helper.add(new JLabel("Forb:"), 0, y, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 1, 1);
+		helper.add(forbidden, 1, y++, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 1.0, 0.0, 3, 1);
 
 		setAccelerator(reverse, KeyEvent.VK_R);
 
@@ -253,8 +236,8 @@ public final class WordsForWwf extends JPanel {
 		int x=0;
 		helper.add(reverse, x++, y, GridBagConstraints.LINE_START, GridBagConstraints.BOTH);
 
-		setAccelerator(tailSort, KeyEvent.VK_S);
-		
+		setAccelerator(tailSort, KeyEvent.VK_T);
+
 		helper.add(tailSort, x++, y, GridBagConstraints.LINE_START, GridBagConstraints.BOTH, 1.0, 0.0);
 
 		minModel = new SpinnerIntModel(1, 1, LIMIT);
@@ -325,6 +308,8 @@ public final class WordsForWwf extends JPanel {
 			int max = maxModel.getInt();
 			int min = minModel.getInt();
 			int preFilterSize = wordSet.size();
+
+			// Error? It looks like the tail sort only happens if a different min or max is set! Test this
 			if ((min > 1) || (max < LIMIT)) {
 				// rangedModel is a new set, not backed by the original.
 				wordSet = getRangedSubset(wordSet, min, max);
@@ -814,18 +799,18 @@ public final class WordsForWwf extends JPanel {
 			allNames = new JPanel(new GridLayout(0, 3));
 			return allNames;
 		}
-	}
 
-	private void adjustForCapsLock(JTextComponent textComponent) {
-		boolean capsLock = Toolkit.getDefaultToolkit().getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
-		textComponent.setCaretColor(capsLock ? Color.RED : Color.BLACK);
-	}
-
-	private String cleanName(String name) {
-		if (name.startsWith(CHECK_MARK)) {
-			return name.substring(CHECK_MARK.length());
+		private void adjustForCapsLock(JTextComponent textComponent) {
+			boolean capsLock = Toolkit.getDefaultToolkit().getLockingKeyState(KeyEvent.VK_CAPS_LOCK);
+			textComponent.setCaretColor(capsLock ? Color.RED : Color.BLACK);
 		}
-		return name;
+
+		private String cleanName(String name) {
+			if (name.startsWith(CHECK_MARK)) {
+				return name.substring(CHECK_MARK.length());
+			}
+			return name;
+		}
 	}
 	
 	private static class Tile {
@@ -855,27 +840,27 @@ public final class WordsForWwf extends JPanel {
 		}
 	}
 
-	/**
-	 * Get a font from a list of font names. If none of the named fonts are found, 
-	 * returns Dialog
-	 * @param fontNameList a comma-delimited list of names for the font, in order 
-	 *                     of preference.
-	 * @param style The font style
-	 * @param size The font size
-	 * @return The first font found from the list of font names. If none of the 
-	 * named fonts are found, returns Dialog
-	 */
-	@SuppressWarnings("SameParameterValue")
-	private static Font getFont(String fontNameList, @MagicConstant(valuesFromClass = Font.class) int style, int size) {
-		String[] fonts = fontNameList.split(",");
-		for (String name: fonts) {
-			Font f = new Font(name, style, size);
-			if (!"Dialog".equals(f.getFontName())) {
-				return f;
-			}
-		}
-		return new Font("Dialog", style, size);
-	}
+//	/**
+//	 * Get a font from a list of font names. If none of the named fonts are found, 
+//	 * returns Dialog
+//	 * @param fontNameList a comma-delimited list of names for the font, in order 
+//	 *                     of preference.
+//	 * @param style The font style
+//	 * @param size The font size
+//	 * @return The first font found from the list of font names. If none of the 
+//	 * named fonts are found, returns Dialog
+//	 */
+//	@SuppressWarnings("SameParameterValue")
+//	private static Font getFont(String fontNameList, @MagicConstant(valuesFromClass = Font.class) int style, int size) {
+//		String[] fonts = fontNameList.split(",");
+//		for (String name: fonts) {
+//			Font f = new Font(name, style, size);
+//			if (!"Dialog".equals(f.getFontName())) {
+//				return f;
+//			}
+//		}
+//		return new Font("Dialog", style, size);
+//	}
 	
 	private static class SpinnerIntModel extends SpinnerNumberModel {
 		SpinnerIntModel(int value, int min, int max) {

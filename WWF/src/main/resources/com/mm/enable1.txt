@@ -2787,6 +2787,7 @@ agist
 agisted
 agisting
 agists
+agita
 agitable
 agitate
 agitated
@@ -4666,6 +4667,7 @@ amoxicillins
 amoxycillin
 amoxycillins
 amp
+amped
 amperage
 amperages
 ampere
@@ -6848,9 +6850,7 @@ apatites
 apatosaurus
 apatosauruses
 ape
-apeak
 aped
-apeek
 apelike
 aper
 apercu
@@ -21657,10 +21657,7 @@ carjacker
 carjackers
 carjacking
 carjackings
-cark
-carked
 carking
-carks
 carl
 carle
 carles
@@ -25104,6 +25101,7 @@ chouses
 choush
 choushes
 chousing
+choux
 chow
 chowchow
 chowchows
@@ -35614,6 +35612,7 @@ cyanoses
 cyanosis
 cyanotic
 cyans
+cyber
 cybernated
 cybernation
 cybernations
@@ -36349,11 +36348,6 @@ dappled
 dapples
 dappling
 daps
-dapsone
-dapsones
-darb
-darbies
-darbs
 dare
 dared
 daredevil
@@ -73666,6 +73660,7 @@ inbound
 inbounded
 inbounding
 inbounds
+inbox
 inbreathe
 inbreathed
 inbreathes
@@ -80391,10 +80386,6 @@ karats
 karma
 karmas
 karmic
-karn
-karns
-karoo
-karoos
 kaross
 karosses
 karroo
@@ -81854,6 +81845,9 @@ kvas
 kvases
 kvass
 kvasses
+kvell
+kvelled
+kvelling
 kvetch
 kvetched
 kvetches
@@ -86333,6 +86327,7 @@ lubberlinesses
 lubberly
 lubbers
 lube
+lubed
 lubes
 lubric
 lubrical
@@ -131009,6 +131004,8 @@ roadies
 roadkill
 roadkills
 roadless
+roadmap
+roadmaps
 roadrunner
 roadrunners
 roads
@@ -146759,6 +146756,8 @@ streetlamp
 streetlamps
 streetlight
 streetlights
+streetmap
+streetmaps
 streets
 streetscape
 streetscapes
@@ -165556,12 +165555,16 @@ vans
 vantage
 vantages
 vanward
+vape
+vaped
+vapes
 vapid
 vapidities
 vapidity
 vapidly
 vapidness
 vapidnesses
+vaping
 vapor
 vapored
 vaporer
@@ -168402,15 +168405,6 @@ warier
 wariest
 warily
 wariness
-warinesses
-waring
-warison
-warisons
-wark
-warked
-warking
-warks
-warless
 warlike
 warlock
 warlocks
@@ -172366,8 +172360,6 @@ zareba
 zarebas
 zareeba
 zareebas
-zarf
-zarfs
 zariba
 zaribas
 zarzuela
