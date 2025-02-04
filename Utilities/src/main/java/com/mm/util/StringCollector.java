@@ -6,6 +6,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntPredicate;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
@@ -20,15 +21,17 @@ import java.util.stream.Collector;
  * {@literal <R> R collect(Supplier<R> supplier, ObjIntConsumer<R> accumulator, BiConsumer<R, R> combiner);}
  * </pre>
  * <p>(This is because there are no Colllectors that work with primitive types like {@code int}.)</p>
- * <p>For example, to filter out all white-space from a String, we can use this collector to write this:</p>
+ * <p>Here's an example. (This is an silly example, since this particular task can be done very easily
+ * using Regex, but this class was written to handle more complex processing that was well beyond what Regex
+ * could do.)</p>
+ * <p>To filter out all white-space from a String, we can use this collector to write this:</p>
  * <pre>
  *   private String filterOutWhiteSpace(String input) {
  *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
  *   return input.chars()                  // returns an IntStream
- *       .sequential()
  *       .filter(isNotWhiteSpace)
  *       .boxed()                          // converts IntStream to a{@literal Stream<Integer>}
- *       .collect(StringCollector.get());
+ *       .collect(StringCollector.instance());
  *   }
  * </pre>
  * 
@@ -37,8 +40,8 @@ import java.util.stream.Collector;
  * <pre>
  *   public static String filterOutWhiteSpace(String input) {
  *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
+ *   final IntPredicate isNotWhiteSpace = Predicate.not(Character::isWhitespace);
  *   return input.chars()
- *       .sequential()
  *       .filter(isNotWhiteSpace)
  *       .collect(
  *           StringBuilder::new,
@@ -93,16 +96,26 @@ public class StringCollector implements Collector<Integer, StringBuilder, String
   public static StringCollector instance() { return instance; }
 
   /**
-   * Filter out specified characters in a String based on the specified IntPredicate,
-   * using a sequential stream.
+   * <p>Filter out specified characters in a String based on the specified IntPredicate,
+   * using a sequential stream. For example, to remove all white space from a String, you would write this:</p>
+   * <pre>
+   *   String input = ...
+   *   String cleanedInput = StringCollector.filterString(input,{@literal ((Predicate<Character>)} Character::isWhitespace).negate())
+   * </pre>
+   * <p>or</p>
+   * <pre>
+   *   String input = ...
+   *   String cleanedInput = StringCollector.filterString(input, not(Character::isWhitespace))
+   * </pre>
    * @param input The input String
    * @param filter Determines which characters to keep. This should return false for characters to reject.
-   * @return A new String without any characters that matched {code filter}
+   * @return A new String with only the characters that matched the provided {@code filter}
    */
   public static String filterString(String input, IntPredicate filter) {
     return input
         .chars()
         .sequential()
+        .filter(filter)
         .boxed()
         .collect(instance);
   }
@@ -112,7 +125,7 @@ public class StringCollector implements Collector<Integer, StringBuilder, String
    * <p>For example, to replace all newline characters with spaces, you can do this:</p>
    * <pre>
    *   public static String replaceNewLineWithSpace(String input) {
-   *     return reMapString(input, i-> (i=='\n') || (i=='\r'), ' ');
+   *     return reMapString(input, c-> (c=='\n') || (c=='\r'), ' ');
    *   }
    * </pre>
    * @param input The String to remap

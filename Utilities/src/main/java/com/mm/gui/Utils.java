@@ -1,5 +1,6 @@
 package com.mm.gui;
 
+import java.awt.BorderLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.geom.AffineTransform;
@@ -9,11 +10,13 @@ import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
+import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -195,4 +198,43 @@ public enum Utils {
 	public static <T> T[] emptyIfNull(T[] array) {
 		return (array == null) ? emptyArray() : array;
 	}
+	
+	public static void addTopRight(JComponent container, JComponent componentToAdd) {
+		JPanel innerPanel = new JPanel(new BorderLayout());
+		innerPanel.add(componentToAdd, BorderLayout.PAGE_START);
+		container.add(innerPanel, BorderLayout.LINE_END);
+	}
+
+	/**
+	 * Get a font from a list of font names. If none of the named fonts are found,
+	 * returns Dialog
+	 *
+	 * @param fontNameList a comma-delimited list of names for the font, in order
+	 *                     of preference.
+	 * @param style        The font style
+	 * @param size         The font size
+	 * @return The first font found from the list of font names. If none of the
+	 * named fonts are found, returns Dialog
+	 */
+	@SuppressWarnings("SameParameterValue")
+	public static Font getFont(String fontNameList, @MagicConstant(valuesFromClass = Font.class) int style, int size) {
+		String[] fonts = fontNameList.split(",");
+		for (String name : fonts) {
+			Font f = new Font(name.trim(), style, size);
+			// If the font wasn't found, the font name will be "Dialog".
+			if (!"Dialog".equals(f.getFontName())) {
+				System.out.printf("Bold: %s%n psName: %s%n Name: %s%n fName: %s%n", f, f.getPSName(), f.getName(), f.getFontName()); // NON-NLS
+				System.out.printf("Looking for bold%n"); // NON-NLS
+				Font boldF = f.deriveFont(Font.BOLD);
+				System.out.printf("Bold: %s%n psName: %s%n Name: %s%n fName: %s%n", boldF, boldF.getPSName(), boldF.getName(), boldF.getFontName()); // NON-NLS
+
+				// If their names are different, this font has a true bold.
+        if (!f.getFontName().equals(boldF.getFontName())) {
+          return f;
+        }
+      }
+		}
+		return new Font("Dialog", style, size);
+	}
+
 }

@@ -20,11 +20,11 @@ import javax.swing.border.MatteBorder;
  * This would make it easier to apply the same border to multiple objects.
  * @author Miguel Mu\u00f1oz
  */
-public final class Borders
+public enum Borders
 {
-	private Borders() { } // Can't instantiate this class
-	
-	/**
+  ;
+
+  /**
 	 * Adds the specified border to the outside of the existing border, if
 	 * there is one, or directly to the JComponent if not.
 	 * @param cmp   The JComponent to get the border

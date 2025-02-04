@@ -19,10 +19,11 @@ import javax.swing.SpringLayout;
  * layouts with SpringLayout. These utilities are used by several programs, such
  * as SpringBox and SpringCompactGrid.
  */
-public class SpringUtilities
+public enum SpringUtilities
 {
-  private SpringUtilities() { }
-	/**
+  ;
+
+  /**
 	 * A debugging utility that prints to stdout the component's minimum,
 	 * preferred, and maximum sizes.
 	 */

@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 5/8/24</p>
  * <p>Time: 10:19?AM</p>
- * <p>@author Miguel Mu–oz</p>
+ * <p>@author Miguel Munoz</p>
  */
 @SuppressWarnings("MagicNumber")
 class HighlightRendererTest {

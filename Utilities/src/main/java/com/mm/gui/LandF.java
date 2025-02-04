@@ -213,6 +213,8 @@ public enum LandF
 	 */
 	public static void addOSXKeyStrokesMac(JTextComponent textComponent) {
 		addOSXKeyStrokesMac(textComponent.getInputMap(JComponent.WHEN_FOCUSED));
+		// Note. There seem to be three InputMaps, for WHEN_FOCUSED, WHEN_ANCESTOR_OF_FOCUSED_COMPONENT, and
+		// WHEN_IN_FOCUSED_WINDOW. Maybe they're not getting removed because I'm doing this wrong. 
 	}
 
 	/**
@@ -244,6 +246,8 @@ public enum LandF
 	 * <p>Debugging Note. I tried to figure out why it didn't remove the old key bindings. I stepped through the
 	 * code and confirmed that the call to remove the key-binding was working, and I didn't even need to recurse
 	 * through the parents, which were null anyway. So I have no idea why the old key bindings are still in place.</p>
+	 * <p>Here's a list of all the Aqua Key Bindings:<br>
+	 * https://hg.openjdk.org/jdk8/jdk8/jdk/file/687fd7c7986d/src/macosx/classes/com/apple/laf/AquaKeyBindings.java</p>
 	 * @param inputMap The InputMap
 	 */
 	public static void addOSXKeyStrokesMac(InputMap inputMap) {
