@@ -441,6 +441,7 @@ on
 onto
 opposite
 out
+if
 outside
 over
 o'er
@@ -499,5 +500,7 @@ once
 when
 whenever
 while
+yet
+though
 """;
 }
