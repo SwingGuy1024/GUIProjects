@@ -69,6 +69,7 @@ import javax.swing.text.PlainDocument;
 
 import com.mm.gui.Borders;
 import com.mm.gui.LandF;
+import com.mm.gui.Utils;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -108,6 +109,8 @@ public class RefBuilder extends JPanel {
   // TODO: Add a custom field?
   // TODO: Try another L&F
   // Done: Put tab pane in a ScrollPane!
+  // TODO: Add a parser to paste in existing references. This may require adding the ability to add 
+  //       custom attributes.
   
   // Cite subjects: book, news, journal, web
   
@@ -123,8 +126,8 @@ public class RefBuilder extends JPanel {
    */
   
   private static final Set<String> common = new LinkedHashSet<>(
-      List.of("title", "year", "date", "url", "page", "pages", "volume", "language", "publisher", 
-          "access-date", "url-access", "url-status", "archive-url", "archive-date", "ref")
+      List.of("title", "year", "date", "url", "page", "pages", "volume", "language", "publisher",
+          "location", "access-date", "url-access", "url-status", "archive-url", "archive-date", "ref")
   );
   private static final Set<String> sources
       = new LinkedHashSet<>(List.of("book.isbn", "book.location", "book.orig-year", "book.edition",
@@ -566,8 +569,7 @@ public class RefBuilder extends JPanel {
   }
 
   private void populateCommon(Map<String, Set<String>> theSubjectMap) {
-    for (String subject: theSubjectMap.keySet()) {
-      Set<String> set = theSubjectMap.get(subject);
+    for (Set<String> set : theSubjectMap.values()) {
       for (String name : common) {
         set.add(name.trim());
       }
@@ -588,7 +590,7 @@ public class RefBuilder extends JPanel {
       }
     }
   }
-  
+
   private Set<String> mapNewSubject(Map<String, Set<String>> theSubjectMap, String subject) {
     Set<String> set = new LinkedHashSet<>();
     theSubjectMap.put(subject, set);
@@ -634,7 +636,8 @@ public class RefBuilder extends JPanel {
       big.setSelected(false);
       buttonModel = big.getModel();
       big.addItemListener(e -> toggleBig(e, buttonModel));
-      add(big, BorderLayout.LINE_END);
+      Utils.addTopRight(this, big);
+//      add(big, BorderLayout.LINE_END);
     }
     
     private void showInputMapSizes(JComponent cmp) {
