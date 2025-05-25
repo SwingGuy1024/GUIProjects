@@ -33,9 +33,19 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 import javax.swing.ImageIcon;
 
+import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 
 /**
+ * <p>Text utilities for the clipboard tray.</p>
+ * <p>The parameters in some of these methods code follow a naming convention. Some of the menu items 
+ * perform a line-by-line operation, while others don't. For methods that perform
+ * line-by-line operation, there are two sets of methods that transform a String to another String. Some of
+ * these methods operate on many lines, while others only operate on a single line of tet at a time. And
+ * for each operation, there may be two methods with similar names. So for the methods that operate on many
+ * lines, the String input parameter will be called {@code lines}, while the method that operates on a single
+ * line at a time will have a String input parameter called {@code lineIn}.</p>
+ * 
  * <p>Icon: <a href="https://clipartix.com/hummingbird-clipart/">Hummingbird Clip Art</a></p>
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 9/9/24</p>
@@ -62,11 +72,15 @@ public enum ClipboardTray {
     trayIcon.setImageAutoSize(true);
     PopupMenu popupMenu = new PopupMenu();
     trayIcon.setPopupMenu(popupMenu);
-    addFilter(popupMenu, "To Plain Text", c -> c);
-    addFilter(popupMenu, "To Upper Case", Character::toUpperCase);
-    addFilter(popupMenu, "To Lower Case", Character::toLowerCase);
+    addCharFilter(popupMenu, "To Plain Text", c -> c);
+    addCharFilter(popupMenu, "To Upper Case", Character::toUpperCase);
+    addCharFilter(popupMenu, "To Lower Case", Character::toLowerCase);
     addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
     addStringFilter(popupMenu, "Combine Lines", ClipboardTray::combineLines);
+    addLineFilter(popupMenu, "Indent 2 spaces", t -> prePadLine(t, "  "));   
+    addLineFilter(popupMenu, "Indent 4 spaces", t -> prePadLine(t, "    "));
+    addLineFilter(popupMenu, "Unordered List <li>", t -> wrapLine(t, "li"));
+    addLineFilter(popupMenu, "Paragraph <p>", t -> wrapLine(t, "p"));
     popupMenu.addSeparator();
     popupMenu.add(exitItem());
     return trayIcon;
@@ -76,7 +90,8 @@ public enum ClipboardTray {
     ImageIcon indentIcon = getImageIcon("/IndentIcon.png");
     PopupMenu popupMenu = new PopupMenu();
     TrayIcon trayIcon = new TrayIcon(indentIcon.getImage(), "Indent", popupMenu);
-    addStringFilter(popupMenu, "Indent", ClipboardTray::indent);
+//    addStringFilter(popupMenu, "Indent", ClipboardTray::indentForEmail);
+    addLineFilter(popupMenu, "Indent", ClipboardTray::toEmailLine);
     return trayIcon;
   }
 
@@ -87,20 +102,46 @@ public enum ClipboardTray {
   }
 
 
-  private static void addFilter(PopupMenu popupMenu, String name, IntUnaryOperator charFunction) {
+  /**
+   * Adds a MenuItem that filters text by character.
+   * @param popupMenu The popupMenu
+   * @param name The text of the Menu Item
+   * @param charFunction A function that transforms each individual character in the input String
+   */
+  private static void addCharFilter(PopupMenu popupMenu, String name, IntUnaryOperator charFunction) {
     MenuItem menuItem = new MenuItem(name);
-    menuItem.addActionListener(e -> process(charFunction));
+    menuItem.addActionListener(e -> processClipboardData(charFunction));
     popupMenu.add(menuItem);
   }
-  
+
+  /**
+   * Adds a MenuItem that filters the input text as a whole
+   * @param popupMenu The popupMenu
+   * @param name The text of the Menu Item
+   * @param stringFunction A function that transforms the entire input text from the clipboard
+   */
   private static void addStringFilter(PopupMenu popupMenu, String name, UnaryOperator<String> stringFunction) {
     MenuItem menuItem = new MenuItem(name);
-    menuItem.addActionListener(e -> process(stringFunction));
+    menuItem.addActionListener(e -> processClipboardData(stringFunction));
+    popupMenu.add(menuItem);
+  }
+
+  /**
+   * Adds a MenuItem that filters each line of text, but leaves the line breaks alone.
+   * @param popupMenu The popupMenu
+   * @param name The text of the Menu Item
+   * @param lineFunction A function that transforms a single line of the input text
+   */
+  private static void addLineFilter(PopupMenu popupMenu, String name, UnaryOperator<String> lineFunction) {
+    MenuItem menuItem = new MenuItem(name);
+    
+    Function<String, String> allLinesProcessor = t -> transformLines(t, lineFunction);
+    menuItem.addActionListener(e -> processClipboardData(allLinesProcessor));
     popupMenu.add(menuItem);
   }
   
-  private static void process(IntUnaryOperator function) {
-    process(toStringFunction(function));
+  private static void processClipboardData(IntUnaryOperator function) {
+    processClipboardData(toStringFunction(function));
   }
   
   private static Function<String, String> toStringFunction(IntUnaryOperator operator) {
@@ -117,7 +158,7 @@ public enum ClipboardTray {
     return exitItem;
   }
   
-  private static void process(Function<String, String> stringFunction) { 
+  private static void processClipboardData(Function<String, String> stringFunction) { 
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     try {
       String contents = clipboard.getData(DataFlavor.stringFlavor).toString();
@@ -127,16 +168,21 @@ public enum ClipboardTray {
     } catch (UnsupportedFlavorException | IOException ignored) { }
   }
 
-  public static String indent(String text) {
+  /**
+   * Transforms the entire text by applying the lineTransformer to each line of text.
+   * @param lines All the lines of text
+   * @param lineTransformer The line function to transform each line
+   * @return The entire transformed text
+   */
+  private static String transformLines(String lines, Function<String, String> lineTransformer) {
     StringBuilder builder = new StringBuilder();
-    try (BufferedReader reader = new BufferedReader(new StringReader(text))) {
-      String line = reader.readLine();
-      while (line != null) {
+    try (BufferedReader reader = new BufferedReader(new StringReader(lines))) {
+      String theLine = reader.readLine();
+      while (theLine != null) {
         builder
-            .append("> ")
-            .append(line)
+            .append(lineTransformer.apply(theLine))
             .append(NEW_LINE);
-        line = reader.readLine();
+        theLine = reader.readLine();
       }
     } catch(IOException ioe) {
       throw new IllegalStateException(ioe);
@@ -144,12 +190,16 @@ public enum ClipboardTray {
     return builder.toString();
   }
   
-  private static String toTitleCase(String text) {
+  private static String toEmailLine(String lineIn) {
+    return String.format("> %s", lineIn);
+  }
+  
+  private static String toTitleCase(String lines) {
     String[] prepArray = preps.split("\n");
     Set<String> prepSet = new HashSet<>(Arrays.asList(prepArray));
     StringBuilder builder = new StringBuilder();
     List<String> tokens = new LinkedList<>();
-    StringTokenizer tokenizer = new StringTokenizer(text, " .,?!()@-+=<>/", true);
+    StringTokenizer tokenizer = new StringTokenizer(lines, " .,?!()@-+=<>/", true);
     while (tokenizer.hasMoreTokens()) {
       tokens.add(tokenizer.nextToken());
     }
@@ -170,31 +220,42 @@ public enum ClipboardTray {
     return builder.toString();
   }
   
-  private static String combineLines(String text) {
+  private static String combineLines(String lines) {
     StringBuilder builder = new StringBuilder();
-    try (BufferedReader reader = new BufferedReader(new StringReader(text))) {
-      String line = reader.readLine();
-      while (line != null) {
-        line = line.trim();
+    try (BufferedReader reader = new BufferedReader(new StringReader(lines))) {
+      String theLine = reader.readLine();
+      while (theLine != null) {
+        theLine = theLine.trim();
 
         // test for empty to handle multiple blank lines correctly.
-        if (!line.isEmpty()) {
+        if (!theLine.isEmpty()) {
           builder
-              .append(line)
+              .append(theLine)
               .append(SPACE);
         }
-        line = reader.readLine();
+        theLine = reader.readLine();
       }
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
     return builder.toString().trim();
   }
+  
+  private static String wrapLine(String lineIn, String tag) {
+    return wrapLine(lineIn, String.format("<%s>", tag), String.format("</%s>", tag));
+  }
+  
+  private static @NonNls String wrapLine(String lineIn, String openTag, String closeTag) {
+    return openTag + lineIn + closeTag;
+  }
+  
+  @SuppressWarnings("StringConcatenation")
+  private static String prePadLine(String lineIn, String pad) { return pad + lineIn; }
 
   /**
-   * <p>Immutable Collector to use when using a stream to filter text. I wrote this because the 
-   * {@code String.chars()} method returns an {@code IntStream}, which doesn't have a method that takes a Collector,
-   * which would look something like this:</p>
+   * <p>Immutable Collector to use when using an IntStream or{@literal Stream<Integer>} to filter text. I wrote this
+   * because the {@code String.chars()} method returns an {@code IntStream}, which doesn't have a method that takes 
+   * a Collector, which would look something like this:</p>
    * <pre>
    *   {@literal <R, A> R collect(Collector<? super T, A, R> collector);}
    * </pre>
@@ -205,9 +266,9 @@ public enum ClipboardTray {
    *     ObjIntConsumer<R> accumulator,
    *     BiConsumer<R, R> combiner);}
    * </pre>
-   * <p>(This is because there are no Colllectors that work with primitive types like {@code int}.)</p>
+   * <p>(This is because there are no Collectors that work with primitive types like {@code int}.)</p>
    * <p>Here's an example. To remove all characters from a String that match the specified {@code IntPredicate},
-   * we can use this collector to write this:</p>
+   * we can use this StringCollector to write this:</p>
    * <pre>
    *   private String customFilterOut(String input, IntPredicate cFilter) {
    *     return input.chars()  // returns an IntStream
@@ -217,7 +278,7 @@ public enum ClipboardTray {
    *   }
    * </pre>
    *
-   * <p>Without this StringCollector, it's still doable, but it's clumsier and harder to remember:</p>
+   * <p>Without this StringCollector, it's still doable, but it's more verbose, clumsier, and harder to remember:</p>
    *
    * <pre>
    *   public static String customFilterOut(String input, IntPredicate cFilter) {
