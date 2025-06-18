@@ -4,10 +4,9 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 
-import static com.neptunedreams.refBuilder.RefParser.Marker.journalKey;
-import static com.neptunedreams.refBuilder.RefParser.Marker.webKey;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -18,11 +17,16 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SuppressWarnings("StringConcatenation")
 class RefParserTest {
-  public static final String sourceTextWeb = "<ref name=\"BOB\">{{cite web | url = https://www.npr" +
-      ".org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
-      " | access-date = Jun 11, 2025 | publisher = National Public Radio" +
+  public static final String sourceTextWebNoSpace = "<ref name=\"BOB\">{{cite web|url" +
+      "=https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
+      "|access-date=Jun 11, 2025|publisher=National Public Radio" +
+      "|title=Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
+      "|date=Feb 2, 2025}}</ref>";
+  public static final String sourceTextWebWithSpaces = "< ref name = \"BOB\" > { { cite web | url = " +
+      " https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name " +
+      " | access-date = Jun 11, 2025 | publisher = National Public Radio\n" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
-      " | date = Feb 2, 2025}}</ref>";
+      " | date = Feb 2, 2025 }  } <  /  ref  >";
   public static final String sourceTextNews = "<ref name=\"NYT\">{{cite news | work = (work)" +
       " | access-date = June 17, 2025 | pages = b5-b7" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
@@ -39,8 +43,40 @@ class RefParserTest {
       "url= https://archive.org/details/HECROS1912ST/page/n1006/mode/1up |via=[[Internet Archive]]}}</ref>";
 
   @Test
-  void testParseWeb() throws IOException {
-    RefParser.Token[] expected = new RefParser.Token[]{
+  public void testParseWebWithSpaces() throws IOException {
+    testWebTokens(sourceTextWebWithSpaces);
+  }
+
+  @Test
+  public void testParseWebNoSpaces() throws IOException {
+    testWebTokens(sourceTextWebNoSpace);
+  }
+
+  private void testWebTokens(String sourceText) throws IOException {
+    RefParser.Token[] expected = getExpectedWebTokens();
+    String[] strings = {sourceText }; //, sourceTextNews, sourceTextJournal, sourceTextBook};
+
+    List<RefParser.Token> foundTokens = new LinkedList<>();
+    for (String string : strings) {
+      RefParser parser = new RefParser(string);
+      RefParser.Token token = parser.getLowToken();
+//    System.out.println(token.text());
+      while (token.marker() != RefParser.Marker.end) {
+        System.out.printf("%-12s - %s%n", token.marker(), token.text()); // NON-NLS
+//        System.out.printf("new RefParser.Token(RefParser.Marker.%s, \"%s\"),%n", token.marker(), token.text()); // NON-NLS
+        foundTokens.add(token);
+        if ((token.marker() == RefParser.Marker.equals) || (token.marker() == RefParser.Marker.quote)) {
+          token = parser.getMixedToken();
+        } else {
+          token = parser.getLowToken();
+        }
+      }
+      assertArrayEquals(expected, foundTokens.toArray());
+    }
+  }
+  
+  private static RefParser.Token @NotNull [] getExpectedWebTokens() {
+    return new RefParser.Token[]{
         new RefParser.Token(RefParser.Marker.tagOpen, "<"),
         new RefParser.Token(RefParser.Marker.ref, "ref"),
         new RefParser.Token(RefParser.Marker.name, "name"),
@@ -78,36 +114,7 @@ class RefParserTest {
         new RefParser.Token(RefParser.Marker.tagOpen, "<"),
         new RefParser.Token(RefParser.Marker.slash, "/"),
         new RefParser.Token(RefParser.Marker.ref, "ref"),
-        new RefParser.Token(RefParser.Marker.tagClose, ">"),        
+        new RefParser.Token(RefParser.Marker.tagClose, ">"),
     };
-//    RefParser.Token token1 = new RefParser.Token(RefParser.Marker.word, "alpha");
-//    RefParser.Token token2 = new RefParser.Token(RefParser.Marker.word, "bravo");
-//    assertNotEquals(token1, token2);
-//    RefParser.Token token3 = new RefParser.Token(journalKey, journalKey.getContents());
-//    RefParser.Token token4 = new RefParser.Token(webKey, webKey.getContents());
-//    assertNotEquals(token3, token4);
-    String[] strings = {sourceTextWeb }; //, sourceTextNews, sourceTextJournal, sourceTextBook};
-
-    List<RefParser.Token> foundTokens = new LinkedList<>();
-    for (String string : strings) {
-      RefParser parser = new RefParser(string);
-      RefParser.Token token = parser.getLowToken();
-//    assertNotNull(token);
-//    assertEquals("<ref", token.text());
-//    assertEquals(RefParser.Marker.refOpenName, token.marker());
-//    System.out.println(token.text());
-      while (token.marker() != RefParser.Marker.end) {
-//        System.out.printf("%-12s - %s%n", token.marker(), token.text()); // NON-NLS
-//        System.out.printf("new RefParser.Token(RefParser.Marker.%s, \"%s\"),%n", token.marker(), token.text()); // NON-NLS
-        foundTokens.add(token);
-        if ((token.marker() == RefParser.Marker.equals) || (token.marker() == RefParser.Marker.quote)) {
-          token = parser.getMixedToken();
-        } else {
-          token = parser.getLowToken();
-        }
-      }
-      
-      assertArrayEquals(expected, foundTokens.toArray());
-    }
   }
 }

@@ -179,10 +179,20 @@ public class RefParser {
   public Token getLowToken() throws IOException {
     return getToken(WhiteSpace.NO_WHITESPACE, UpperCase.LOWER_REQUIRED);
   }
-  
+
   public Token getMixedToken() throws IOException {
     return getToken(WhiteSpace.WHITESPACE_ALLOWED, UpperCase.UPPER_ALLOWED);
   }
+
+
+//  public Token getMixedToken() throws IOException {
+//    StringBuilder builder = new StringBuilder();
+//    int ch = reader.read();
+//    while (ch != -1) {
+//      
+//    }
+//    return 
+//  }
   
   private Token getToken(WhiteSpace whiteSpace, UpperCase allowUpperCase) throws IOException {
     StringBuilder builder = new StringBuilder();
@@ -194,6 +204,12 @@ public class RefParser {
           return new Token(Marker.word, builder.toString());
         }
         ch = reader.read();
+      }
+      if ((whiteSpace == WhiteSpace.WHITESPACE_ALLOWED) && (builder.isEmpty())) {
+      // Skip leading white space
+        while (Character.isWhitespace(ch)) {
+          ch = reader.read();
+        }
       }
       if (allowUpperCase == UpperCase.LOWER_REQUIRED) {
         ch = Character.toLowerCase(ch);
