@@ -1,6 +1,8 @@
 package com.neptunedreams.refBuilder;
 
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -12,6 +14,7 @@ import java.util.TreeMap;
  */
 public class WikiReference {
   private final Map<String, String> dataMap = new TreeMap<>();
+  private final List<String> dataKeys = new LinkedList<>(); // to preserve key order
   private RefKey refKey;
   private String name = "";
   
@@ -35,11 +38,14 @@ public class WikiReference {
   
   public void setKeyValuePair(String key, String value) {
     dataMap.put(key, value);
+    dataKeys.add(key);
   }
   
   public Map<String, String> getDataMap() {
     return Collections.unmodifiableMap(dataMap);
   }
+  
+  public List<String> getDataKeys() { return Collections.unmodifiableList(dataKeys); }
 
   @Override
   public String toString() {
@@ -53,12 +59,22 @@ public class WikiReference {
         .append("{{ cite ")
         .append(refKey);
     
-    for (Map.Entry<String, String> entry : dataMap.entrySet()) {
+    for (String key: dataKeys) {
       builder
           .append(" | ")
-          .append(entry.getKey())
+          .append(key)
           .append(" = ")
-          .append(entry.getValue());
+          .append(dataMap.get(key));
+    }
+    
+    for (Map.Entry<String, String> entry : dataMap.entrySet()) {
+      if (!dataKeys.contains(entry.getKey())) {
+        builder
+            .append(" | ")
+            .append(entry.getKey())
+            .append(" = ")
+            .append(entry.getValue());
+      }
     }
     
     builder.append("}}</ref>");
