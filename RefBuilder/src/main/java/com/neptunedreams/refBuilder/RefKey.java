@@ -11,5 +11,4 @@ public enum RefKey {
   journal,
   web,
   book,
-  ;
 }
