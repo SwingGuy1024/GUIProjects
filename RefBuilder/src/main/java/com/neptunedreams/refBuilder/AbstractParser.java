@@ -40,6 +40,10 @@ public abstract class AbstractParser {
     refType(),
     end(),
     noMarker("\0"), // never matches anything
+    citeValue() {
+      @Override
+      public boolean matchText(String text) { return CITE_VALUES.contains(text.toLowerCase()); }
+    },
     ;
     private final String contents;
     private final boolean hasContents;
@@ -48,7 +52,11 @@ public abstract class AbstractParser {
     
     public boolean hasContents() { return hasContents; }
     public String getContents() { return contents; }
-
+    
+    public boolean matchText(String text) {
+      return contents.equalsIgnoreCase(text);
+    }
+    private static final Set<String> CITE_VALUES = Set.of("web", "book", "news", "journal");
   }
 
   public record Token (Marker marker, String text) {
