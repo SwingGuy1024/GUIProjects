@@ -73,6 +73,16 @@ class AbstractParserTest {
     testTokens(sourceTextBook, getExpectedBookTokens());
   }
 
+  @Test
+  void testParseList() throws IOException {
+    AbstractParser.Token[] webTokens = getExpectedWebTokens();
+    AbstractParser.Token[] bookTokens = getExpectedBookTokens();
+    AbstractParser.Token[] allTokens = new AbstractParser.Token[webTokens.length + bookTokens.length];
+    System.arraycopy(webTokens, 0, allTokens, 0, webTokens.length);
+    System.arraycopy(bookTokens, 0, allTokens, webTokens.length, bookTokens.length);
+    testTokens(sourceTextWebWithSpaces + sourceTextBook, allTokens);
+  }
+
   private void testTokens(String sourceText, AbstractParser.Token[] expected) throws IOException {
     String rawText = "rawText";
     Object keyword = "keyword";
