@@ -1,0 +1,16 @@
+package com.neptunedreams.refBuilder;
+
+import com.neptunedreams.refBuilder.AbstractParser.Marker;
+import com.neptunedreams.refBuilder.AbstractParser.Token;
+
+/**
+ * <p>Created by IntelliJ IDEA.
+ * <br>Date: 6/19/25
+ * <br>Time: 1:08 AM
+ * <br>@author Miguel Muñoz</p>
+ */
+public class MismatchException extends IllegalStateException {
+  public MismatchException(Token token, Marker marker) {
+    super(String.format("Expected %s but got %s", marker, token));
+  }
+}

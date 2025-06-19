@@ -1,5 +1,6 @@
 package com.neptunedreams.refBuilder;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -30,5 +31,38 @@ public class WikiReference {
 
   public void setName(String name) {
     this.name = name;
+  }
+  
+  public void setKeyValuePair(String key, String value) {
+    dataMap.put(key, value);
+  }
+  
+  public Map<String, String> getDataMap() {
+    return Collections.unmodifiableMap(dataMap);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    if (name.isEmpty()) {
+      builder.append("<ref>");
+    } else {
+      builder.append(String.format("<ref name=\"%s\">", name));
+    }
+    builder
+        .append("{{ cite ")
+        .append(refKey);
+    
+    for (Map.Entry<String, String> entry : dataMap.entrySet()) {
+      builder
+          .append(" | ")
+          .append(entry.getKey())
+          .append(" = ")
+          .append(entry.getValue());
+    }
+    
+    builder.append("}}</ref>");
+    
+    return builder.toString();
   }
 }
