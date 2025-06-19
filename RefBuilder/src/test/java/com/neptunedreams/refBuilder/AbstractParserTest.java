@@ -23,12 +23,12 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SuppressWarnings("StringConcatenation")
 class AbstractParserTest {
-  public static final String sourceTextWebNoSpace = "<ref name=\"BOB\">{{cite web|url" +
+  public static final String sourceTextWebNoSpace = "<ref name=\"Orlando D'Free\">{{cite web|url" +
       "=https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
       "|access-date=Jun 11, 2025|publisher=National Public Radio" +
       "|title=Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
       "|date=Feb 2, 2025}}</ref>";
-  public static final String sourceTextWebWithSpaces = "< ref name = \"BOB\" > { { cite web | url = " +
+  public static final String sourceTextWebWithSpaces = "< ref name = \"Orlando D'Free\" > { { cite web | url = " +
       " https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name " +
       " | access-date = Jun 11, 2025 | publisher = National Public Radio\n" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
@@ -138,12 +138,12 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.name, "name"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
         new AbstractParser.Token(AbstractParser.Marker.quote, "\""),
-        new AbstractParser.Token(AbstractParser.Marker.rawText, "BOB"),
+        new AbstractParser.Token(AbstractParser.Marker.rawText, "Orlando D'Free"),
         new AbstractParser.Token(AbstractParser.Marker.quote, "\""),
         new AbstractParser.Token(AbstractParser.Marker.tagClose, ">"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
-        new AbstractParser.Token(AbstractParser.Marker.word, "cite"),
+        new AbstractParser.Token(AbstractParser.Marker.cite, "cite"),
         new AbstractParser.Token(AbstractParser.Marker.webKey, "web"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "url"),
@@ -186,7 +186,7 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.tagClose, ">"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
-        new AbstractParser.Token(AbstractParser.Marker.word, "cite"),
+        new AbstractParser.Token(AbstractParser.Marker.cite, "cite"),
         new AbstractParser.Token(AbstractParser.Marker.news_key, "news"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "work"),
@@ -242,7 +242,7 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.tagClose, ">"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
-        new AbstractParser.Token(AbstractParser.Marker.word, "cite"),
+        new AbstractParser.Token(AbstractParser.Marker.cite, "cite"),
         new AbstractParser.Token(AbstractParser.Marker.journalKey, "journal"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "title"),
@@ -308,7 +308,7 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.tagClose, ">"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
         new AbstractParser.Token(AbstractParser.Marker.braceOpen, "{"),
-        new AbstractParser.Token(AbstractParser.Marker.word, "cite"),
+        new AbstractParser.Token(AbstractParser.Marker.cite, "cite"),
         new AbstractParser.Token(AbstractParser.Marker.bookKey, "book"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "year"),
