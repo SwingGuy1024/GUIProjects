@@ -89,10 +89,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.StringReader;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import com.neptunedreams.refBuilder.AbstractParser.Marker;
 import com.neptunedreams.refBuilder.AbstractParser.Token;
@@ -193,25 +191,9 @@ public class ReferenceParser {
   private final RawTextParser rawTextParser;
   private final PushbackReader reader;
   
-  private final Set<String> citeTypes = makeCiteTypes();
-  
-  private static Set<String> makeCiteTypes() {
-    Marker[] markers = {
-        Marker.webKey,
-        Marker.bookKey,
-        Marker.journalKey,
-        Marker.news_key,
-    };
-    Set<String> citeTypes = new HashSet<>();
-    for (Marker marker : markers) {
-      citeTypes.add(marker.getContents());
-    }
-    return citeTypes;
-  }
-  
   private WikiReference wikiReference = new WikiReference();
 
-  public ReferenceParser(String text) throws IOException {
+  public ReferenceParser(String text) {
     reader = new PushbackReader(new BufferedReader(new StringReader(text)));
     keywordProcessor = new RefKeywordProcessor(reader);
     rawTextParser = new RawTextParser(reader);
@@ -220,22 +202,28 @@ public class ReferenceParser {
   private List<WikiReference> parse() throws IOException {
     int ch = reader.read();
     List<WikiReference> references = new LinkedList<>();
-    Token nextToken;
+    if (ch == -1) {
+      return references;
+    }
+    Token nextToken = new Token(Marker.noMarker, String.valueOf((char)ch)); 
     do {
-      reader.unread(ch);
+      reader.unread(nextToken.text().toCharArray());
       nextToken = parseReference(references);
     } while (nextToken.marker() != Marker.end);
     return references;
   }
   
-  private Token parseReference(List<WikiReference> rList) {
-    Token nextToken;
-    WikiReference reference;
+  private Token parseReference(List<WikiReference> rList) throws IOException {
+    Token nextToken = null;
     do {
+      if (nextToken != null) {
+        reader.unread(nextToken.text().toCharArray());
+      }
       parseRefOpen();
-      reference = parseRefData();
+      WikiReference reference = parseRefData();
       rList.add(reference);
       nextToken = parseRefClose();
+      wikiReference = new WikiReference();
     } while (nextToken.marker() != Marker.end);
     return nextToken;
   }
@@ -264,7 +252,7 @@ public class ReferenceParser {
   }
 
   private WikiReference parseRefData() {
-    String refType = expect(Marker.braceOpen, Marker.braceOpen, Marker.cite, Marker.webKey);
+    String refType = expect(Marker.braceOpen, Marker.braceOpen, Marker.cite, Marker.citeValue);
     // Four possibilities here
     RefKey refKey = RefKey.valueOf(refType);
     wikiReference.setRefKey(refKey);
@@ -274,6 +262,7 @@ public class ReferenceParser {
     return wikiReference;
   }
   
+  @SuppressWarnings("LoopStatementThatDoesntLoop")
   private Token parseRefFieldData() {
     while (true) {
       Token nextToken = keywordProcessor.getToken();
@@ -315,17 +304,31 @@ public class ReferenceParser {
   }
   
   private void verify(Token token, Marker marker) {
+    if(marker.matchText(token.text())) {
+      return;
+    }
     if (token.marker() != marker) {
       throw new MismatchException(token, marker);
     }
   }
 
+  @SuppressWarnings("StringConcatenation")
   public static void main(String[] args) throws IOException {
-    String text = "<ref name=\"BOB\">{{cite web|url" +
+    String text = "<ref name=\"Orlando D'Free\">{{cite web|url" +
         "=https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
         "|access-date=Jun 11, 2025|publisher=National Public Radio" +
         "|title=Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
-        "|date=Feb 2, 2025}}</ref>";
+        "|date=Feb 2, 2025}}</ref>" +
+
+        "<ref name=\"Beveridge 09Chap1\">{{cite book |last1=Beveridge |" +
+        "first1=Bruce |last2=Andrews |first2=Scott |first3=Steve |last3=Hall |last4=Klistorner |" +
+        "first4=Daniel |editor1-first=Art |editor1-last=Braunschweiger |" +
+        "title=Titanic: The Ship Magnificent |" +
+        "chapter-url=http://www.titanic-theshipmagnificent.com/synopsis/chapter01/ |access-date=25 May 2011 |" +
+        "volume=I |year=2009 |chapter=Chapter 1: Inception & Construction Plans |" +
+        "publisher=History Press |location=Gloucestershire, United Kingdom |isbn=9780752446066 |" +
+        "archive-date=24 April 2012 |" +
+        "archive-url=https://web.archive.org/web/20120424214844/http://www.titanic-theshipmagnificent.com/synopsis/chapter01/ |url-status=dead }}</ref>";
     ReferenceParser parser = new ReferenceParser(text);
     List<WikiReference> wikiRefs = parser.parse();
     for (WikiReference ref: wikiRefs) {
