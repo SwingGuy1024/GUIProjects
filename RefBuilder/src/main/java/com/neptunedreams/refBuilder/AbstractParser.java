@@ -1,11 +1,10 @@
 package com.neptunedreams.refBuilder;
 
 import java.io.IOException;
-import java.io.PushbackReader;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -69,17 +68,16 @@ public abstract class AbstractParser {
 
   }
 
-  enum WhiteSpace { WHITESPACE_ALLOWED, NO_WHITESPACE }
-
 //  private static final Map<String, Marker> markerMap = makeMarkerMap();
 //  private static final Set<Character> delimChars = makeDelimChars();
 //  private static final Set<Character> rawDelimChars = makeRawDelimChars();
 
   private static final Token NO_TOKEN = new Token(Marker.noMarker, "\0");
 
-  private final List<WikiReference> referenceList = new LinkedList<>();
   protected static Map<String, Marker> makeMarkerMap(Marker... excludedMarkers) {
-    Set<Marker> excluded = new HashSet<>(List.of(excludedMarkers));
+    Set<Marker> excluded = (excludedMarkers.length == 0) ?
+        EnumSet.noneOf(Marker.class) :
+        EnumSet.copyOf(Arrays.asList(excludedMarkers));
     Map<String, Marker> map = new HashMap<>();
     for (Marker marker : Marker.values()) {
       if (marker.hasContents() && !excluded.contains(marker)) {
@@ -109,7 +107,7 @@ public abstract class AbstractParser {
     return set;
   }
 
-  private final PushbackReader reader;
+  private final FreePushbackReader reader;
   
 //  private RefKeywordProcessor keywordProcessor;
 //  private RawTextParser rawTextParser;
@@ -118,11 +116,11 @@ public abstract class AbstractParser {
 //    RefParser parser = new RefParser();
 //  }
 
-  protected AbstractParser(PushbackReader reader) {
+  protected AbstractParser(FreePushbackReader reader) {
     this.reader = reader;
   }
 
-  protected Token variableTextToToken(WhiteSpace whiteSpace, StringBuilder builder, int ch, Set<Character> activeDelimChars) throws IOException {
+  protected Token variableTextToToken(StringBuilder builder, int ch, Set<Character> activeDelimChars) {
     builder.append((char) ch);
     final String text = builder.toString();
     Marker marker = getMarkerMap().get(text);

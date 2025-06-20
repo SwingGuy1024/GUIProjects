@@ -87,7 +87,6 @@ package com.neptunedreams.refBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PushbackReader;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
@@ -189,12 +188,12 @@ import com.neptunedreams.refBuilder.AbstractParser.Token;
 public class ReferenceParser {
   private final RefKeywordProcessor keywordProcessor;
   private final RawTextParser rawTextParser;
-  private final PushbackReader reader;
+  private final FreePushbackReader reader;
   
   private WikiReference wikiReference = new WikiReference();
 
   public ReferenceParser(String text) {
-    reader = new PushbackReader(new BufferedReader(new StringReader(text)));
+    reader = new FreePushbackReader(new BufferedReader(new StringReader(text)));
     keywordProcessor = new RefKeywordProcessor(reader);
     rawTextParser = new RawTextParser(reader);
   }

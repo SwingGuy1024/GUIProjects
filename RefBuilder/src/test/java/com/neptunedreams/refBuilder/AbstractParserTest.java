@@ -2,7 +2,6 @@ package com.neptunedreams.refBuilder;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PushbackReader;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
@@ -91,7 +90,7 @@ class AbstractParserTest {
 
     List<AbstractParser.Token> foundTokens = new LinkedList<>();
     for (String string : strings) {
-      PushbackReader reader = new PushbackReader(new BufferedReader(new BufferedReader(new StringReader(string))));
+      FreePushbackReader reader = new FreePushbackReader(new BufferedReader(new BufferedReader(new StringReader(string))));
       AbstractParser keywordParser = new RefKeywordProcessor(reader);
       AbstractParser rawTextParser = new RawTextParser(reader);
       AbstractParser.Token token = keywordParser.getToken();

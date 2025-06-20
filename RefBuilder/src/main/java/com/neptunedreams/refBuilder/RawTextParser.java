@@ -1,7 +1,6 @@
 package com.neptunedreams.refBuilder;
 
-import java.io.IOException;
-import java.io.PushbackReader;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,9 +13,9 @@ import java.util.Set;
 public class RawTextParser extends AbstractParser {
   private final Set<Character> delimChars;
   private final Map<String, Marker> markerMap;
-  private final PushbackReader reader;
+  private final FreePushbackReader reader;
 
-  public RawTextParser(PushbackReader reader) {
+  public RawTextParser(FreePushbackReader reader) {
     super(reader);
     delimChars = makeDelimChars("/");
     markerMap = makeMarkerMap(Marker.quote);
@@ -25,29 +24,25 @@ public class RawTextParser extends AbstractParser {
 
   @Override
   protected Map<String, Marker> getMarkerMap() {
-    return markerMap;
+    return Collections.unmodifiableMap(markerMap);
   }
 
   @Override
   protected Token getToken() {
     StringBuilder builder = new StringBuilder();
-    try {
-      int ch = reader.read();
-      while (ch != -1) {
-        if (builder.isEmpty()) {
-          // skip leading white space
-          while (Character.isWhitespace(ch)) {
-            ch = reader.read();
-          }
+    int ch = reader.read();
+    while (ch != -1) {
+      if (builder.isEmpty()) {
+        // skip leading white space
+        while (Character.isWhitespace(ch)) {
+          ch = reader.read();
         }
-        final Token token = variableTextToToken(WhiteSpace.WHITESPACE_ALLOWED, builder, ch, delimChars);
-        if (token.isGood()) {
-          return token;
-        }
-        ch = reader.read();
       }
-    } catch (IOException e) {
-      throw new IllegalStateException(e);
+      final Token token = variableTextToToken(builder, ch, delimChars);
+      if (token.isGood()) {
+        return token;
+      }
+      ch = reader.read();
     }
     return new Token(Marker.end, "");
   }
