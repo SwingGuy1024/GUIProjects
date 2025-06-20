@@ -138,7 +138,7 @@ public class RefBuilder extends JPanel {
   public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
   public static final int TEXT_FIELD_LENGTH = 500;
-  private static final AuthorTableModel tableModel = new AuthorTableModel();
+  private static final Map<String, AuthorTableModel> tableModelMap = new HashMap<>();
   public static final int FIRST_COLUMN = 0;
   public static final int LAST_COLUMN = 1;
   public static final int ROLE_COLUMN = 2;
@@ -226,7 +226,9 @@ public class RefBuilder extends JPanel {
     tableConstraint.gridwidth = 3;
     tableConstraint.ipadx = 0;
     tableConstraint.ipady = 0;
-    tabContent.add(new AuthorNameEditorPane(editorTerminatorOperations), tableConstraint);
+    AuthorTableModel tableModel = new AuthorTableModel();
+    tableModelMap.put(subject, tableModel);
+    tabContent.add(new AuthorNameEditorPane(editorTerminatorOperations, tableModel), tableConstraint);
     tabContent.add(hStrut(1), constrain(0));
     tabContent.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
     Set<String> nameSet = subjectMap.get(subject);
@@ -251,6 +253,7 @@ public class RefBuilder extends JPanel {
     controlPane.add(makeControlNorthPane(nameField), BorderLayout.PAGE_START);
     
     JTextArea result = new JTextArea(6, 0);
+    tabPane.addChangeListener(e -> result.setText("")); // Clear the bottom JTextArea
     LandF.addOSXKeyStrokesMac(result);
     JComponent scrollPane = scrollWrapTextArea(result);
     controlPane.add(scrollPane, BorderLayout.CENTER);
@@ -294,6 +297,12 @@ public class RefBuilder extends JPanel {
     }
   }
   
+  private AuthorTableModel getCurrentTableModel() {
+    int index = tabPane.getSelectedIndex();
+    String currentTab = tabPane.getTitleAt(index);
+    return tableModelMap.get(currentTab);
+  }
+  
   private void buildReferenceText(JTextArea resultView, String name) {
     // Close all active editors first.
     for (Runnable runner: editorTerminatorOperations) {
@@ -305,6 +314,7 @@ public class RefBuilder extends JPanel {
     // Count Writers and Editors
     List<Integer> writerIndices = new LinkedList<>();
     List<Integer> editorIndices = new LinkedList<>();
+    AuthorTableModel tableModel = getCurrentTableModel();
     for (int row = 0; row < (tableModel.getRowCount() - 1); ++row) {
       final Object valueAt = tableModel.getValueAt(row, 2);
       Role role = (Role) valueAt;
@@ -318,10 +328,11 @@ public class RefBuilder extends JPanel {
     addRoleData(builder, Role.EDITOR, editorIndices);
 
     String selectedTab = tabPane.getTitleAt(tabPane.getSelectedIndex());
-    for (String tag: nameMap.keySet()) {
+    for (Map.Entry<String, Document> entry : nameMap.entrySet()) {
+      String tag = entry.getKey();
 //      System.out.printf("ValueMap: %s%n", key); // NON-NLS
       if (tag.startsWith(selectedTab)) {
-        Document doc = nameMap.get(tag);
+        Document doc = entry.getValue();
         final String fieldText = clean(getText(doc), isForUrl(tag));
         if (!fieldText.isEmpty()) {
           String fieldName = tag.substring(tag.indexOf(DOT) + 1);
@@ -382,6 +393,7 @@ public class RefBuilder extends JPanel {
     List<String> firstNames = new LinkedList<>();
     List<String> lastNames = new LinkedList<>();
     // First, eliminate rows with no first or last name
+    AuthorTableModel tableModel = getCurrentTableModel();
     for (int row : indices) {
       final String first = clean(tableModel.getValueAt(row, FIRST_COLUMN).toString(), false).trim();
       final String last = clean(tableModel.getValueAt(row, LAST_COLUMN).toString(), false).trim();
@@ -640,6 +652,7 @@ public class RefBuilder extends JPanel {
 //      add(big, BorderLayout.LINE_END);
     }
     
+    @SuppressWarnings("MagicConstant")
     private void showInputMapSizes(JComponent cmp) {
       final int[] conditions = {
           JComponent.WHEN_FOCUSED,
@@ -772,7 +785,7 @@ public class RefBuilder extends JPanel {
   }
   
   private static final class AuthorNameEditorPane extends JPanel {
-    private AuthorNameEditorPane(List<Runnable> terminatorOperationList) {
+    private AuthorNameEditorPane(List<Runnable> terminatorOperationList, AuthorTableModel tableModel) {
       super(new BorderLayout());
       JTable table = new JTable(tableModel);
       table.setFillsViewportHeight(true);
