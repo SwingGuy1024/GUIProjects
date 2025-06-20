@@ -212,7 +212,7 @@ public class ReferenceParser {
     return references;
   }
   
-  private Token parseReference(List<WikiReference> rList) throws IOException {
+  private Token parseReference(List<WikiReference> rList) {
     Token nextToken = null;
     do {
       if (nextToken != null) {

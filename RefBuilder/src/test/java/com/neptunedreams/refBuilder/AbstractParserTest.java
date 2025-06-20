@@ -106,7 +106,6 @@ class AbstractParserTest {
           nextWord = keyword;
         }
 //        System.out.printf("For token %s: using %s%n", token, nextWord); // NON-NLS
-        //noinspection ObjectEquality
         if ((nextWord == rawText)) {
           token = rawTextParser.getToken();
         } else {
@@ -123,8 +122,10 @@ class AbstractParserTest {
     }
     System.out.println();
   }
-  
-  @SuppressWarnings("MagicCharacter")
+
+  // This is used by a line that I sometimes uncomment, because it helps me build unit tests,
+  // so I'm leaving it in for now.
+  @SuppressWarnings({"MagicCharacter", "unused"})
   private static String polish(String s) {
     if (s.contains("\"")) {
       StringBuilder sb = new StringBuilder(s);
