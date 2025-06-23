@@ -84,7 +84,7 @@ class AbstractParserTest {
   }
   
   @Test
-  void testParseListFull() throws IOException {
+  void testParseListFull() {
     ReferenceParser parser = new ReferenceParser(sourceTextNews+sourceTextJournal);
     List<WikiReference> results = parser.parse();
     assertEquals(2, results.size());
@@ -92,7 +92,7 @@ class AbstractParserTest {
     assertEquals(sourceTextJournal, results.get(1).toString());
   }
 
-  private void testTokens(String sourceText, AbstractParser.Token[] expected) throws IOException {
+  private void testTokens(String sourceText, AbstractParser.Token[] expected) {
     String rawText = "rawText";
     Object keyword = "keyword";
     Object nextWord = keyword;

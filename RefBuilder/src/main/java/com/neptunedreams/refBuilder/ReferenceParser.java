@@ -335,7 +335,7 @@ public class ReferenceParser {
   }
 
   @SuppressWarnings("StringConcatenation")
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     String text = "<ref name=\"Orlando D'Free\">{{cite web|url" +
         "=https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
         "|access-date=Jun 11, 2025|publisher=National Public Radio" +

@@ -1,6 +1,5 @@
 package com.neptunedreams.refBuilder;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -142,10 +141,10 @@ public abstract class AbstractParser {
     if (keywordsOnly) {
       Marker marker = getMarkerMap().get(text);
       assert marker != Marker.noMarker;
-      if (marker != null) {
-        return new Token(marker, text);
+      if (marker == null) {
+        return new Token(Marker.word, text);
       }
-      return new Token(Marker.word, text);
+      return new Token(marker, text);
     }
     return createTextToken(text);
   }

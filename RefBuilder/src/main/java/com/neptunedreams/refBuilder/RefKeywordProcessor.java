@@ -16,7 +16,6 @@ public class RefKeywordProcessor extends AbstractParser {
   
   private final Set<Character> delimChars;
   private final Map<String, Marker> markerMap;
-  private final Map<String, Marker> markerKeywordMap = makeMarkerKeywordMap();
   private final FreePushbackReader reader;
 
   public RefKeywordProcessor(FreePushbackReader reader) {
@@ -31,14 +30,6 @@ public class RefKeywordProcessor extends AbstractParser {
     return Collections.unmodifiableMap(markerMap);
   }
   
-  private static Map<String, Marker> makeMarkerKeywordMap() {
-    final Map<String, Marker> map = Arrays.stream(Marker.values())
-        .filter(Marker::isText)
-        .collect(Collectors.toMap(Marker::getContents, marker -> marker));
-    System.out.printf("MarkerKeywordMap = %s%n", map); // NON-NLS
-    return map;
-  }
-
 //  @Override
   public Token getToken() {
     return getToken(true);
