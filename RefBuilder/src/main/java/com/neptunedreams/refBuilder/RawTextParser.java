@@ -27,22 +27,34 @@ public class RawTextParser extends AbstractParser {
     return Collections.unmodifiableMap(markerMap);
   }
 
-  @Override
   protected Token getToken() {
     StringBuilder builder = new StringBuilder();
-    int ch = reader.read();
-    while (ch != -1) {
+    int chInt = reader.read();
+    while (chInt != -1) {
+      char ch = (char) chInt;
       if (builder.isEmpty()) {
+        if (delimChars.contains(ch)) {
+          final String delimString = String.valueOf(ch);
+          Marker marker = getMarkerMap().get(delimString);
+          if (marker == null) {
+            throw new UnknownSymbolException(ch);
+          }
+          return new Token(marker, delimString);
+        }
         // skip leading white space
-        while (Character.isWhitespace(ch)) {
-          ch = reader.read();
+        if (!Character.isWhitespace(ch)) {
+          builder.append(ch);
+        }
+      } else {
+        // builder is not empty...
+        if (delimChars.contains(ch)) {
+          reader.unread(ch);
+          return variableTextToToken(builder, false); // should be false.
+        } else {
+          builder.append(ch);
         }
       }
-      final Token token = variableTextToToken(builder, ch, delimChars);
-      if (token.isGood()) {
-        return token;
-      }
-      ch = reader.read();
+      chInt = reader.read();
     }
     return new Token(Marker.end, "");
   }

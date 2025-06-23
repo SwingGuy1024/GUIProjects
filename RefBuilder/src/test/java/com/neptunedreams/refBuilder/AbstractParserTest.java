@@ -17,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * rules won't be necessary because the methods will be called in different contexts.
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 6/17/25
- * <br>Time: 2:32?AM
- * <br>@author Miguel Mu–oz</p>
+ * <br>Time: 2:32â€¯AM
+ * <br>@author Miguel MuÃ±oz</p>
  */
 @SuppressWarnings("StringConcatenation")
 class AbstractParserTest {
@@ -32,19 +32,20 @@ class AbstractParserTest {
       " | access-date = Jun 11, 2025 | publisher = National Public Radio\n" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
       " | date = Feb 2, 2025 }  } <  /  ref  >";
-  public static final String sourceTextNews = "<ref name=\"NYT\">{{cite news | work = (work)" +
+  public static final String sourceTextNews = "<ref name=\"NYT\">{{ cite news" +
       " | access-date = June 17, 2025 | pages = b5-b7" +
+      " | work = (work)" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
       " | url = www.nytimes.com/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name | date = June 17, 2025" +
       " | language = en | newspaper = New York Times}}</ref>";
-  public static final String sourceTextJournal = "<ref name=\"NYKR\">{{cite journal" +
+  public static final String sourceTextJournal = "<ref name=\"NYKR\">{{ cite journal" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake | issn = issn-data" +
       " | url-status = live | url = www.NewYorker.com/2025/06/16/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
       " | publisher = Conde Nast | issue = June 16, 2025 | date = 06-16 | journal = The New Yorker" +
       " | access-date = 2025-06-17 | year = 2025 | bibcode = bib-code-data | pages = 49-53}}</ref>";
   public static final String sourceTextBook = "<ref>{{cite book |year=1911 |" +
-      "title=Lloyd's Register of British and Foreign Shipping |volume=II.ÐSteamers |location=London |" +
-      "publisher=[[Lloyd's Register]] of Shipping |at=TIRÐTIT |" +
+      "title=Lloyd's Register of British and Foreign Shipping |volume=II.â€“Steamers |location=London |" +
+      "publisher=[[Lloyd's Register]] of Shipping |at=TIRâ€“TIT |" +
       "url= https://archive.org/details/HECROS1912ST/page/n1006/mode/1up |via=[[Internet Archive]]}}</ref>";
 
   @Test
@@ -81,6 +82,15 @@ class AbstractParserTest {
     System.arraycopy(bookTokens, 0, allTokens, webTokens.length, bookTokens.length);
     testTokens(sourceTextWebWithSpaces + sourceTextBook, allTokens);
   }
+  
+  @Test
+  void testParseListFull() throws IOException {
+    ReferenceParser parser = new ReferenceParser(sourceTextNews+sourceTextJournal);
+    List<WikiReference> results = parser.parse();
+    assertEquals(2, results.size());
+    assertEquals(sourceTextNews, results.get(0).toString());
+    assertEquals(sourceTextJournal, results.get(1).toString());
+  }
 
   private void testTokens(String sourceText, AbstractParser.Token[] expected) throws IOException {
     String rawText = "rawText";
@@ -91,16 +101,20 @@ class AbstractParserTest {
     List<AbstractParser.Token> foundTokens = new LinkedList<>();
     for (String string : strings) {
       FreePushbackReader reader = new FreePushbackReader(new BufferedReader(new BufferedReader(new StringReader(string))));
-      AbstractParser keywordParser = new RefKeywordProcessor(reader);
-      AbstractParser rawTextParser = new RawTextParser(reader);
+      RefKeywordProcessor keywordParser = new RefKeywordProcessor(reader);
+      RawTextParser rawTextParser = new RawTextParser(reader);
       AbstractParser.Token token = keywordParser.getToken();
 //    System.out.println(token.text());
       while (token.marker() != AbstractParser.Marker.end) {
-        System.out.printf("%-12s - %s%n", token.marker(), token.text()); // NON-NLS
+        System.out.println(token); // NON-NLS
 //        System.out.printf("new RefParser.Token(RefParser.Marker.%s, \"%s\"),%n", token.marker(), polish(token.text())); // NON-NLS
         foundTokens.add(token);
         final AbstractParser.Marker marker = token.marker();
-        if ((marker == AbstractParser.Marker.word) || (marker == AbstractParser.Marker.quote) || (marker == AbstractParser.Marker.journalKey)) {
+        if (
+            (marker == AbstractParser.Marker.word) ||
+            (marker == AbstractParser.Marker.quote) ||
+            (marker == AbstractParser.Marker.journalKey) // ||
+        ) {
           nextWord = rawText;
         } else if (marker != AbstractParser.Marker.equals) {
           nextWord = keyword;
@@ -124,7 +138,7 @@ class AbstractParserTest {
   }
 
   // This is used by a line that I sometimes uncomment, because it helps me build unit tests,
-  // so I'm leaving it in for now.
+  // so I'm leaving it in for now. It escapes the quote character.
   @SuppressWarnings({"MagicCharacter", "unused"})
   private static String polish(String s) {
     if (s.contains("\"")) {
@@ -199,10 +213,6 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.cite, "cite"),
         new AbstractParser.Token(AbstractParser.Marker.news_key, "news"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
-        new AbstractParser.Token(AbstractParser.Marker.word, "work"),
-        new AbstractParser.Token(AbstractParser.Marker.equals, "="),
-        new AbstractParser.Token(AbstractParser.Marker.rawText, "(work)"),
-        new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "access-date"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
         new AbstractParser.Token(AbstractParser.Marker.rawText, "June 17, 2025"),
@@ -210,6 +220,10 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.word, "pages"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
         new AbstractParser.Token(AbstractParser.Marker.rawText, "b5-b7"),
+        new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
+        new AbstractParser.Token(AbstractParser.Marker.word, "work"),
+        new AbstractParser.Token(AbstractParser.Marker.equals, "="),
+        new AbstractParser.Token(AbstractParser.Marker.rawText, "(work)"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "title"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
@@ -227,8 +241,7 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
         new AbstractParser.Token(AbstractParser.Marker.rawText, "en"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
-        new AbstractParser.Token(AbstractParser.Marker.news_key, "news"),
-        new AbstractParser.Token(AbstractParser.Marker.word, "paper"),
+        new AbstractParser.Token(AbstractParser.Marker.word, "newspaper"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
         new AbstractParser.Token(AbstractParser.Marker.rawText, "New York Times"),
         new AbstractParser.Token(AbstractParser.Marker.braceClose, "}"),
@@ -331,7 +344,7 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "volume"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
-        new AbstractParser.Token(AbstractParser.Marker.rawText, "II.ÐSteamers"),
+        new AbstractParser.Token(AbstractParser.Marker.rawText, "II.â€“Steamers"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "location"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
@@ -343,7 +356,7 @@ class AbstractParserTest {
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "at"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),
-        new AbstractParser.Token(AbstractParser.Marker.rawText, "TIRÐTIT"),
+        new AbstractParser.Token(AbstractParser.Marker.rawText, "TIRâ€“TIT"),
         new AbstractParser.Token(AbstractParser.Marker.bar, "|"),
         new AbstractParser.Token(AbstractParser.Marker.word, "url"),
         new AbstractParser.Token(AbstractParser.Marker.equals, "="),

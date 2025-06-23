@@ -198,7 +198,7 @@ public class ReferenceParser {
     rawTextParser = new RawTextParser(reader);
   }
 
-  private List<WikiReference> parse() throws IOException {
+  public List<WikiReference> parse() {
     int ch = reader.read();
     List<WikiReference> references = new LinkedList<>();
     if (ch == -1) {
@@ -274,7 +274,7 @@ public class ReferenceParser {
   
   private Token parseRefField(Token nextToken) {
     verify(nextToken, Marker.bar);
-    String key = expect(Marker.word);
+    String key = expectWord();
     expect(Marker.equals);
     String value = expect(Marker.rawText);
     wikiReference.setKeyValuePair(key, value);
@@ -291,7 +291,7 @@ public class ReferenceParser {
     verify(token, marker);
     return token.text();
   }
-  
+
   private String expect(Marker first, Marker... markers) {
     Token token = keywordProcessor.getToken();
     verify(token, first);
@@ -301,11 +301,34 @@ public class ReferenceParser {
     }
     return token.text(); // returns last token
   }
+
+  private String expectWord() {
+    Token token = keywordProcessor.getToken(false);
+    
+    // Sometimes, when looking for a word, it will match some other keyword. In that case, we still accept the word.
+    if ((token.marker() == Marker.word) || token.marker().isText()) {
+      return token.text();
+    }
+    return token.text();
+  }
+  
+  private String expectOneOf(Marker... markers) {
+    assert markers.length > 0;
+    Token token = keywordProcessor.getToken();
+    final String text = token.text();
+    for (Marker marker: markers) {
+      if (marker.matchText(text)) {
+        return text;
+      }
+    }
+    throw new MismatchException(token, markers[0]);
+  }
   
   private void verify(Token token, Marker marker) {
     if(marker.matchText(token.text())) {
       return;
     }
+    // If the marker is Marker.word, we don't look at the text, because it could be anything.
     if (token.marker() != marker) {
       throw new MismatchException(token, marker);
     }
@@ -336,4 +359,31 @@ public class ReferenceParser {
   }
 }
 
+/* 
+ Exceptions to the parsing rules:
+ 
+ <ref>''The Titanic: The Memorabilia Collection'', by Michael Swift, Igloo Publishing 2011, {{ISBN|978-0-85780-251-4}}</ref>
+ 
+ <ref>[https://chroniclingamerica.loc.gov/lccn/sn88064469/1911-06-06/ed-1/seq-4/#date1=1911&sort=relevance&rows=20&words=Titanic&searchType=basic&sequence=0&index=19&state=&date2=1911&protext=Titanic&y=0&x=0&dateFilterType=yearRange&page=4 The Caucasian] {{webarchive |url=https://web.archive.org/web/20210106102950/https://chroniclingamerica.loc.gov/lccn/sn88064469/1911-06-06/ed-1/seq-4/#date1=1911&sort=relevance&rows=20&words=Titanic&searchType=basic&sequence=0&index=19&state=&date2=1911&protext=Titanic&y=0&x=0&dateFilterType=yearRange&page=4 |date=6 January 2021 }}
+ 
+ <ref>[https://chroniclingamerica.loc.gov/lccn/sn88064469/1911-06-06/ed-1/seq-4/#date1=1911&sort=relevance&rows=20&words=Titanic&searchType=basic&sequence=0&index=19&state=&date2=1911&protext=Titanic&y=0&x=0&dateFilterType=yearRange&page=4 The Caucasian] {{webarchive |url=https://web.archive.org/web/20210106102950/https://chroniclingamerica.loc.gov/lccn/sn88064469/1911-06-06/ed-1/seq-4/#date1=1911&sort=relevance&rows=20&words=Titanic&searchType=basic&sequence=0&index=19&state=&date2=1911&protext=Titanic&y=0&x=0&dateFilterType=yearRange&page=4 |date=6 January 2021 }}, (newspaper of Shreveport, Louisiana) 6 June 1911...Retrieved 4 October 2018</ref>
+ 
+ <ref>Eaton and Haas; ''The Misadventures of the White Star Line'', c. 1990</ref>
+ 
+ <ref>De Kerbrech, Richard, ''Ships of the White Star Line'', pp. 50, 53, 112</ref>
+ 
+ <ref>[http://maritimequest.com/liners/olympic_page_3.htm portrait is ''Olympic''] {{webarchive |url=https://web.archive.org/web/20210106103038/http://maritimequest.com/liners/olympic_page_3.htm |date=6 January 2021}} on MaritimeQuest.com webpage, Olympic picture page #3, which states the ship.</ref>
+ 
+ <ref name="New York Times 1913, p. 28">''New York Times'', Thursday 16 January 1913, ''Titanic Survivors Asking $6,000,000'', p.28.</ref>
+ 
+ <ref name=wsj1>{{cite news|title=The Real Reason for the Tragedy of the Titanic|last=Berg|first=Chris|newspaper=The Wall Street Journal|date=13 April 2012|url=https://www.wsj.com/articles/SB10001424052702304444604577337923643095442|access-date=8 August 2017|archive-date=14 June 2018|archive-url=https://web.archive.org/web/20180614194758/https://www.wsj.com/articles/SB10001424052702304444604577337923643095442|url-status=live}}</ref>
+ 
+ <ref>[{{GBurl|id=GRbbn6mquSwC|q=the+maiden+voyage+george+bowyer|p=81}} ''A Cold Night in the Atlantic''] pp. 81–82 by Kevin Wright Carney, 2008 {{ISBN|978-1-9350-2802-4}} (hard cover)</ref>
+ 
+ <ref>[http://www.titanicology.com/Titanica/FireDownBelow.pdf Fire Down Below] {{webarchive |url=https://web.archive.org/web/20191209234718/http://www.titanicology.com/Titanica/FireDownBelow.pdf |date=9 December 2019}} – by Samuel Halpern. Retrieved 7 January 2017.</ref>
+ 
+<ref>Titanic Research & Modeling Association: [http://titanic-model.com/db/db-03/CoalBunkerFire.htm ''Coal Bunker Fire''] {{webarchive |url=https://web.archive.org/web/20120512220653/http://titanic-model.com/db/db-03/CoalBunkerFire.htm |date=12 May 2012}}</ref>
+
+<ref name=Fire&Ice>[https://web.archive.org/web/20180520190112/http://wormstedt.com/Titanic/TITANIC-FIRE-AND-ICE-Article.pdf Titanic: Fire & Ice (Or What You Will)] Various Authors. Retrieved 23 January 2017.</ref>
+ */
 

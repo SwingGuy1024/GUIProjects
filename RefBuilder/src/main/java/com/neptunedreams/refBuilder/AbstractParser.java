@@ -46,11 +46,13 @@ public abstract class AbstractParser {
     ;
     private final String contents;
     private final boolean hasContents;
-    Marker(String contents) { this.contents = contents; hasContents = true; }
-    Marker() { contents = ""; hasContents = false; }
+    private final boolean isText;
+    Marker(String contents) { this.contents = contents; hasContents = true; isText = contents.length() > 1; }
+    Marker() { contents = ""; hasContents = false; isText = false; }
     
     public boolean hasContents() { return hasContents; }
     public String getContents() { return contents; }
+    public boolean isText() { return isText; }
     
     public boolean matchText(String text) {
       return contents.equalsIgnoreCase(text);
@@ -72,7 +74,7 @@ public abstract class AbstractParser {
 //  private static final Set<Character> delimChars = makeDelimChars();
 //  private static final Set<Character> rawDelimChars = makeRawDelimChars();
 
-  private static final Token NO_TOKEN = new Token(Marker.noMarker, "\0");
+  protected static final Token NO_TOKEN = new Token(Marker.noMarker, "\0");
 
   protected static Map<String, Marker> makeMarkerMap(Marker... excludedMarkers) {
     Set<Marker> excluded = (excludedMarkers.length == 0) ?
@@ -89,7 +91,7 @@ public abstract class AbstractParser {
 
   protected abstract Map<String, Marker> getMarkerMap();
 
-  protected abstract Token getToken() throws IOException;
+//  protected abstract Token getToken() throws IOException;
 
   protected abstract Token createTextToken(String text);
 
@@ -99,6 +101,8 @@ public abstract class AbstractParser {
       if (marker.hasContents()) {
         String contents = marker.getContents();
         final char firstChar = contents.charAt(0);
+
+        // If it's a one-character content, and it's not excluded...
         if ((contents.length() == 1) && (excluded.indexOf(firstChar) == -1)) {
           set.add(firstChar);
         }
@@ -120,20 +124,30 @@ public abstract class AbstractParser {
     this.reader = reader;
   }
 
-  protected Token variableTextToToken(StringBuilder builder, int ch, Set<Character> activeDelimChars) {
-    builder.append((char) ch);
+  /**
+   * <p>Returns a text Token. A text is either a keyword Token, the contents of a quoted string, or a rawText Token,
+   * depending on the implementing class. It may return NO_TOKEN.</p>
+   * <p>Returns a keyword if it finds one, and if {@code keywordsOnly} is true. If {@code keywordsOnly} is false,
+   * returns word or rawText, depending on the implementing class</p>
+   * <p>Called by getXxxToken() methods of both subclasses.</p>
+   * <p>This should only be called when whitespace has been found or a delimiter has been read and unread. It should
+   * only be called when the builder is not empty.</p>
+   * @param builder The builder, which should only contain characters that should appear in the appropriate text token.
+   * @param keywordsOnly true if it needs to find a keyword, false for quoted text or raw text.
+   * @return An appropriate token.
+   */
+  protected Token variableTextToToken(StringBuilder builder, boolean keywordsOnly) {
+    assert !builder.isEmpty();
     final String text = builder.toString();
-    Marker marker = getMarkerMap().get(text);
-    assert marker != Marker.noMarker;
-    if (marker != null) {
-      return new Token(marker, text);
+    if (keywordsOnly) {
+      Marker marker = getMarkerMap().get(text);
+      assert marker != Marker.noMarker;
+      if (marker != null) {
+        return new Token(marker, text);
+      }
+      return new Token(Marker.word, text);
     }
-    if ((!builder.isEmpty()) && activeDelimChars.contains((char) ch)) {
-      reader.unread(ch);
-      builder.deleteCharAt(builder.length() - 1);
-      return createTextToken(builder.toString());
-    }
-    return NO_TOKEN;
+    return createTextToken(text);
   }
 
 //  private static @NotNull Token createToken(WhiteSpace whiteSpace, String text) {

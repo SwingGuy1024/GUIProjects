@@ -11,6 +11,8 @@ import com.neptunedreams.refBuilder.AbstractParser.Token;
  */
 public class MismatchException extends IllegalStateException {
   public MismatchException(Token token, Marker marker) {
-    super(String.format("Expected %s but got %s", marker, token));
+    super(String.format
+        ("Expected token of type Marker.%s but found type Marker.%s holding %s", marker, token.marker(), token.text())
+    );
   }
 }

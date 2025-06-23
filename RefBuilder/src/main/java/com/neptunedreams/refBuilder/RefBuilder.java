@@ -219,6 +219,10 @@ public class RefBuilder extends JPanel {
   }
 
   private JComponent makeTabContent(String subject) {
+    // A better way to do this would be to create a separate class for the tab pane content. It would have
+    // methods to extract whatever data we needed. The code to build the reference would just need a reference
+    // to the tab instance.
+    // For now, the name field needs to be moved to this method.
     JPanel tabContent = new ScrollingPane(new GridBagLayout());
     Borders.addMatte(tabContent, 0, 4, 0, 4);
 
