@@ -1,4 +1,4 @@
-package com.neptunedreams.refBuilder;
+package com.neptunedreams.refBuilder.exception;
 
 /**
  * <p>Created by IntelliJ IDEA.

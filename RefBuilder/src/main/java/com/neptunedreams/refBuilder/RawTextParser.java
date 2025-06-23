@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import com.neptunedreams.refBuilder.exception.UnknownSymbolException;
+
 /**
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 6/18/25

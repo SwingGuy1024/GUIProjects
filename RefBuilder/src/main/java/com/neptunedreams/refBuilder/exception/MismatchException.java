@@ -1,4 +1,4 @@
-package com.neptunedreams.refBuilder;
+package com.neptunedreams.refBuilder.exception;
 
 import com.neptunedreams.refBuilder.AbstractParser.Marker;
 import com.neptunedreams.refBuilder.AbstractParser.Token;
