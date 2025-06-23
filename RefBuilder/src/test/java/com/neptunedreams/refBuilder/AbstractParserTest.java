@@ -1,7 +1,6 @@
 package com.neptunedreams.refBuilder;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
@@ -49,32 +48,32 @@ class AbstractParserTest {
       "url= https://archive.org/details/HECROS1912ST/page/n1006/mode/1up |via=[[Internet Archive]]}}</ref>";
 
   @Test
-  public void testParseWebWithSpaces() throws IOException {
+  public void testParseWebWithSpaces() {
     testTokens(sourceTextWebWithSpaces, getExpectedWebTokens());
   }
 
   @Test
-  public void testParseWebNoSpaces() throws IOException {
+  public void testParseWebNoSpaces() {
     testTokens(sourceTextWebNoSpace, getExpectedWebTokens());
   }
 
   @Test
-  void testParseNews() throws IOException {
+  void testParseNews() {
     testTokens(sourceTextNews, getExpectedNewsTokens());
   }
 
   @Test
-  void testParseJournal() throws IOException {
+  void testParseJournal() {
     testTokens(sourceTextJournal, getExpectedJournalTokens());
   }
 
   @Test
-  void testParseBook() throws IOException {
+  void testParseBook() {
     testTokens(sourceTextBook, getExpectedBookTokens());
   }
 
   @Test
-  void testParseList() throws IOException {
+  void testParseList() {
     AbstractParser.Token[] webTokens = getExpectedWebTokens();
     AbstractParser.Token[] bookTokens = getExpectedBookTokens();
     AbstractParser.Token[] allTokens = new AbstractParser.Token[webTokens.length + bookTokens.length];
