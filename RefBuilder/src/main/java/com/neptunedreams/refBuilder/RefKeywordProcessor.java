@@ -17,6 +17,8 @@ public class RefKeywordProcessor extends AbstractParser {
   private final Set<Character> delimChars;
   private final Map<String, Marker> markerMap;
   private final FreePushbackReader reader;
+  String priorTextToken = "";
+
 
   public RefKeywordProcessor(FreePushbackReader reader) {
     super(reader);
@@ -48,19 +50,21 @@ public class RefKeywordProcessor extends AbstractParser {
 //            return token;
 //          }
 //          assert builder.chars().allMatch(Character::isLetter) : builder; // chars() returns IntStream
+          priorTextToken = builder.toString();
           return variableTextToToken(builder, keywordsAllowed);
         }
       } else  if (delimChars.contains(ch)) {
         if (builder.isEmpty()) {
           Marker marker = markerMap.get(String.valueOf(ch));
           if (marker == null) {
-            throw new UnknownSymbolException(ch);
+            throw new UnknownSymbolException(ch, priorTextToken);
           }
           return new Token(marker, String.valueOf(ch));
         }
         
         // builder is not empty...
         reader.unread(ch);
+        priorTextToken = builder.toString();
         return variableTextToToken(builder, keywordsAllowed);
       } else {
         // ch is not whitespace or a delimiter

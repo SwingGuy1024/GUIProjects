@@ -17,6 +17,9 @@ public class RawTextParser extends AbstractParser {
   private final Map<String, Marker> markerMap;
   private final FreePushbackReader reader;
 
+  private String priorTextToken = "";
+
+
   public RawTextParser(FreePushbackReader reader) {
     super(reader);
     delimChars = makeDelimChars("/");
@@ -39,7 +42,7 @@ public class RawTextParser extends AbstractParser {
           final String delimString = String.valueOf(ch);
           Marker marker = getMarkerMap().get(delimString);
           if (marker == null) {
-            throw new UnknownSymbolException(ch);
+            throw new UnknownSymbolException(ch, priorTextToken);
           }
           return new Token(marker, delimString);
         }
@@ -51,6 +54,7 @@ public class RawTextParser extends AbstractParser {
         // builder is not empty...
         if (delimChars.contains(ch)) {
           reader.unread(ch);
+          priorTextToken = builder.toString();
           return variableTextToToken(builder, false); // should be false.
         } else {
           builder.append(ch);

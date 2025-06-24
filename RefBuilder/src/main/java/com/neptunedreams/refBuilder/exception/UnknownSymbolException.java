@@ -8,10 +8,17 @@ package com.neptunedreams.refBuilder.exception;
  */
 public class UnknownSymbolException extends IllegalStateException {
   public UnknownSymbolException(char symbolCharacter) {
-    super("Unknown symbol: " + symbolCharacter);
+    super(formatString(symbolCharacter, ""));
   }
 
   public UnknownSymbolException(char symbolCharacter, String precedingText) {
-    super(String.format("Unknown symbol %c after \"%s\"", symbolCharacter, precedingText));
+    super(formatString(symbolCharacter, precedingText));
+  }
+  
+  private static String formatString(char symbolCharacter, String precedingText) {
+    if (precedingText.isEmpty()) {
+      return String.format("Unknown symbol: %c", symbolCharacter);
+    }
+    return String.format("Unknown symbol %c after \"%s\"", symbolCharacter, precedingText);
   }
 }
