@@ -206,7 +206,7 @@ public class RefBuilder extends JPanel {
     populate(subjectMap);
     populateCommon(subjectMap);
     for (String subject: subjectMap.keySet()) {
-      tabPane.add(subject, makeTabContent(subject));
+      tabPane.add(subject, new RefTabPane(subject));
     }
     add(tabPane, BorderLayout.CENTER);
     add(makeControlPane(), BorderLayout.PAGE_END);
@@ -218,50 +218,15 @@ public class RefBuilder extends JPanel {
 //        .forEach(s -> System.out.printf("%-40s: %s%n", s, uiDefaults.get(s)));
   }
 
-  private JComponent makeTabContent(String subject) {
-    // A better way to do this would be to create a separate class for the tab pane content. It would have
-    // methods to extract whatever data we needed. The code to build the reference would just need a reference
-    // to the tab instance.
-    // For now, the name field needs to be moved to this method.
-    JPanel tabContent = new ScrollingPane(new GridBagLayout());
-    Borders.addMatte(tabContent, 0, 4, 0, 4);
-
-    GridBagConstraints tableConstraint = (constrain(0));
-    tableConstraint.gridwidth = 3;
-    tableConstraint.ipadx = 0;
-    tableConstraint.ipady = 0;
-    AuthorTableModel tableModel = new AuthorTableModel();
-    tableModelMap.put(subject, tableModel);
-    tabContent.add(new AuthorNameEditorPane(editorTerminatorOperations, tableModel), tableConstraint);
-    tabContent.add(hStrut(1), constrain(0));
-    tabContent.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
-    Set<String> nameSet = subjectMap.get(subject);
-    for (String name: nameSet) {
-      makeFixedField(tabContent, subject, name);
-    }
-    
-    // We create one last invisible row and give it a weighty of 1.0 to push everything above it to the top of the
-    // tab pane.
-    GridBagConstraints constraints = constrain(1);
-    constraints.weighty = 1.0f;
-    tabContent.add(hStrut(1), constraints);
-    final JScrollPane scrollPane = new JScrollPane(tabContent, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-    scrollPane.getViewport().setBackground(textFieldBgColor);
-    return scrollPane;
-  }
-
   private Component makeControlPane() {
     JPanel controlPane = new JPanel(new BorderLayout());
-    JTextField nameField = new JTextField();
-    LandF.addOSXKeyStrokesMac(nameField);
-    controlPane.add(makeControlNorthPane(nameField), BorderLayout.PAGE_START);
-    
+
     JTextArea result = new JTextArea(6, 0);
     tabPane.addChangeListener(e -> result.setText("")); // Clear the bottom JTextArea
     LandF.addOSXKeyStrokesMac(result);
     JComponent scrollPane = scrollWrapTextArea(result);
     controlPane.add(scrollPane, BorderLayout.CENTER);
-    ActionListener actionListener = e -> buildReferenceText(result, nameField.getText().trim());
+    ActionListener actionListener = e -> buildReferenceText(result, getNameField().getText().trim());
 
     JPanel goPane = makeGoPane(actionListener);
     controlPane.add(goPane, BorderLayout.PAGE_END);
@@ -788,6 +753,12 @@ public class RefBuilder extends JPanel {
     return textField;
   }
   
+  private JTextField getNameField() {
+    final Component selectedComponent = tabPane.getSelectedComponent();
+    RefTabPane selectedPane = (RefTabPane) selectedComponent;
+    return selectedPane.getNameField();
+  }
+  
   private static final class AuthorNameEditorPane extends JPanel {
     private AuthorNameEditorPane(List<Runnable> terminatorOperationList, AuthorTableModel tableModel) {
       super(new BorderLayout());
@@ -1022,6 +993,49 @@ public class RefBuilder extends JPanel {
     @Override
     public int hashCode() {
       return hash;
+    }
+  }
+  
+  private class RefTabPane extends JPanel {
+    private final JTextField nameField = new JTextField();
+
+    RefTabPane(String subject) {
+      super(new BorderLayout());
+
+//      LandF.addOSXKeyStrokesMac(nameField);
+//      add(makeControlNorthPane(nameField), BorderLayout.PAGE_END);
+      LandF.addOSXKeyStrokesMac(nameField);
+      add(makeControlNorthPane(nameField), BorderLayout.PAGE_END);
+
+      JPanel tabContent = new ScrollingPane(new GridBagLayout());
+      Borders.addMatte(tabContent, 0, 4, 0, 4);
+
+      GridBagConstraints tableConstraint = (constrain(0));
+      tableConstraint.gridwidth = 3;
+      tableConstraint.ipadx = 0;
+      tableConstraint.ipady = 0;
+      AuthorTableModel tableModel = new AuthorTableModel();
+      tableModelMap.put(subject, tableModel);
+      tabContent.add(new AuthorNameEditorPane(editorTerminatorOperations, tableModel), tableConstraint);
+      tabContent.add(hStrut(1), constrain(0));
+      tabContent.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
+      Set<String> nameSet = subjectMap.get(subject);
+      for (String name : nameSet) {
+        makeFixedField(tabContent, subject, name);
+      }
+
+      // We create one last invisible row and give it a weighty of 1.0 to push everything above it to the top of the
+      // tab pane.
+      GridBagConstraints constraints = constrain(1);
+      constraints.weighty = 1.0f;
+      tabContent.add(hStrut(1), constraints);
+      final JScrollPane scrollPane = new JScrollPane(tabContent, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+      scrollPane.getViewport().setBackground(textFieldBgColor);
+      add(scrollPane, BorderLayout.CENTER);
+    }
+    
+    JTextField getNameField() {
+      return nameField;
     }
   }
 }
