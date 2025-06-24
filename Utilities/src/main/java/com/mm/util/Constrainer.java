@@ -80,23 +80,103 @@ public class Constrainer extends GridBagConstraints {
     return super.clone();
   }
 
+  /**
+   * Sets the gridx and gridy properties to x and y, respectively.
+   * @param x
+   * @param y
+   * @return this, for method chaining
+   * @see #gridx(int)
+   * @see #gridy(int)
+   */
   public Constrainer at(int x, int y) {
     gridx = x;
+    
     gridy = y;
     return this;
   }
-  
+
+  /**
+   * Sets gridx to the parameter
+   * @param x the new gridx
+   * @return this, for method chaining
+   * @see #at(int, int)
+   */
+  public Constrainer gridx(int x) {
+    gridx = x;
+    return this;
+  }
+
+  /**
+   * Sets gridy to the parameter
+   *
+   * @param y the new gridy
+   * @return this, for method chaining
+   * @see #at(int, int)
+   */
+  public Constrainer gridy(int y) {
+    gridy = y;
+    return this;
+  }
+
+  /**
+   * Sets gridwidth and gridheight to x and y
+   * @param x The new gridwidth
+   * @param y The new gridheight
+   * @return this, for method chaining 
+   * @see #gridWidth(int)
+   * @see #gridHeight(int) 
+   */
   public Constrainer gridSize(int x, int y) {
     gridwidth = x;
     gridheight = y;
     return this;
   }
-  
-  public Constrainer weight(double weightx, double weighty) {
-    this.weightx = weightx;
-    this.weighty = weighty;
+
+  /**
+   * Sets gridwidth to w
+   * @param w the new gridwidth
+   * @return this, for method chaining
+   * @see #gridSize(int, int) 
+   */
+  public Constrainer gridWidth(int w) { gridwidth = w; return this; }
+
+  /**
+   * Sets gridheight to h
+   * @param h the new gridheight
+   * @return this, for method chaining
+   * @see #gridSize(int, int) 
+   */
+  public Constrainer gridHeight(int h) { gridheight = h; return this; }
+
+  /**
+   * Sets the weightx and weighty values
+   * @param weightX the new weightx
+   * @param weightY the new weighty
+   * @return this, for method chaining
+   * @see #weightX(double) 
+   * @see #weightY(double) 
+   */
+  public Constrainer weight(double weightX, double weightY) {
+    this.weightx = weightX;
+    this.weighty = weightY;
     return this;
   }
+
+  /**
+   * Sets the weightx value
+   * @param weightX the new wieghtx value
+   * @return this, for method chaining
+   * @see #weight(double, double) 
+   */
+  public Constrainer weightX(double weightX) { weightx = weightX; return this; }
+
+  /**
+   * Sets the new weighty value
+   * @param weightY the new weighty value
+   * @return this, for method chaining
+   * @see #weight(double, double) 
+   */
+  public Constrainer weightY(double weightY) { weighty = weightY; return this; }
   
   @Range(from = GridBagConstraints.CENTER, to = GridBagConstraints.BELOW_BASELINE_TRAILING)
   @MagicConstant(valuesFromClass = GridBagConstraints.class)
@@ -104,29 +184,54 @@ public class Constrainer extends GridBagConstraints {
     this.anchor = anchor;
     return this;
   }
-  
+
   @Range(from = GridBagConstraints.NONE, to = GridBagConstraints.VERTICAL)
   @MagicConstant(valuesFromClass = GridBagConstraints.class)
   public Constrainer fill(int fill) {
     this.fill = fill;
     return this;
   }
-  
+
   public Constrainer insets(int top, int left, int bottom, int right) {
     this.insets = new Insets(top, left, bottom, right);
     return this;
   }
-  
+
   public Constrainer insets(Insets insets) {
     this.insets = insets;
     return this;
   }
-  
-  public Constrainer pad(int padx, int pady) {
-    ipadx += padx;
-    ipady += pady;
+
+  /**
+   * Sets the ipadx and ipady values
+   * @param padX the new ipadx value
+   * @param padY the new ipady value
+   * @return this, for method chaining
+   * @see #iPadX(int) 
+   * @see #iPadY(int) 
+   */
+  public Constrainer pad(int padX, int padY) {
+    ipadx = padX;
+    ipady = padY;
     return this;
   }
+
+  /**
+   * Sets the ipadx value
+   * @param padX the new ipadx value
+   * @return this, for method chaining
+   * @see #pad(int, int) 
+   */
+  public Constrainer iPadX(int padX) { ipadx = padX; return this; }
+
+  /**
+   * Sets the ipady value
+   * @param padY the new ipady value
+   * @return this, for method chaining
+   * @see #pad(int, int) 
+   */
+  public Constrainer iPadY(int padY) { ipady = padY; return this; }
+
   
 //  public void add(JComponent child) {
 //    panel.add(child, constraints);

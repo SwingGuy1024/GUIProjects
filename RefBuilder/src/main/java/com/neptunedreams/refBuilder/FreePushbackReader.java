@@ -13,6 +13,8 @@ import java.io.Reader;
  */
 public class FreePushbackReader extends PushbackReader {
   
+  private int count = 0;
+  
   public FreePushbackReader(Reader in) {
     super(in);
   }
@@ -22,6 +24,7 @@ public class FreePushbackReader extends PushbackReader {
     // TODO: Write FreePushbackReader.unread()
     try {
       super.unread(c);
+      count --;
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -32,6 +35,7 @@ public class FreePushbackReader extends PushbackReader {
     // TODO: Write FreePushbackReader.unread()
     try {
       super.unread(cbuf, off, len);
+      count -= len;
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -42,6 +46,7 @@ public class FreePushbackReader extends PushbackReader {
     // TODO: Write FreePushbackReader.unread()
     try {
       super.unread(cbuf);
+      count -= cbuf.length;
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -51,9 +56,12 @@ public class FreePushbackReader extends PushbackReader {
   public int read() {
     // TODO: Write FreePushbackReader.read()
     try {
+      count++;
       return super.read();
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
   }
+  
+  public int getCount() { return count; }
 }

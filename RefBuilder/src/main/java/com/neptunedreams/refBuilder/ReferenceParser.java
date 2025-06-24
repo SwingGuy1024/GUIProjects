@@ -202,13 +202,18 @@ public class ReferenceParser {
     int ch = reader.read();
     List<WikiReference> references = new LinkedList<>();
     if (ch == -1) {
-      return references;
+      return references; // Return the empty List.
     }
-    Token nextToken = new Token(Marker.noMarker, String.valueOf((char)ch)); 
-    do {
-      reader.unread(nextToken.text().toCharArray());
-      nextToken = parseReference(references);
-    } while (nextToken.marker() != Marker.end);
+    Token nextToken = new Token(Marker.noMarker, String.valueOf((char)ch));
+    try {
+      do {
+        reader.unread(nextToken.text().toCharArray());
+        nextToken = parseReference(references);
+      } while (nextToken.marker() != Marker.end);
+    } catch (IllegalStateException e) {
+      int count = reader.getCount();
+      throw new IllegalStateException(String.format("Unexpected error after %d characters", count), e);
+    }
     return references;
   }
   
@@ -234,8 +239,9 @@ public class ReferenceParser {
       expect(Marker.equals);
       String name = parseQuotedName();
       wikiReference.setName(name);
+      token = keywordProcessor.getToken();
     }
-    expect(Marker.tagClose);
+    verify(token, Marker.tagClose);
   }
   
   private Token parseRefClose() {

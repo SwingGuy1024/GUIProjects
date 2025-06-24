@@ -21,5 +21,13 @@
         <mainClass>com.mm.gui.link.LinkBuilder</mainClass>
         <iconFile>LinkBuilder_Icon.icns</iconFile>
     </properties>
+    
+    <dependencies>
+        <dependency>
+            <groupId>com.mm</groupId>
+            <artifactId>utilities</artifactId>
+            <version>0.0.2-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 
 </project>

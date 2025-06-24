@@ -12,7 +12,7 @@ import javax.swing.border.LineBorder;
 import javax.swing.border.MatteBorder;
 
 /**
- * The JComponent's setBorder class is clumsy to work with, and BorderFactory 
+ * The JComponent's setBorder method is clumsy to work with, and BorderFactory 
  * doesn't help much. This class makes it easier to add borders to Swing
  * components. More convenience methods may be added later as needed.
  * <p>

@@ -3,6 +3,7 @@ package com.neptunedreams.refBuilder;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
@@ -11,20 +12,25 @@ import java.awt.LayoutManager;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -38,10 +44,12 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -70,11 +78,14 @@ import javax.swing.text.PlainDocument;
 import com.mm.gui.Borders;
 import com.mm.gui.LandF;
 import com.mm.gui.Utils;
+import com.mm.util.Constrainer;
+import com.mm.util.GridHelper;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static com.mm.gui.Utils.emptyIfNull;
+import static javax.swing.ScrollPaneConstants.*;
 
 /**
  * <p>Utility to build Wikipedia Links using {@code cite}</p>
@@ -133,7 +144,7 @@ public class RefBuilder extends JPanel {
       = new LinkedHashSet<>(List.of("book.isbn", "book.location", "book.orig-year", "book.edition",
       "book.oclc", "book.chapter", "book.chapter-url", "book.author-link", "journal.journal", "journal.issue",
       "journal.doi", "journal.doi-access", "journal.issn", "journal.bibcode", "news.newspaper", "news.agency",
-      "news.work", "web")
+      "news.work", "web.website")
   );
   public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
@@ -158,7 +169,8 @@ public class RefBuilder extends JPanel {
       .chars()
       .boxed()
       .collect(Collectors.toUnmodifiableSet());
-  
+  public static final String REFERENCE_BUILDER = "Reference Builder";
+
   private final Color textFieldForeground;
 
   private final Color textFieldBgColor;
@@ -169,17 +181,24 @@ public class RefBuilder extends JPanel {
   private final @NonNls Map<String, Document> nameMap = new HashMap<>();
   
   private final List<Runnable> editorTerminatorOperations = new LinkedList<>();
-
+  private static final AtomicInteger windowCounter = new AtomicInteger();
+  
   public static void main(String[] args) {
     LandF.Nimbus.quickSetLF();
     
-    JFrame frame = new JFrame("Reference Builder");
     final RefBuilder refBuilder = new RefBuilder();
+    makeNewFrame(refBuilder);
+  }
+  
+  private static void makeNewFrame(RefBuilder refBuilder) {
+    int count = windowCounter.incrementAndGet();
+    String frameTitle = (count == 1) ? REFERENCE_BUILDER : String.format("%s %d", REFERENCE_BUILDER, count);
+    JFrame frame = new JFrame(frameTitle);
     frame.add(refBuilder);
     frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
     frame.setLocationByPlatform(true);
     frame.pack();
-  
+
     // By setting the minimum size, we keep the left-side labels from vanishing when the window shrinks.
     // We need to wait until the window first appears, because we don't know the window size until after we show it.
     HierarchyListener hierarchyListener = new HierarchyListener() {
@@ -208,6 +227,7 @@ public class RefBuilder extends JPanel {
     for (String subject: subjectMap.keySet()) {
       tabPane.add(subject, new RefTabPane(subject));
     }
+    add(makeImportPane(), BorderLayout.PAGE_START);
     add(tabPane, BorderLayout.CENTER);
     add(makeControlPane(), BorderLayout.PAGE_END);
 
@@ -216,6 +236,14 @@ public class RefBuilder extends JPanel {
 ////        .filter(s -> s.toString().contains("border") || s.toString().contains("font"))
 //        .filter(s -> s.toString().contains("ground"))
 //        .forEach(s -> System.out.printf("%-40s: %s%n", s, uiDefaults.get(s)));
+  }
+  
+  private JPanel makeImportPane() {
+    JButton importButton = new JButton("Import");
+    JPanel importPanel = new JPanel(new BorderLayout());
+    importPanel.add(importButton, BorderLayout.LINE_END);
+    importButton.addActionListener(e -> doImport());
+    return importPanel;
   }
 
   private Component makeControlPane() {
@@ -577,6 +605,101 @@ public class RefBuilder extends JPanel {
     theSubjectMap.put(subject, set);
     return set;
   }
+  
+  private void doImport() {
+    for (String name: nameMap.keySet()) {
+      System.out.printf("%-20s -> %s%n", name, nameMap.get(name)); // NON-NLS
+    }
+    JTextArea textArea = new JTextArea(6, 80);
+    JScrollPane scrollPane = scrollWrapTextArea(textArea);
+    JPanel inputPanel = new JPanel(new GridBagLayout());
+    Constrainer constrainer = new Constrainer();
+    inputPanel.add(new JLabel("Please Enter the Reference Text, from the <ref> to the </ref>, inclusive."), constrainer.at(0, 0).gridSize(5, 1));
+    inputPanel.add(scrollPane, constrainer.at(0, 1));
+    inputPanel.add(Box.createVerticalStrut(6), constrainer.at(1, 2));
+//    inputPanel.add(Box.createHorizontalStrut(10), constrainer.at(0, 3).weightX(10.0));
+    inputPanel.add(Box.createHorizontalGlue(), constrainer.at(0, 3).gridSize(1, 1).weightX(10.0));
+    final JButton ok = new JButton("OK");
+    inputPanel.add(ok, constrainer.at(3, 3).weightX(0.0));
+    final JButton cancel = new JButton("Cancel");
+    inputPanel.add(cancel, constrainer.at(4, 3));
+    inputPanel.add(Box.createHorizontalStrut(12), constrainer.at(2, 3));
+    final JButton paste = new JButton("Paste");
+    inputPanel.add(paste, constrainer.at(1, 3).iPadX(12));
+    Borders.addMatte(inputPanel, 24);
+
+
+    JDialog dialog = new JDialog((JFrame)getRootPane().getParent());
+    dialog.add(inputPanel, BorderLayout.CENTER);
+    dialog.setModalityType(Dialog.ModalityType.DOCUMENT_MODAL);
+
+    ok.addActionListener(e -> doOkay(dialog, textArea));
+    cancel.addActionListener(e -> dialog.dispose());
+    paste.addActionListener(e -> doPaste(textArea));
+
+    dialog.pack();
+    dialog.setVisible(true);
+  }
+  
+  private void doPaste(JTextArea textArea) {
+    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+    try {
+      String data = clipboard.getData(DataFlavor.stringFlavor).toString();
+      textArea.setText(data);
+    } catch (UnsupportedFlavorException | IOException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+  
+  private void doOkay(JDialog dialog, JTextArea textArea) {
+    dialog.dispose();
+    ReferenceParser parser = new ReferenceParser(textArea.getText());
+    List<WikiReference> refs = parser.parse();
+    if (!refs.isEmpty()) {
+      Iterator<WikiReference> iterator = refs.iterator();
+      WikiReference firstWikiReference = iterator.next();
+      unpack(firstWikiReference);
+      while (iterator.hasNext()) {
+        WikiReference wikiReference = iterator.next();
+        RefBuilder refBuilder = new RefBuilder();
+        makeNewFrame(refBuilder);
+        refBuilder.unpack(wikiReference);
+      }
+    }
+  }
+  
+  void unpack(WikiReference reference) {
+    RefKey citeType = reference.getRefKey();
+    String citeName = citeType.name();
+    findTab:
+    for (int i=0; i< tabPane.getTabCount(); ++i) {
+      if (tabPane.getTitleAt(i).equals(citeName)) {
+        citeName = citeType.toString();
+        tabPane.setSelectedIndex(i);
+        break findTab;
+      }
+    }
+    if (citeName.isEmpty()) {
+      throw new IllegalStateException("No Cite type Found");
+    }
+    getNameField().setText(reference.getName());
+    for (String key : reference.getDataKeys()) {
+      String nameKey = String.format("%s.%s", citeName, key);
+      try {
+        final Document document = nameMap.get(nameKey);
+        if (document == null) {
+          System.err.printf("Missing document for %s%n", nameKey); // NON-NLS
+        } else {
+          final String value = reference.getDataMap().get(key);
+          if (value != null) {
+            document.insertString(0, value, null);
+          }
+        }
+      } catch (BadLocationException e) {
+        throw new IllegalStateException(String.format("Could not insert %s", nameKey), e);
+      }
+    }
+  }
 
   /**
    * <p>A DisplayComponent consists of a text editor and a checkbox called "Big." The check box toggles the 
@@ -725,8 +848,8 @@ public class RefBuilder extends JPanel {
     textArea.setLineWrap(true);
     return new JScrollPane(
         textArea,
-        JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-        JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        VERTICAL_SCROLLBAR_ALWAYS,
+        HORIZONTAL_SCROLLBAR_NEVER);
   }
 
   private JComponent makeFakeLabel(String text) {
@@ -767,7 +890,7 @@ public class RefBuilder extends JPanel {
       table.setPreferredScrollableViewportSize(getPreferredSize());
       table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
       JScrollPane scrollPane
-          = new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_NEVER, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+          = new JScrollPane(table, VERTICAL_SCROLLBAR_NEVER, HORIZONTAL_SCROLLBAR_NEVER);
       add(scrollPane, BorderLayout.CENTER);
       tableModel.addRowCountListener(()-> {
         table.setPreferredScrollableViewportSize(table.getPreferredSize());
@@ -1029,7 +1152,7 @@ public class RefBuilder extends JPanel {
       GridBagConstraints constraints = constrain(1);
       constraints.weighty = 1.0f;
       tabContent.add(hStrut(1), constraints);
-      final JScrollPane scrollPane = new JScrollPane(tabContent, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+      final JScrollPane scrollPane = new JScrollPane(tabContent, VERTICAL_SCROLLBAR_ALWAYS, HORIZONTAL_SCROLLBAR_NEVER);
       scrollPane.getViewport().setBackground(textFieldBgColor);
       add(scrollPane, BorderLayout.CENTER);
     }
