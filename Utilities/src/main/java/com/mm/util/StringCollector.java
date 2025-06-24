@@ -11,38 +11,37 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
- * <p>Immutable Collector to use when using a stream to filter text. I wrote this because the {@code String.chars()} method returns
- * an {@code IntStream}, which doesn't have a method that takes a Collector, which would look something like this:</p>
+ * <p>Immutable Collector to use when using an IntStream or{@literal Stream<Integer>} to filter text. I wrote this
+ * because the {@code String.chars()} method returns an {@code IntStream}, which doesn't have a method that takes 
+ * a Collector, which would look something like this:</p>
  * <pre>
  *   {@literal <R, A> R collect(Collector<? super T, A, R> collector);}
  * </pre>
  * <p>Instead, it has this clumsier method:</p>
  * <pre>
- * {@literal <R> R collect(Supplier<R> supplier, ObjIntConsumer<R> accumulator, BiConsumer<R, R> combiner);}
+ * {@literal <R> R collect(
+ *     Supplier<R> supplier,
+ *     ObjIntConsumer<R> accumulator,
+ *     BiConsumer<R, R> combiner);}
  * </pre>
- * <p>(This is because there are no Colllectors that work with primitive types like {@code int}.)</p>
- * <p>Here's an example. (This is an silly example, since this particular task can be done very easily
- * using Regex, but this class was written to handle more complex processing that was well beyond what Regex
- * could do.)</p>
- * <p>To filter out all white-space from a String, we can use this collector to write this:</p>
+ * <p>(This is because there are no Collectors that work with primitive types like {@code int}.)</p>
+ * <p>Here's an example. To remove all characters from a String that match the specified {@code IntPredicate},
+ * we can use this StringCollector to write this:</p>
  * <pre>
- *   private String filterOutWhiteSpace(String input) {
- *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
+ *   private String customFilterOut(String input, IntPredicate cFilter) {
  *   return input.chars()                  // returns an IntStream
- *       .filter(isNotWhiteSpace)
+ *       .filter(cFilter)
  *       .boxed()                          // converts IntStream to a{@literal Stream<Integer>}
  *       .collect(StringCollector.instance());
  *   }
  * </pre>
  * 
- * <p>Without this StringCollector, it's still doable, but it's clumsier and harder to remember:</p>
+ * <p>Without this StringCollector, it's still doable, but it's more verbose, clumsier, and harder to remember:</p>
  * 
  * <pre>
- *   public static String filterOutWhiteSpace(String input) {
- *   final IntPredicate isNotWhiteSpace = ((IntPredicate) Character::isWhitespace).negate();
- *   final IntPredicate isNotWhiteSpace = Predicate.not(Character::isWhitespace);
+ *   public static String customFilterOut(String input, IntPredicate cFilter) {
  *   return input.chars()
- *       .filter(isNotWhiteSpace)
+ *       .filter(cFilter)
  *       .collect(
  *           StringBuilder::new,
  *           (sb, i) -> sb.append((char) i),
@@ -55,6 +54,7 @@ import java.util.stream.Collector;
  * <p>Date: 6/22/22</p>
  * <p>Time: 5:38 PM</p>
  *
+ * @author Miguel Muñoz
  * @see #filterString(String, IntPredicate) 
  * @author Miguel Mu\u00f1oz
  */

@@ -206,8 +206,8 @@ public enum Utils {
 	}
 
 	/**
-	 * Get a font from a list of font names. If none of the named fonts are found,
-	 * returns Dialog
+	 * Get a font, which has a bold variant, from a list of font names. If none of the named fonts are found, or if 
+	 * none have a bold variant, returns Dialog
 	 *
 	 * @param fontNameList a comma-delimited list of names for the font, in order
 	 *                     of preference.
@@ -223,10 +223,10 @@ public enum Utils {
 			Font f = new Font(name.trim(), style, size);
 			// If the font wasn't found, the font name will be "Dialog".
 			if (!"Dialog".equals(f.getFontName())) {
-				System.out.printf("Bold: %s%n psName: %s%n Name: %s%n fName: %s%n", f, f.getPSName(), f.getName(), f.getFontName()); // NON-NLS
-				System.out.printf("Looking for bold%n"); // NON-NLS
+//				System.out.printf("Bold: %s%n psName: %s%n Name: %s%n fName: %s%n", f, f.getPSName(), f.getName(), f.getFontName()); // NON-NLS
+//				System.out.printf("Looking for bold%n"); // NON-NLS
 				Font boldF = f.deriveFont(Font.BOLD);
-				System.out.printf("Bold: %s%n psName: %s%n Name: %s%n fName: %s%n", boldF, boldF.getPSName(), boldF.getName(), boldF.getFontName()); // NON-NLS
+//				System.out.printf("Bold: %s%n psName: %s%n Name: %s%n fName: %s%n", boldF, boldF.getPSName(), boldF.getName(), boldF.getFontName()); // NON-NLS
 
 				// If their names are different, this font has a true bold.
         if (!f.getFontName().equals(boldF.getFontName())) {
