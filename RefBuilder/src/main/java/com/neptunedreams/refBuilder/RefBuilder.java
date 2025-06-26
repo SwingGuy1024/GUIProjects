@@ -12,15 +12,12 @@ import java.awt.LayoutManager;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -30,11 +27,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.ButtonModel;
 import javax.swing.DefaultCellEditor;
@@ -49,7 +49,6 @@ import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -79,7 +78,6 @@ import com.mm.gui.Borders;
 import com.mm.gui.LandF;
 import com.mm.gui.Utils;
 import com.mm.util.Constrainer;
-import com.mm.util.GridHelper;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -96,11 +94,18 @@ import static javax.swing.ScrollPaneConstants.*;
  *   book<br>
  *   journal<br>
  * </p>
- * <p>This class defines the following terms:<br>
+ * <p>For the purposes of documentation, this class defines the following terms:<br>
  * <strong>subject:</strong> One of the four types of "cite" values: web, news, book, and journal.<br>
- * <strong>name:</strong> The name of a value in a citation, such as title in {{cite news | title = Trump Convicted}}<br>
- * <strong>value:</strong> The value for a name in a citation, such as "Trump Convicted" in the previous example.<br>
- * <strong>tag:</strong> A combination of a subject and a name, such as news.title<br>
+ * <strong>key:</strong> The name of a value in a citation, such as title in {{cite news | title = Ross Ulbricht Convicted}}<br>
+ * <strong>value:</strong> The value for a key in a citation, such as "Ross Ulbricht Convicted" in the previous example.<br>
+ * <strong>tag:</strong> A combination of a subject and a key, such as news.title<br>
+ * <strong>name:</strong> The optional name of a reference, found in the opening ref tag, like this:<br>
+ * {@literal <ref name="Titanic Wreckage">}</p>
+ * <p>A fill tag will have an optional name, a subject after the word "cite," and a series of key-value pairs, along with html featres like the tags. For example:</p>
+ * <p><code>{@literal <ref name="Harry Potter">{{ cite book | title = Harry Potter and the Sorcerer's Stone | first = J.K. | last = Rowling | publisher = Scholastic }}</ref>}</code> or<br>
+ * <code>{@literal <ref>{{ cite book | title = Harry Potter and the Sorcerer's Stone | first = J.K. | last = Rowling | publisher = Scholastic }}</ref>}</code></p>
+ * <p>This can be used to create new references or modifying existing ones. To modify an existing reference, use the import button and paste in the entire reference, starting with the
+ * {@literal <ref>} tag and ending with the {@literal </ref>} closing tag.</p>
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 3/13/24</p>
  * <p>Time: 4:01&nbsp;AM</p>
@@ -132,8 +137,8 @@ public class RefBuilder extends JPanel {
     3. When typing, we want to replace new lines with spaces.
     4. When building, we want to do the following conversions:
       a. nbsp -> &nbsp;
-      b. Url fields: url encode the following: <> and space and soft hyphen.
-      c. normal fields: url encode the following: <> and soft hyphen
+      b. Url fields: url encode the following: < > and space and soft hyphen.
+      c. normal fields: url encode the following: < > and soft hyphen
    */
   
   private static final Set<String> common = new LinkedHashSet<>(
@@ -144,18 +149,17 @@ public class RefBuilder extends JPanel {
       = new LinkedHashSet<>(List.of("book.isbn", "book.location", "book.orig-year", "book.edition",
       "book.oclc", "book.chapter", "book.chapter-url", "book.author-link", "journal.journal", "journal.issue",
       "journal.doi", "journal.doi-access", "journal.issn", "journal.bibcode", "news.newspaper", "news.agency",
-      "news.work", "web.website")
+      "news.work", "web") //"web.website")
   );
   public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
   public static final int TEXT_FIELD_LENGTH = 500;
-  private static final Map<String, AuthorTableModel> tableModelMap = new HashMap<>();
   public static final int FIRST_COLUMN = 0;
   public static final int LAST_COLUMN = 1;
   public static final int ROLE_COLUMN = 2;
-  
+
   // http://www.strangeChars.com/!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ ¬­­/中文
-  
+
   private static final Set<Integer> forbidden = "\n\r"
       .chars()
       .boxed()
@@ -164,27 +168,27 @@ public class RefBuilder extends JPanel {
       .chars()
       .boxed()
       .collect(Collectors.toUnmodifiableSet());
-  
+
   private static final Set<Integer> normalEncode = "<>\u00ad" // angle brackets and soft hyphen
       .chars()
       .boxed()
       .collect(Collectors.toUnmodifiableSet());
   public static final String REFERENCE_BUILDER = "Reference Builder";
 
-  private final Color textFieldForeground;
-
   private final Color textFieldBgColor;
+  private final Border matteBorder5px;
   private final Color fakeLabelColor = new Color(0, 0, 0, 0);
-  private final JTabbedPane tabPane = new JTabbedPane();
+  private final ReferenceTabbedPane tabPane = new ReferenceTabbedPane();
+  private final Map<String, AuthorTableModel> tableModelMap = new HashMap<>();
 
   private final Map<String, Set<String>> subjectMap;
-  private final @NonNls Map<String, Document> nameMap = new HashMap<>();
+  private final @NonNls Map<String, Document> keyMap = new HashMap<>();
   
   private final List<Runnable> editorTerminatorOperations = new LinkedList<>();
   private static final AtomicInteger windowCounter = new AtomicInteger();
   
   public static void main(String[] args) {
-    LandF.Nimbus.quickSetLF();
+    LandF.Platform.quickSetLF();
     
     final RefBuilder refBuilder = new RefBuilder();
     makeNewFrame(refBuilder);
@@ -218,8 +222,9 @@ public class RefBuilder extends JPanel {
   RefBuilder() {
     super(new BorderLayout());
     UIDefaults uiDefaults = UIManager.getDefaults();
-    textFieldForeground = Color.black; // uiDefaults.getColor("Label.foreground");
+    Color textFieldForeground = Color.black; // uiDefaults.getColor("Label.foreground");
     textFieldBgColor = uiDefaults.getColor("Label.background");
+    matteBorder5px = BorderFactory.createMatteBorder(5, 5, 5, 5, textFieldBgColor);
     uiDefaults.put("TextField.inactiveForeground", textFieldForeground);
     subjectMap = new HashMap<>();
     populate(subjectMap);
@@ -251,13 +256,12 @@ public class RefBuilder extends JPanel {
 
     JTextArea result = new JTextArea(6, 0);
     tabPane.addChangeListener(e -> result.setText("")); // Clear the bottom JTextArea
-    LandF.addOSXKeyStrokesMac(result);
     JComponent scrollPane = scrollWrapTextArea(result);
     controlPane.add(scrollPane, BorderLayout.CENTER);
-    ActionListener actionListener = e -> buildReferenceText(result, getNameField().getText().trim());
+    ActionListener actionListener = e -> buildReferenceText(result, getKeyField().getText().trim());
 
-    JPanel goPane = makeGoPane(actionListener);
-    controlPane.add(goPane, BorderLayout.PAGE_END);
+    JPanel createPane = makeCreatePane(actionListener);
+    controlPane.add(createPane, BorderLayout.PAGE_END);
     return controlPane;
   }
   
@@ -308,6 +312,21 @@ public class RefBuilder extends JPanel {
 
     StringBuilder builder = new StringBuilder();
 
+
+    String selectedTab = tabPane.getTitleAt(tabPane.getSelectedIndex());
+    for (Map.Entry<String, Document> entry : keyMap.entrySet()) {
+      String tag = entry.getKey();
+//      System.out.printf("ValueMap: %s%n", key); // NON-NLS
+      if (tag.startsWith(selectedTab)) {
+        Document doc = entry.getValue();
+        final String fieldText = clean(getText(doc), isForUrl(tag));
+        if (!fieldText.isEmpty()) {
+          String fieldName = tag.substring(tag.indexOf(DOT) + 1);
+          appendPair(builder, fieldName, fieldText);
+        }
+      }
+    }
+
     // Count Writers and Editors
     List<Integer> writerIndices = new LinkedList<>();
     List<Integer> editorIndices = new LinkedList<>();
@@ -324,19 +343,6 @@ public class RefBuilder extends JPanel {
     addRoleData(builder, Role.WRITER, writerIndices);
     addRoleData(builder, Role.EDITOR, editorIndices);
 
-    String selectedTab = tabPane.getTitleAt(tabPane.getSelectedIndex());
-    for (Map.Entry<String, Document> entry : nameMap.entrySet()) {
-      String tag = entry.getKey();
-//      System.out.printf("ValueMap: %s%n", key); // NON-NLS
-      if (tag.startsWith(selectedTab)) {
-        Document doc = entry.getValue();
-        final String fieldText = clean(getText(doc), isForUrl(tag));
-        if (!fieldText.isEmpty()) {
-          String fieldName = tag.substring(tag.indexOf(DOT) + 1);
-          appendPair(builder, fieldName, fieldText);
-        }
-      }
-    }
     builder.insert(0, selectedTab);
     builder.insert(0, "{{cite ");
     builder.append("}}");
@@ -387,24 +393,24 @@ public class RefBuilder extends JPanel {
   }
 
   private void addRoleData(StringBuilder builder, Role role, List<Integer> indices) {
-    List<String> firstNames = new LinkedList<>();
-    List<String> lastNames = new LinkedList<>();
+    List<String> firstNameList = new LinkedList<>();
+    List<String> lastNameList = new LinkedList<>();
     // First, eliminate rows with no first or last name
     AuthorTableModel tableModel = getCurrentTableModel();
     for (int row : indices) {
       final String first = clean(tableModel.getValueAt(row, FIRST_COLUMN).toString(), false).trim();
       final String last = clean(tableModel.getValueAt(row, LAST_COLUMN).toString(), false).trim();
       if (!first.isEmpty() || !last.isEmpty()) {
-        firstNames.add(first);
-        lastNames.add(last);
+        firstNameList.add(first);
+        lastNameList.add(last);
       }
     }
     
     String firstName = role.namePrefix + "first";
     String lastName = role.namePrefix + "last";
-    if (firstNames.size() == 1) {
-      String firstText = firstNames.get(0);
-      String lastText = lastNames.get(0);
+    if (firstNameList.size() == 1) {
+      String firstText = firstNameList.get(0);
+      String lastText = lastNameList.get(0);
       if (!firstText.isEmpty()) {
         appendPair(builder, firstName, firstText);
       }
@@ -412,10 +418,10 @@ public class RefBuilder extends JPanel {
         appendPair(builder, lastName, lastText);
       }
     } else {
-      for (int row=0; row<firstNames.size(); ++row) {
+      for (int row=0; row<firstNameList.size(); ++row) {
         int userIndex = row+1;
-        String firstText = firstNames.get(row);
-        String lastText = lastNames.get(row);
+        String firstText = firstNameList.get(row);
+        String lastText = lastNameList.get(row);
         if (!firstText.isEmpty()) {
           appendPair(builder, firstName+userIndex, firstText);
         }
@@ -441,41 +447,42 @@ public class RefBuilder extends JPanel {
     }
   }
 
-  private JComponent makeControlNorthPane(JTextField textField) {
+  private JComponent makeControlPane(JTextField textField) {
     JLabel nameLabel = new JLabel("Name: ");
     JPanel northPane = new JPanel(new BorderLayout());
     northPane.add(nameLabel, BorderLayout.LINE_START);
     northPane.add(textField, BorderLayout.CENTER);
+    Borders.addMatte(northPane, 4);
     return northPane;
   }
 
   /**
-   * The GoPane sits at the bottom of the control pane. It just has the "Go" button, on the right. 
-   * @return The Go pane
+   * The CreatePane sits at the bottom of the control pane. It just has the "Create" button, on the right. 
+   * @return The Create pane
    */
   @NotNull
-  private JPanel makeGoPane(ActionListener actionListener) {
-    JButton goButton = new JButton("Go");
-    goButton.addActionListener(actionListener);
-    JPanel goPane = new JPanel(new BorderLayout());
-    goPane.add(goButton, BorderLayout.LINE_END);
+  private JPanel makeCreatePane(ActionListener actionListener) {
+    JButton createButton = new JButton("Create and Copy");
+    createButton.addActionListener(actionListener);
+    JPanel createPane = new JPanel(new BorderLayout());
+    createPane.add(createButton, BorderLayout.LINE_END);
     
-    goPane.add(makeControlUtilityPane(), BorderLayout.LINE_START);
-    return goPane;
+    createPane.add(makeControlUtilityPane(), BorderLayout.LINE_START);
+    return createPane;
   }
 
   private @Nullable JTextComponent focusedTextComponent = null;
   private JComponent makeControlUtilityPane() {
     JPanel utilityPane = new JPanel(new FlowLayout());
-    JButton toLowerCase = new JButton("lc");
-    JButton toUpperCase = new JButton("UC");
-    JButton toTitleCase = new JButton("Tc");
+    JButton toLowerCase = new JButton("lower case");
+    JButton toUpperCase = new JButton("UPPER Case");
+    JButton toTitleCase = new JButton("Title Case");
     toLowerCase.setRequestFocusEnabled(false);
     toTitleCase.setRequestFocusEnabled(false);
     toUpperCase.setRequestFocusEnabled(false);
-    toLowerCase.setToolTipText("To Lower Case");
-    toUpperCase.setToolTipText("To Upper Case");
-    toTitleCase.setToolTipText("To Title Case");
+    toLowerCase.setToolTipText("Convert selection to Lower Case");
+    toUpperCase.setToolTipText("Convert selection to Upper Case");
+    toTitleCase.setToolTipText("Convert selection to Title Case");
     toLowerCase.addActionListener(e -> toLowerCase());
     toUpperCase.addActionListener(e -> toUpperCase());
     toTitleCase.addActionListener(e -> toTitleCase());
@@ -551,15 +558,17 @@ public class RefBuilder extends JPanel {
   private static Component hStrut(int length) {
     return Box.createHorizontalStrut(length);
   }
-
-  private void makeFixedField(JPanel content, String subject, String name) {
-    JComponent label = makeFakeLabel(name);
+  
+  private Document makeFixedField(JPanel content, String subject, String fieldName, boolean unexpected) {
+//    System.out.printf("%s, %s%n", subject, fieldName); // NON-NLS
+    JComponent label = makeFakeLabel(fieldName, unexpected);
     final GridBagConstraints constrain = constrain(0);
     constrain.fill = GridBagConstraints.HORIZONTAL; // Moves label to the top.
     content.add(label, constrain);
-    DisplayComponent valueField = new DisplayComponent();
+    SingleFieldDisplay valueField = new SingleFieldDisplay();
     content.add(valueField, constrain(1));
-    nameMap.put(subject + DOT + name, valueField.getDocument());
+    keyMap.put(subject + DOT + fieldName, valueField.getDocument());
+    return valueField.getDocument();
   }
 
   private GridBagConstraints constrain(int column) {
@@ -590,12 +599,12 @@ public class RefBuilder extends JPanel {
     for (String rawTag: sources) {
       Tag tag = new Tag(rawTag);
 //      final int dotSpot = tag.indexOf(DOT);
-      if (tag.getName() == null) {
+      if (tag.getKey() == null) {
         theSubjectMap.put(tag.getSubject(), new LinkedHashSet<>());
       } else {
         String subject = tag.getSubject();
         Set<String> nameSet = theSubjectMap.containsKey(subject) ? theSubjectMap.get(subject) : mapNewSubject(theSubjectMap, subject);
-        nameSet.add(tag.getName());
+        nameSet.add(tag.getKey());
       }
     }
   }
@@ -607,27 +616,21 @@ public class RefBuilder extends JPanel {
   }
   
   private void doImport() {
-    for (String name: nameMap.keySet()) {
-      System.out.printf("%-20s -> %s%n", name, nameMap.get(name)); // NON-NLS
-    }
     JTextArea textArea = new JTextArea(6, 80);
     JScrollPane scrollPane = scrollWrapTextArea(textArea);
     JPanel inputPanel = new JPanel(new GridBagLayout());
-    Constrainer constrainer = new Constrainer();
-    inputPanel.add(new JLabel("Please Enter the Reference Text, from the <ref> to the </ref>, inclusive."), constrainer.at(0, 0).gridSize(5, 1));
-    inputPanel.add(scrollPane, constrainer.at(0, 1));
-    inputPanel.add(Box.createVerticalStrut(6), constrainer.at(1, 2));
-//    inputPanel.add(Box.createHorizontalStrut(10), constrainer.at(0, 3).weightX(10.0));
-    inputPanel.add(Box.createHorizontalGlue(), constrainer.at(0, 3).gridSize(1, 1).weightX(10.0));
-    final JButton ok = new JButton("OK");
-    inputPanel.add(ok, constrainer.at(3, 3).weightX(0.0));
+    Constrainer constraint = new Constrainer();
+    inputPanel.add(new JLabel("Please Enter the Reference Text, from the <ref> to the </ref>, inclusive."), constraint.at(0, 0).gridSize(5, 1));
+    inputPanel.add(scrollPane, new Constrainer(constraint).at(0, 1).weight(1.0, 1.0));
+    inputPanel.add(Box.createVerticalStrut(6), constraint.at(1, 2));
+//    inputPanel.add(Box.createHorizontalStrut(10), constraint.at(0, 3).weightX(10.0));
+    inputPanel.add(Box.createHorizontalGlue(), constraint.at(0, 3).gridSize(1, 1).weightX(10.0));
+    Borders.insertBorder(inputPanel, new MatteBorder(24, 24, 24, 24, inputPanel.getBackground()));
     final JButton cancel = new JButton("Cancel");
-    inputPanel.add(cancel, constrainer.at(4, 3));
-    inputPanel.add(Box.createHorizontalStrut(12), constrainer.at(2, 3));
-    final JButton paste = new JButton("Paste");
-    inputPanel.add(paste, constrainer.at(1, 3).iPadX(12));
-    Borders.addMatte(inputPanel, 24);
-
+    inputPanel.add(cancel, constraint.at(3, 3).weightX(0.0));
+    final JButton ok = new JButton("OK");
+    inputPanel.add(ok, constraint.at(4, 3));
+    inputPanel.add(Box.createHorizontalStrut(12), constraint.at(2, 3));
 
     JDialog dialog = new JDialog((JFrame)getRootPane().getParent());
     dialog.add(inputPanel, BorderLayout.CENTER);
@@ -635,20 +638,10 @@ public class RefBuilder extends JPanel {
 
     ok.addActionListener(e -> doOkay(dialog, textArea));
     cancel.addActionListener(e -> dialog.dispose());
-    paste.addActionListener(e -> doPaste(textArea));
+    dialog.getRootPane().setDefaultButton(ok);
 
     dialog.pack();
     dialog.setVisible(true);
-  }
-  
-  private void doPaste(JTextArea textArea) {
-    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-    try {
-      String data = clipboard.getData(DataFlavor.stringFlavor).toString();
-      textArea.setText(data);
-    } catch (UnsupportedFlavorException | IOException e) {
-      throw new IllegalStateException(e);
-    }
   }
   
   private void doOkay(JDialog dialog, JTextArea textArea) {
@@ -667,56 +660,100 @@ public class RefBuilder extends JPanel {
       }
     }
   }
-  
+
   void unpack(WikiReference reference) {
     RefKey citeType = reference.getRefKey();
     String citeName = citeType.name();
+    RefTabPane selectedTab = null; 
+    
     findTab:
     for (int i=0; i< tabPane.getTabCount(); ++i) {
       if (tabPane.getTitleAt(i).equals(citeName)) {
         citeName = citeType.toString();
         tabPane.setSelectedIndex(i);
+        selectedTab = tabPane.getSelectedComponent();
         break findTab;
       }
+    }
+    
+    if (selectedTab == null) {
+      throw new IllegalStateException(String.format("No Selected Tab named %s", citeName));
     }
     if (citeName.isEmpty()) {
       throw new IllegalStateException("No Cite type Found");
     }
-    getNameField().setText(reference.getName());
-    for (String key : reference.getDataKeys()) {
-      String nameKey = String.format("%s.%s", citeName, key);
-      try {
-        final Document document = nameMap.get(nameKey);
-        if (document == null) {
-          System.err.printf("Missing document for %s%n", nameKey); // NON-NLS
-        } else {
-          final String value = reference.getDataMap().get(key);
+    getKeyField().setText(reference.getName());
+
+    Set<String> tableKeys = new TreeSet<>(List.of("first", "last", "editor-first", "editor-last"));
+    Map<String, Author> suffixToAuthorMap = new TreeMap<>();
+    final List<String> dataKeys = reference.getDataKeys();
+    Map<String, String> valueMap = reference.getDataMap();
+    for (String key : dataKeys) {
+      String value = valueMap.get(key);
+      // First, see if it belongs in the table. "Normal" here means it doesn't belong in the table.
+      boolean isNormal = true;
+      for (String tableKey : tableKeys) {
+        if (key.toLowerCase().startsWith(tableKey)) {
+          isNormal = false;
+          String suffix = key.substring(tableKey.length());
+          Role role = (tableKey.charAt(0) == 'e') ? Role.EDITOR : Role.WRITER;
+          Author newAuthor = tableKey.contains("f") ? Author.ofFirstName(value, role) : Author.ofLastName(value, role);
+          suffixToAuthorMap.merge(suffix, newAuthor, Author::copyFrom);
+        }
+      }
+      if (isNormal) {
+        String nameKey = String.format("%s.%s", citeName, key);
+        try {
+          Document document = keyMap.get(nameKey);
+          if (document == null) {
+            document = makeFixedField(selectedTab.getTabContent(), citeName, key, true); // unexpected
+          }
           if (value != null) {
             document.insertString(0, value, null);
           }
+        } catch (BadLocationException e) {
+          throw new IllegalStateException(String.format("Could not insert %s", nameKey), e);
         }
-      } catch (BadLocationException e) {
-        throw new IllegalStateException(String.format("Could not insert %s", nameKey), e);
       }
     }
-  }
+    List<Author> authorList = new LinkedList<>();
 
+    for (Author author : suffixToAuthorMap.values()) {
+      if (author.getRole() == Role.WRITER) {
+        authorList.add(author);
+      }
+    }
+    for (Author author : suffixToAuthorMap.values()) {
+      if (author.getRole() == Role.EDITOR) {
+        authorList.add(author);
+      }
+    }
+    AuthorTableModel tableModel = getCurrentTableModel();
+    tableModel.populateAuthors(authorList);
+  }
+  
+  private static class ReferenceTabbedPane extends JTabbedPane {
+    @Override
+    public RefTabPane getSelectedComponent() {
+      return (RefTabPane) super.getSelectedComponent();
+    }
+  }
+  
   /**
    * <p>A DisplayComponent consists of a text editor and a checkbox called "Big." The check box toggles the 
    * text editor between a JTextField and a JTextArea, both of which share the same data model, the Document.</p>
    */
   @SuppressWarnings("MagicCharacter")
-  private static class DisplayComponent extends JPanel {
+  private static class SingleFieldDisplay extends JPanel {
     private final ButtonModel buttonModel;
     private final Document document;
     
     private static final DocumentFilter mainDocumentFilter = getMainDocumentFilter();
 
-    DisplayComponent() {
+    SingleFieldDisplay() {
       super(new BorderLayout());
       JTextField textField = new JTextField(1);
 //      System.out.printf("InputMap size = %d%n", textField.getInputMap(JComponent.WH).size()); // NON-NLS
-      LandF.addOSXKeyStrokesMac(textField);
 //      System.out.printf("InputMap revised size = %d%n", textField.getInputMap().size()); // NON-NLS
 //      showInputMapSizes(textField);
 //      textField.addHierarchyListener(new HierarchyListener() {
@@ -737,6 +774,7 @@ public class RefBuilder extends JPanel {
 
       add(textField, BorderLayout.CENTER);
       JCheckBox big = new JCheckBox("Big");
+      big.setToolTipText("Enlarges this field value for more text");
       big.setSelected(false);
       buttonModel = big.getModel();
       big.addItemListener(e -> toggleBig(e, buttonModel));
@@ -789,13 +827,11 @@ public class RefBuilder extends JPanel {
         final int rows = 5;
         final int columns = 1;
         JTextArea textArea = new JTextArea(document, null, rows, columns);
-        LandF.addOSXKeyStrokesMac(textArea);
         JScrollPane scrollPane = scrollWrapTextArea(textArea);
         remove(0); // replace the existing JTextField
         addImpl(scrollPane, BorderLayout.CENTER, 0);
       } else {
         JTextField textField = new JTextField(document, null, 1);
-        LandF.addOSXKeyStrokesMac(textField);
         remove(0); // replace the existing JTextArea
         addImpl(textField, BorderLayout.CENTER, 0);
       }
@@ -809,6 +845,12 @@ public class RefBuilder extends JPanel {
 
   }
 
+  /**
+   * <p>Create a scrollable version of a JPanel with sensible scrolling defaults. This needs to be added to
+   * a JScrollPane to be useful. The JScrollPane is not included in this class. It scrolls vertically only.
+   * Clicking the up or down arrow moves the field by a single line of text. The block scrolling size adjusts to
+   * changes in the panel's preferred size.</p>
+   */
   private class ScrollingPane extends JPanel implements Scrollable {
     private final int unitIncrement = 13;
     ScrollingPane(LayoutManager layoutManager) {
@@ -852,48 +894,52 @@ public class RefBuilder extends JPanel {
         HORIZONTAL_SCROLLBAR_NEVER);
   }
 
-  private JComponent makeFakeLabel(String text) {
-
+  private JComponent makeFakeLabel(String text, boolean unexpected) {
+    // I don't remember why I decided to use a JTextField that looks and acts like a JLabel, but it
+    // may have had something to do with the Aqua look and feel.
     JTextField textField = new JTextField(text);
     textField.setEnabled(false);
     textField.setBackground(fakeLabelColor);
-    textField.setForeground(textFieldForeground);
-    textField.setOpaque(false);
-    Border textFieldBorder = textField.getBorder();
-    if (textFieldBorder.getClass().toString().contains("Aqua")) {
-      textFieldBorder = new MatteBorder(5, 5, 5, 5, textFieldBgColor);
-      textField.setBorder(textFieldBorder);
+    if (unexpected) {
+      textField.setForeground(Color.RED.darker()); // Figure out why this doesn't work.
     }
+    textField.setOpaque(false);
+    textField.setBorder(matteBorder5px);
   
-//    System.out.printf("Border: %s%n", textField.getBorder()); // NON-NLS
-//    System.out.printf("    of  %s%n", textField.getBorder()); // NON-NLS
-//    System.out.println("Borders:");
-//    uiDefaults.keySet()
-//        .stream()
-////        .filter(s -> s.toString().contains("border") || s.toString().contains("font"))
-//        .filter(s -> s.toString().contains("TextField"))
-//        .forEach(s -> System.out.printf("%-40s: %s%n", s, uiDefaults.get(s)));
     return textField;
   }
   
-  private JTextField getNameField() {
-    final Component selectedComponent = tabPane.getSelectedComponent();
-    RefTabPane selectedPane = (RefTabPane) selectedComponent;
+  private JTextField getKeyField() {
+    RefTabPane selectedPane = tabPane.getSelectedComponent();
     return selectedPane.getNameField();
   }
-  
+
+  /**
+   * The AuthorNameEditorPane contains a table with all the keys used to specify the names of authors and
+   * editors. I handle these separately because they take a different form than most tags, because there
+   * may be multiple authors and multiple editors. If there is only on author or editor, the first and
+   * last name keys will be "first" and "last" for an author, or "editor-first" and "editor-last" for an
+   * editor. But if there are multiple people for either category, then these field keys get a number after
+   * the key. So they could be "first1", "last1", "first2", "last2" and so on. The same goes for editors.
+   */
   private static final class AuthorNameEditorPane extends JPanel {
+
+    private final JTable table;
+
     private AuthorNameEditorPane(List<Runnable> terminatorOperationList, AuthorTableModel tableModel) {
       super(new BorderLayout());
-      JTable table = new JTable(tableModel);
+      table = new JTable(tableModel);
       table.setFillsViewportHeight(true);
-      table.setPreferredScrollableViewportSize(getPreferredSize());
       table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
       JScrollPane scrollPane
-          = new JScrollPane(table, VERTICAL_SCROLLBAR_NEVER, HORIZONTAL_SCROLLBAR_NEVER);
+          = new JScrollPane(table, VERTICAL_SCROLLBAR_ALWAYS, HORIZONTAL_SCROLLBAR_NEVER);
+      table.setPreferredScrollableViewportSize(table.getPreferredSize());
       add(scrollPane, BorderLayout.CENTER);
       tableModel.addRowCountListener(()-> {
+        // This readjusts the size of the enclosing JScrollPane to match the JTable. It's what allows us
+        // to expand the table's screen size when the user adds a row or when importing data.
         table.setPreferredScrollableViewportSize(table.getPreferredSize());
+        table.revalidate();
         revalidate();
         paintImmediately(getBounds());
       });
@@ -918,8 +964,14 @@ public class RefBuilder extends JPanel {
       };
       terminatorOperationList.add(terminationOperation);
     }
+    
+    private JTable getTable() { return table; }
   }
-  
+
+  /**
+   * <p>The Author class handles first and last names for authors and editors. The role of author or editor
+   * is handled by the Role field, which has values of "Writer" and "Editor"</p>
+   */
   private static class Author {
     private String first="";
     private String last="";
@@ -930,7 +982,7 @@ public class RefBuilder extends JPanel {
     }
 
     public void setFirst(String first) {
-      this.first = first;
+      this.first = avoidNull(first);
     }
 
     public String getLast() {
@@ -938,7 +990,7 @@ public class RefBuilder extends JPanel {
     }
 
     public void setLast(String last) {
-      this.last = last;
+      this.last = avoidNull(last);
     }
 
     public Role getRole() {
@@ -948,8 +1000,53 @@ public class RefBuilder extends JPanel {
     public void setRole(Role role) {
       this.role = role;
     }
+    
+    public static Author ofFirstName(String firstName, Role role) {
+      Author author = new Author();
+      author.setFirst(firstName);
+      author.setRole(role);
+      return author;
+    }
+    
+    public static Author ofLastName(String lastName, Role role) {
+      Author author = new Author();
+      author.setLast(lastName);
+      author.setRole(role);
+      return author;
+    }
+    
+    public static Author ofRole(Role role) {
+      Author author = new Author();
+      author.setRole(role);
+      return author;
+    }
+    
+    public static Author remap(Author existing, Author newAuthor) {
+      return existing.copyFrom(newAuthor);
+    }
+    
+    public Author copyFrom(Author other) {
+      if (!other.getFirst().isEmpty()) {
+        setFirst(other.getFirst());
+      }
+      if (!other.getLast().isEmpty()) {
+        setLast(other.getLast());
+      }
+      return this;
+    }
   }
   
+  private static String avoidNull(String s) {
+    if (s == null) { return ""; }
+    return s;
+  }
+
+  /**
+   * <p>The AuthorTableModel is the TableModel for the JTable that holds the first and last names of all the
+   * authors and editors. For ease of maintenance, this model divides the data into separate row models and 
+   * column models. The RowModel is a list of {@code Author} instances, and the columns are instances of
+   * {@TableColumn}.</p>
+   */
   private static class AuthorTableModel extends AbstractTableModel {
     private final List<TableColumn<Author, ?>> columnList = new ArrayList<>();
     private final List<Author> rowModel = new ArrayList<>();
@@ -977,7 +1074,7 @@ public class RefBuilder extends JPanel {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
       if (rowIndex == rowModel.size()) {
-        return (columnIndex == ROLE_COLUMN) ? Role.NONE : "";
+        return "";
       }
       final Author author = rowModel.get(rowIndex);
       return columnList.get(columnIndex).getter.apply(author);
@@ -989,13 +1086,17 @@ public class RefBuilder extends JPanel {
         final Author blankAuthor = new Author();
         
         // Role defaults to the value from the previous row, or WRITER for row zero.
-        Role defaultRole = (rowIndex == 0) ? Role.WRITER : (Role) getValueAt(rowIndex - 1, ROLE_COLUMN);
-        blankAuthor.setRole(defaultRole);
+//        Role defaultRole = (rowIndex == 0) ? Role.WRITER : (Role) getValueAt(rowIndex - 1, ROLE_COLUMN);
+//        blankAuthor.setRole(defaultRole);
         rowModel.add(blankAuthor);
       }
       final Author author = rowModel.get(rowIndex);
       setValueImpl(aValue, columnIndex, author);
       fireTableRowsInserted(rowIndex+1, rowIndex+1);
+      fireLocalRowCountUpdated();
+    }
+
+    private void fireLocalRowCountUpdated() {
       for (Runnable listener: rowCountListenerList) {
         listener.run();
       }
@@ -1025,8 +1126,23 @@ public class RefBuilder extends JPanel {
     public void addRowCountListener(Runnable listener) {
       rowCountListenerList.add(listener);
     }
+    
+    public void populateAuthors(List<Author> authors) {
+//      int rowCount = authors.size();
+      rowModel.clear();
+      rowModel.addAll(authors);
+//      fireTableRowsUpdated(0, rowCount - 1);
+//      fireTableRowsInserted(rowCount, rowModel.size() - rowCount);
+      fireTableRowsUpdated(0, rowModel.size() - 1);
+      fireLocalRowCountUpdated();
+    }
   }
-  
+
+  /**
+   * <p>This class implements the ColumnModel of the AuthorTableModel.</p>
+   * @param <R> The RowModel Type
+   * @param <C>The class of the items held in the column.
+   */
   private static class TableColumn<R, C> {
     private final String title;
     final Class<C> valueClass;
@@ -1049,7 +1165,10 @@ public class RefBuilder extends JPanel {
       return title;
     }
   }
-  
+
+  /**
+   * <p>The Role of each Author or Editor. </p>
+   */
   private enum Role {
     WRITER(""),
     EDITOR("editor-"),
@@ -1069,11 +1188,14 @@ public class RefBuilder extends JPanel {
       return super.toString();
     }
   }
-  
+
+  /**
+   * <p>Class to hold a key/value pair.</p>
+   */
   private static class Tag {
     private final String subject;
     @Nullable
-    private final String name;
+    private final String key;
     
     private final int hash;
     
@@ -1081,11 +1203,11 @@ public class RefBuilder extends JPanel {
       String[] fields = tag.split(DELIMITER);
       subject = fields[0].trim();
       if (fields.length == 1) {
-        name = null;
+        key = null;
       } else {
-        name = fields[1].trim();
+        key = fields[1].trim();
       }
-      hash = Objects.hash(subject, name);
+      hash = Objects.hash(subject, key);
     }
 
     public String getSubject() {
@@ -1093,8 +1215,8 @@ public class RefBuilder extends JPanel {
     }
 
     @Nullable
-    public String getName() {
-      return name;
+    public String getKey() {
+      return key;
     }
 
     @Override
@@ -1110,7 +1232,7 @@ public class RefBuilder extends JPanel {
       if (!subject.equals(that.subject)) {
         return false;
       }
-      return Objects.equals(name, that.name);
+      return Objects.equals(key, that.key);
     }
 
     @Override
@@ -1118,19 +1240,24 @@ public class RefBuilder extends JPanel {
       return hash;
     }
   }
-  
+
+  /**
+   * The class added to each tab in the JTabbedPane. Calling {@code getSelectedPane()} returns an instance of
+   * this class.
+   */
   private class RefTabPane extends JPanel {
     private final JTextField nameField = new JTextField();
+    private final String tabSubject;
+    private final JPanel tabContent;
+    private final AuthorNameEditorPane editorPane;
 
     RefTabPane(String subject) {
       super(new BorderLayout());
+      tabSubject = subject;
 
-//      LandF.addOSXKeyStrokesMac(nameField);
-//      add(makeControlNorthPane(nameField), BorderLayout.PAGE_END);
-      LandF.addOSXKeyStrokesMac(nameField);
-      add(makeControlNorthPane(nameField), BorderLayout.PAGE_END);
+      add(makeControlPane(nameField), BorderLayout.PAGE_END);
 
-      JPanel tabContent = new ScrollingPane(new GridBagLayout());
+      tabContent = new ScrollingPane(new GridBagLayout());
       Borders.addMatte(tabContent, 0, 4, 0, 4);
 
       GridBagConstraints tableConstraint = (constrain(0));
@@ -1139,19 +1266,26 @@ public class RefBuilder extends JPanel {
       tableConstraint.ipady = 0;
       AuthorTableModel tableModel = new AuthorTableModel();
       tableModelMap.put(subject, tableModel);
-      tabContent.add(new AuthorNameEditorPane(editorTerminatorOperations, tableModel), tableConstraint);
+      editorPane = new AuthorNameEditorPane(editorTerminatorOperations, tableModel);
+      tabContent.add(editorPane, tableConstraint);
       tabContent.add(hStrut(1), constrain(0));
       tabContent.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
       Set<String> nameSet = subjectMap.get(subject);
       for (String name : nameSet) {
-        makeFixedField(tabContent, subject, name);
+        makeFixedField(tabContent, subject, name, false);
       }
 
-      // We create one last invisible row and give it a weighty of 1.0 to push everything above it to the top of the
-      // tab pane.
-      GridBagConstraints constraints = constrain(1);
-      constraints.weighty = 1.0f;
-      tabContent.add(hStrut(1), constraints);
+      // We create one last invisible row and give the components a weighty of 1.0 to push everything 
+      // above it to the top of the tab pane.
+      GridBagConstraints strutConstraint = constrain(0);
+      strutConstraint.weighty = 1.0f;
+      tabContent.add(new JLabel(" "), strutConstraint);
+      strutConstraint.gridx = 1;
+      tabContent.add(new JLabel(" "), strutConstraint);
+      // We give it a second column, so we can add custom fields after it.
+//      final GridBagConstraints vConstraint = constrain(0);
+//      vConstraint.weighty = 1.0f;
+      
       final JScrollPane scrollPane = new JScrollPane(tabContent, VERTICAL_SCROLLBAR_ALWAYS, HORIZONTAL_SCROLLBAR_NEVER);
       scrollPane.getViewport().setBackground(textFieldBgColor);
       add(scrollPane, BorderLayout.CENTER);
@@ -1160,6 +1294,12 @@ public class RefBuilder extends JPanel {
     JTextField getNameField() {
       return nameField;
     }
+    
+    String getSubject() { return tabSubject; }
+    
+    JPanel getTabContent() { return tabContent; }
+    
+    AuthorNameEditorPane getEditorPane() { return editorPane; }
   }
 }
 
