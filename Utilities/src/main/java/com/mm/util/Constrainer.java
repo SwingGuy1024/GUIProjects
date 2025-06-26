@@ -50,14 +50,32 @@ import org.jetbrains.annotations.Range;
  * <br>Time: 4:59 PM
  * <br>@author Miguel Muñoz</p>
  */
+@SuppressWarnings("unused")
 public class Constrainer extends GridBagConstraints {
 //  private final JPanel panel;
 //  private GridBagConstraints constraints = defaultConstraint();
   
   public Constrainer() {
     super();
-    fill = GridBagConstraints.BOTH;
-  } 
+    //noinspection AssignmentToSuperclassField
+    super.fill = GridBagConstraints.BOTH;
+  }
+
+  /**
+   * <p>Copy Constructor. Use this to make a copy of another instance of Constrainer or GridBagConstraints.</p>
+   * @param model The original Constrainer to copy.
+   */
+  public Constrainer(GridBagConstraints model) {
+    this();
+    this.at(model.gridx, model.gridy)
+        .anchor(model.anchor)
+        .fill(model.fill)
+        .gridSize(model.gridwidth, model.gridheight)
+        .weight(model.weightx, model.weighty)
+        .insets(model.insets)
+        .pad(model.ipadx, model.ipady)
+        ;
+  }
 
 //  private static GridBagConstraints defaultConstraint() {
 //    GridBagConstraints constraints = new GridBagConstraints();
@@ -82,8 +100,8 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the gridx and gridy properties to x and y, respectively.
-   * @param x
-   * @param y
+   * @param x the new gridx value
+   * @param y the new gridy value
    * @return this, for method chaining
    * @see #gridx(int)
    * @see #gridy(int)
