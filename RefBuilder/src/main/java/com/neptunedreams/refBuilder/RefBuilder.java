@@ -615,6 +615,7 @@ public class RefBuilder extends JPanel {
     return set;
   }
   
+  @SuppressWarnings("MagicNumber")
   private void doImport() {
     JTextArea textArea = new JTextArea(6, 80);
     JScrollPane scrollPane = scrollWrapTextArea(textArea);
@@ -698,7 +699,7 @@ public class RefBuilder extends JPanel {
           String suffix = key.substring(tableKey.length());
           Role role = (tableKey.charAt(0) == 'e') ? Role.EDITOR : Role.WRITER;
           Author newAuthor = tableKey.contains("f") ? Author.ofFirstName(value, role) : Author.ofLastName(value, role);
-          suffixToAuthorMap.merge(suffix, newAuthor, Author::copyFrom);
+          suffixToAuthorMap.merge(suffix, newAuthor, Author::remap);
         }
       }
       if (isNormal) {
@@ -1025,12 +1026,12 @@ public class RefBuilder extends JPanel {
       return existing.copyFrom(newAuthor);
     }
     
-    public Author copyFrom(Author other) {
-      if (!other.getFirst().isEmpty()) {
-        setFirst(other.getFirst());
+    public Author copyFrom(Author newAuthor) {
+      if (!newAuthor.getFirst().isEmpty()) {
+        setFirst(newAuthor.getFirst());
       }
-      if (!other.getLast().isEmpty()) {
-        setLast(other.getLast());
+      if (!newAuthor.getLast().isEmpty()) {
+        setLast(newAuthor.getLast());
       }
       return this;
     }
@@ -1045,7 +1046,7 @@ public class RefBuilder extends JPanel {
    * <p>The AuthorTableModel is the TableModel for the JTable that holds the first and last names of all the
    * authors and editors. For ease of maintenance, this model divides the data into separate row models and 
    * column models. The RowModel is a list of {@code Author} instances, and the columns are instances of
-   * {@TableColumn}.</p>
+   * {@code TableColumn}.</p>
    */
   private static class AuthorTableModel extends AbstractTableModel {
     private final List<TableColumn<Author, ?>> columnList = new ArrayList<>();
