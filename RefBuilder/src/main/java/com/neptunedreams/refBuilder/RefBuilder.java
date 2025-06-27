@@ -257,6 +257,7 @@ public class RefBuilder extends JPanel {
     tabPane.addChangeListener(e -> result.setText("")); // Clear the bottom JTextArea
     JComponent scrollPane = scrollWrapTextArea(result);
     controlPane.add(scrollPane, BorderLayout.CENTER);
+    result.setEditable(false);
     ActionListener actionListener = e -> buildReferenceText(result, getKeyField().getText().trim());
 
     JPanel createPane = makeCreatePane(actionListener);
