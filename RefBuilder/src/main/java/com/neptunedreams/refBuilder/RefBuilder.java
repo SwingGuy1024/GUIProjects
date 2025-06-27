@@ -61,8 +61,6 @@ import javax.swing.Scrollable;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
-import javax.swing.border.Border;
-import javax.swing.border.MatteBorder;
 import javax.swing.event.CaretListener;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.TableCellEditor;
@@ -111,7 +109,7 @@ import static javax.swing.ScrollPaneConstants.*;
  * <p>Time: 4:01&nbsp;AM</p>
  * <p>@author Miguel Muñoz</p>
  */
-@SuppressWarnings({"StringConcatenation", "MagicCharacter"})
+@SuppressWarnings("MagicNumber")
 public class RefBuilder extends JPanel {
 
   // Done: Add buttons for lower case and title case. 
@@ -174,9 +172,10 @@ public class RefBuilder extends JPanel {
       .boxed()
       .collect(Collectors.toUnmodifiableSet());
   public static final String REFERENCE_BUILDER = "Reference Builder";
+  public static final char NBSP = '\u00a0'; // Non-breaking space
+  public static final char SPACE = ' ';
 
   private final Color textFieldBgColor;
-  private final Border matteBorder5px;
   private final Color fakeLabelColor = new Color(0, 0, 0, 0);
   private final ReferenceTabbedPane tabPane = new ReferenceTabbedPane();
   private final Map<String, AuthorTableModel> tableModelMap = new HashMap<>();
@@ -224,7 +223,6 @@ public class RefBuilder extends JPanel {
     UIDefaults uiDefaults = UIManager.getDefaults();
     Color textFieldForeground = Color.black; // uiDefaults.getColor("Label.foreground");
     textFieldBgColor = uiDefaults.getColor("Label.background");
-    matteBorder5px = BorderFactory.createMatteBorder(5, 5, 5, 5, textFieldBgColor);
     uiDefaults.put("TextField.inactiveForeground", textFieldForeground);
     subjectMap = new HashMap<>();
     populate(subjectMap);
@@ -248,6 +246,7 @@ public class RefBuilder extends JPanel {
     JPanel importPanel = new JPanel(new BorderLayout());
     importPanel.add(importButton, BorderLayout.LINE_END);
     importButton.addActionListener(e -> doImport());
+    Borders.addEmptyBorder(importPanel, 12);
     return importPanel;
   }
 
@@ -376,7 +375,7 @@ public class RefBuilder extends JPanel {
     for (char ch : s.toCharArray()) {
       if (banned.contains((int) ch)) {
         builder.append(String.format("%%%02x", (int) ch));
-      } else if (ch == '\u00a0') { // nbsp
+      } else if (ch == NBSP) { // Non-breaking space
         builder.append("&nbsp;");
       } else {
         builder.append(ch);
@@ -406,8 +405,8 @@ public class RefBuilder extends JPanel {
       }
     }
     
-    String firstName = role.namePrefix + "first";
-    String lastName = role.namePrefix + "last";
+    @NonNls String firstName = role.namePrefix + "first";
+    @NonNls String lastName = role.namePrefix + "last";
     if (firstNameList.size() == 1) {
       String firstText = firstNameList.get(0);
       String lastText = lastNameList.get(0);
@@ -452,12 +451,14 @@ public class RefBuilder extends JPanel {
     JPanel northPane = new JPanel(new BorderLayout());
     northPane.add(nameLabel, BorderLayout.LINE_START);
     northPane.add(textField, BorderLayout.CENTER);
-    Borders.addMatte(northPane, 4);
+    Borders.addEmptyBorder(northPane, 4);
     return northPane;
   }
 
   /**
-   * The CreatePane sits at the bottom of the control pane. It just has the "Create" button, on the right. 
+   * <p>The CreatePane sits at the bottom-rite of the control pane, which itself sits at the bottom of the window.
+   * It just has the "Create" button, on the right.</p> 
+   * @param actionListener The ActionListener to be fired by the "Create and Copy" button.
    * @return The Create pane
    */
   @NotNull
@@ -465,7 +466,9 @@ public class RefBuilder extends JPanel {
     JButton createButton = new JButton("Create and Copy");
     createButton.addActionListener(actionListener);
     JPanel createPane = new JPanel(new BorderLayout());
-    createPane.add(createButton, BorderLayout.LINE_END);
+    JPanel trailingPanel = new JPanel(new FlowLayout(FlowLayout.TRAILING));
+    trailingPanel.add(createButton);
+    createPane.add(trailingPanel, BorderLayout.LINE_END);
     
     createPane.add(makeControlUtilityPane(), BorderLayout.LINE_START);
     return createPane;
@@ -550,7 +553,7 @@ public class RefBuilder extends JPanel {
       String lower = word.toLowerCase();
       builder.append(Character.toTitleCase(lower.charAt(0)));
       builder.append(lower.substring(1));
-      builder.append(' ');
+      builder.append(SPACE);
     }
     return builder.toString().trim();
   }
@@ -615,8 +618,8 @@ public class RefBuilder extends JPanel {
     return set;
   }
   
-  @SuppressWarnings("MagicNumber")
   private void doImport() {
+    final int MATTE_SIZE = 24;
     JTextArea textArea = new JTextArea(6, 80);
     JScrollPane scrollPane = scrollWrapTextArea(textArea);
     JPanel inputPanel = new JPanel(new GridBagLayout());
@@ -624,9 +627,8 @@ public class RefBuilder extends JPanel {
     inputPanel.add(new JLabel("Please Enter the Reference Text, from the <ref> to the </ref>, inclusive."), constraint.at(0, 0).gridSize(5, 1));
     inputPanel.add(scrollPane, new Constrainer(constraint).at(0, 1).weight(1.0, 1.0));
     inputPanel.add(Box.createVerticalStrut(6), constraint.at(1, 2));
-//    inputPanel.add(Box.createHorizontalStrut(10), constraint.at(0, 3).weightX(10.0));
     inputPanel.add(Box.createHorizontalGlue(), constraint.at(0, 3).gridSize(1, 1).weightX(10.0));
-    Borders.insertBorder(inputPanel, new MatteBorder(24, 24, 24, 24, inputPanel.getBackground()));
+    Borders.insertEmptyBorder(inputPanel, MATTE_SIZE);
     final JButton cancel = new JButton("Cancel");
     inputPanel.add(cancel, constraint.at(3, 3).weightX(0.0));
     final JButton ok = new JButton("OK");
@@ -697,7 +699,7 @@ public class RefBuilder extends JPanel {
         if (key.toLowerCase().startsWith(tableKey)) {
           isNormal = false;
           String suffix = key.substring(tableKey.length());
-          Role role = (tableKey.charAt(0) == 'e') ? Role.EDITOR : Role.WRITER;
+          Role role = (Character.toLowerCase(tableKey.charAt(0)) == 'e') ? Role.EDITOR : Role.WRITER;
           Author newAuthor = tableKey.contains("f") ? Author.ofFirstName(value, role) : Author.ofLastName(value, role);
           suffixToAuthorMap.merge(suffix, newAuthor, Author::remap);
         }
@@ -744,7 +746,6 @@ public class RefBuilder extends JPanel {
    * <p>A DisplayComponent consists of a text editor and a checkbox called "Big." The check box toggles the 
    * text editor between a JTextField and a JTextArea, both of which share the same data model, the Document.</p>
    */
-  @SuppressWarnings("MagicCharacter")
   private static class SingleFieldDisplay extends JPanel {
     private final ButtonModel buttonModel;
     private final Document document;
@@ -775,7 +776,7 @@ public class RefBuilder extends JPanel {
 
       add(textField, BorderLayout.CENTER);
       JCheckBox big = new JCheckBox("Big");
-      big.setToolTipText("Enlarges this field value for more text");
+      big.setToolTipText("Enlarges this Text field for more text");
       big.setSelected(false);
       buttonModel = big.getModel();
       big.addItemListener(e -> toggleBig(e, buttonModel));
@@ -783,7 +784,6 @@ public class RefBuilder extends JPanel {
 //      add(big, BorderLayout.LINE_END);
     }
     
-    @SuppressWarnings("MagicConstant")
     private void showInputMapSizes(JComponent cmp) {
       final int[] conditions = {
           JComponent.WHEN_FOCUSED,
@@ -811,7 +811,7 @@ public class RefBuilder extends JPanel {
           StringBuilder builder = new StringBuilder();
           for (char c : string.toCharArray()) {
             if (forbidden.contains((int) c)) {
-              builder.append(' ');
+              builder.append(SPACE);
             } else {
               builder.append(c);
             }
@@ -905,7 +905,7 @@ public class RefBuilder extends JPanel {
       textField.setForeground(Color.RED.darker()); // Figure out why this doesn't work.
     }
     textField.setOpaque(false);
-    textField.setBorder(matteBorder5px);
+    textField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
   
     return textField;
   }
@@ -1012,12 +1012,6 @@ public class RefBuilder extends JPanel {
     public static Author ofLastName(String lastName, Role role) {
       Author author = new Author();
       author.setLast(lastName);
-      author.setRole(role);
-      return author;
-    }
-    
-    public static Author ofRole(Role role) {
-      Author author = new Author();
       author.setRole(role);
       return author;
     }
@@ -1175,7 +1169,7 @@ public class RefBuilder extends JPanel {
     EDITOR("editor-"),
     NONE("");
     
-    final String namePrefix;
+    final @NonNls String namePrefix;
     Role(String namePrefix) {
       this.namePrefix = namePrefix;
     }
@@ -1255,11 +1249,12 @@ public class RefBuilder extends JPanel {
     RefTabPane(String subject) {
       super(new BorderLayout());
       tabSubject = subject;
+      Borders.addEmptyBorder(this, 12);
 
       add(makeControlPane(nameField), BorderLayout.PAGE_END);
 
       tabContent = new ScrollingPane(new GridBagLayout());
-      Borders.addMatte(tabContent, 0, 4, 0, 4);
+      Borders.addEmptyBorder(tabContent, 0, 4, 0, 4);
 
       GridBagConstraints tableConstraint = (constrain(0));
       tableConstraint.gridwidth = 3;
