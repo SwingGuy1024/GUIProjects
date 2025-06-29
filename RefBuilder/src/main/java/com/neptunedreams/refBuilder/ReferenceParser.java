@@ -85,10 +85,11 @@
 
 package com.neptunedreams.refBuilder;
 
-import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
+
+import javax.swing.JOptionPane;
 
 import com.neptunedreams.refBuilder.AbstractParser.Marker;
 import com.neptunedreams.refBuilder.AbstractParser.Token;
@@ -193,26 +194,42 @@ public class ReferenceParser {
   private WikiReference wikiReference = new WikiReference();
 
   public ReferenceParser(String text) {
-    reader = new FreePushbackReader(new BufferedReader(new StringReader(text)));
+    reader = new FreePushbackReader(new StringReader(text));
     keywordProcessor = new RefKeywordProcessor(reader);
     rawTextParser = new RawTextParser(reader);
   }
 
   public List<WikiReference> parse() {
-    int ch = reader.read();
+    // ToDo. Pull try/catch out of this class and into RefBuilder class. JOptionPane doesn't belong here.
     List<WikiReference> references = new LinkedList<>();
-    if (ch == -1) {
-      return references; // Return the empty List.
-    }
-    Token nextToken = new Token(Marker.noMarker, String.valueOf((char)ch));
+//    int ch = reader.read();
+//    if (ch == -1) {
+//      return references; // Return the empty List.
+//    }
+//    Token nextToken = new Token(Marker.noMarker, String.valueOf((char)ch));
     try {
+      Token nextToken = new Token(Marker.noMarker, "");
       do {
-        reader.unread(nextToken.text().toCharArray());
-        nextToken = parseReference(references);
+        reader.unread(nextToken.text().toCharArray()); // We start by unreading the first token of the next reference
+        // This call will either return a Token with Marker.end, or the first token of the next reference.
+        nextToken = parseReference(references); // Ths method adds the newly parsed reference to the list
       } while (nextToken.marker() != Marker.end);
     } catch (IllegalStateException e) {
+      Throwable exception = e;
       int count = reader.getCount();
-      throw new IllegalStateException(String.format("Unexpected error after %d characters", count), e);
+      StringBuilder error = new StringBuilder(String.format("Unexpected error after %d characters.", count));
+      do {
+        error.append("<br>").append(exception.getMessage());
+        exception = exception.getCause();
+      } while (exception != null);
+      String stringSoFar = RefBuilder.clean(reader.getStringSoFar(), false);
+      final int lengthSoFar = stringSoFar.length();
+      if (lengthSoFar > 40) {
+        stringSoFar = '…' + stringSoFar.substring(lengthSoFar - 37);
+      }
+      error.append("<br>Text so far:<br>").append(stringSoFar);
+      error.insert(0, "<html><p>").append("</p></html>");
+      JOptionPane.showMessageDialog(null, error.toString(), "Error", JOptionPane.ERROR_MESSAGE);
     }
     return references;
   }
@@ -231,8 +248,13 @@ public class ReferenceParser {
     } while (nextToken.marker() != Marker.end);
     return nextToken;
   }
-  
-  private void parseRefOpen() {
+
+  /*
+   **   refOpen:
+   *      TAG_OPEN REF TAG_CLOSE
+   *      TAG_OPEN REF NAME = quoted_name TAG_CLOSE
+   */
+  void parseRefOpen() {
     expect(Marker.tagOpen, Marker.ref);
     Token token = keywordProcessor.getToken();
     if (token.marker() == Marker.name) {
@@ -244,19 +266,19 @@ public class ReferenceParser {
     verify(token, Marker.tagClose);
   }
   
-  private Token parseRefClose() {
+  Token parseRefClose() {
     expect(Marker.tagOpen, Marker.slash, Marker.ref, Marker.tagClose);
     return keywordProcessor.getToken();
   }
   
-  private String parseQuotedName() {
+  String parseQuotedName() {
     expect(Marker.quote);
     String name = expect(Marker.rawText);
     expect(Marker.quote);
     return name;
   }
 
-  private WikiReference parseRefData() {
+  WikiReference parseRefData() {
     String refType = expect(Marker.braceOpen, Marker.braceOpen, Marker.cite, Marker.citeValue);
     // Four possibilities here
     RefKey refKey = RefKey.valueOf(refType);
@@ -315,7 +337,7 @@ public class ReferenceParser {
     if ((token.marker() == Marker.word) || token.marker().isText()) {
       return token.text();
     }
-    return token.text();
+    throw new MismatchException(token, Marker.word);
   }
   
   private String expectOneOf(Marker... markers) {
@@ -339,6 +361,9 @@ public class ReferenceParser {
       throw new MismatchException(token, marker);
     }
   }
+  
+  WikiReference getWikiReferenceTestOnly() { return wikiReference; }
+  FreePushbackReader getReaderTestOnly() { return reader; }
 
   @SuppressWarnings("StringConcatenation")
   public static void main(String[] args) {
