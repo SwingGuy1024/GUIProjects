@@ -14,6 +14,7 @@ import java.io.Reader;
 public class FreePushbackReader extends PushbackReader {
   
   private int count = 0;
+  private final StringBuilder soFar = new StringBuilder();
   
   public FreePushbackReader(Reader in) {
     super(in);
@@ -21,10 +22,10 @@ public class FreePushbackReader extends PushbackReader {
 
   @Override
   public void unread(int c){
-    // TODO: Write FreePushbackReader.unread()
     try {
       super.unread(c);
       count --;
+      unCountFromBuilder(1);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -32,10 +33,10 @@ public class FreePushbackReader extends PushbackReader {
 
   @Override
   public void unread(char[] cbuf, int off, int len) {
-    // TODO: Write FreePushbackReader.unread()
     try {
       super.unread(cbuf, off, len);
       count -= len;
+      unCountFromBuilder(len);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -43,10 +44,10 @@ public class FreePushbackReader extends PushbackReader {
 
   @Override
   public void unread(char[] cbuf) {
-    // TODO: Write FreePushbackReader.unread()
     try {
       super.unread(cbuf);
       count -= cbuf.length;
+      unCountFromBuilder(count);
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
@@ -54,14 +55,24 @@ public class FreePushbackReader extends PushbackReader {
 
   @Override
   public int read() {
-    // TODO: Write FreePushbackReader.read()
     try {
       count++;
-      return super.read();
+      final int charAsInt = super.read();
+      if (charAsInt != -1) {
+        soFar.append((char) charAsInt);
+      }
+      return charAsInt;
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
   }
   
   public int getCount() { return count; }
+  
+  private void unCountFromBuilder(int charCount) {
+    int length = soFar.length();
+    soFar.setLength(length - charCount);
+  }
+  
+  public String getStringSoFar() { return soFar.toString(); }
 }
