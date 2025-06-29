@@ -76,8 +76,8 @@ public class WikiReference {
             .append(entry.getValue());
       }
     }
-    
-    builder.append("}}</ref>");
+
+    builder.append(" }}</ref>");
     
     return builder.toString();
   }
