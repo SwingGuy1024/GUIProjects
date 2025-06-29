@@ -174,6 +174,8 @@ public class RefBuilder extends JPanel {
   public static final String REFERENCE_BUILDER = "Reference Builder";
   public static final char NBSP = '\u00a0'; // Non-breaking space
   public static final char SPACE = ' ';
+  
+  private static final Map<Character, String> urlEncodings = createEncodings();
 
   private final Color textFieldBgColor;
   private final Color fakeLabelColor = new Color(0, 0, 0, 0);
@@ -368,14 +370,15 @@ public class RefBuilder extends JPanel {
    *       b. Url fields: url encode the following: {@literal <>} and space. <br>
    *       c. normal fields: url encode the following: {@literal <>}</p>
    * @param s The text to clean
+   * @param isUrl Pass true if the string s is a URL, false otherwise. If in doubt, use false.
    * @return The cleaned text
    */
-  private String clean(String s, boolean isUrl) {
+  public static String clean(String s, boolean isUrl) {
     StringBuilder builder = new StringBuilder();
     Set<Integer> banned = isUrl ? urlEncode : normalEncode;
     for (char ch : s.toCharArray()) {
       if (banned.contains((int) ch)) {
-        builder.append(String.format("%%%02x", (int) ch));
+        builder.append(urlEncodings.get(ch));
       } else if (ch == NBSP) { // Non-breaking space
         builder.append("&nbsp;");
       } else {
@@ -734,6 +737,15 @@ public class RefBuilder extends JPanel {
     }
     AuthorTableModel tableModel = getCurrentTableModel();
     tableModel.populateAuthors(authorList);
+  }
+  
+  private static Map<Character, String> createEncodings() {
+    Map<Character, String> encodings = new HashMap<>();
+    encodings.put('<', "&lt;");
+    encodings.put('>', "&gt;");
+    encodings.put('\u00a0', "&nbsp;");
+    encodings.put('\u00ad', "&shy;");
+    return encodings;
   }
   
   private static class ReferenceTabbedPane extends JTabbedPane {
