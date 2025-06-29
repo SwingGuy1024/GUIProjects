@@ -24,7 +24,7 @@ class AbstractParserTest {
       "=https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
       "|access-date=Jun 11, 2025|publisher=National Public Radio" +
       "|title=Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
-      "|date=Feb 2, 2025}}</ref>";
+      "|date=Feb 2, 2025 }}</ref>";
   public static final String sourceTextWebWithSpaces = "< ref name = \"Orlando D'Free\" > { { cite web | url = " +
       " https://www.npr.org/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name " +
       " | access-date = Jun 11, 2025 | publisher = National Public Radio\n" +
@@ -35,16 +35,16 @@ class AbstractParserTest {
       " | work = (work)" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake" +
       " | url = www.nytimes.com/2025/02/11/nx-s1-5293246/hegseth-fort-bragg-liberty-name | date = June 17, 2025" +
-      " | language = en | newspaper = New York Times}}</ref>";
+      " | language = en | newspaper = New York Times }}</ref>";
   public static final String sourceTextJournal = "<ref name=\"NYKR\">{{ cite journal" +
       " | title = Fort Bragg 2.0: Army base reverts to its old name, but with a new namesake | issn = issn-data" +
       " | url-status = live | url = www.NewYorker.com/2025/06/16/nx-s1-5293246/hegseth-fort-bragg-liberty-name" +
       " | publisher = Conde Nast | issue = June 16, 2025 | date = 06-16 | journal = The New Yorker" +
-      " | access-date = 2025-06-17 | year = 2025 | bibcode = bib-code-data | pages = 49-53}}</ref>";
+      " | access-date = 2025-06-17 | year = 2025 | bibcode = bib-code-data | pages = 49-53 }}</ref>";
   public static final String sourceTextBook = "<ref>{{cite book |year=1911 |" +
       "title=Lloyd's Register of British and Foreign Shipping |volume=II.–Steamers |location=London |" +
       "publisher=[[Lloyd's Register]] of Shipping |at=TIR–TIT |" +
-      "url= https://archive.org/details/HECROS1912ST/page/n1006/mode/1up |via=[[Internet Archive]]}}</ref>";
+      "url= https://archive.org/details/HECROS1912ST/page/n1006/mode/1up |via=[[Internet Archive]] }}</ref>";
 
   @Test
   public void testParseWebWithSpaces() {
