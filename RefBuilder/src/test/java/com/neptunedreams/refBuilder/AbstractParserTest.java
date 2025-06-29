@@ -1,6 +1,5 @@
 package com.neptunedreams.refBuilder;
 
-import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
@@ -99,13 +98,15 @@ class AbstractParserTest {
 
     List<AbstractParser.Token> foundTokens = new LinkedList<>();
     for (String string : strings) {
-      FreePushbackReader reader = new FreePushbackReader(new BufferedReader(new BufferedReader(new StringReader(string))));
+      FreePushbackReader reader = new FreePushbackReader(new StringReader(string));
       RefKeywordProcessor keywordParser = new RefKeywordProcessor(reader);
       RawTextParser rawTextParser = new RawTextParser(reader);
       AbstractParser.Token token = keywordParser.getToken();
 //    System.out.println(token.text());
       while (token.marker() != AbstractParser.Marker.end) {
         System.out.println(token); // NON-NLS
+        // This line helps me create unit tests, so I leave it commented out for now, but ready for service again.
+        // The tests getExpectXxxTokens() were generated using this line, then debugged.
 //        System.out.printf("new RefParser.Token(RefParser.Marker.%s, \"%s\"),%n", token.marker(), polish(token.text())); // NON-NLS
         foundTokens.add(token);
         final AbstractParser.Marker marker = token.marker();
@@ -124,13 +125,15 @@ class AbstractParserTest {
         } else {
           token = keywordParser.getToken();
         }
-        System.out.printf("%n"); // NON-NLS
+//        System.out.printf("%n"); // NON-NLS
       }
       int i=0;
-      for (AbstractParser.Token refToken: expected) {
-        AbstractParser.Token actual  = foundTokens.get(i++);
-        System.out.printf("%n%s%n%s%n", refToken, actual); // NON-NLS
-      }
+      // These four lines may be uncommented to debug parsing errors. They show both the actual and expected tokens,
+      // so you can see exactly where mismatches occur.
+//      for (AbstractParser.Token refToken: expected) {
+//        AbstractParser.Token actual  = foundTokens.get(i++);
+//        System.out.printf("%n%s%n%s%n", refToken, actual); // NON-NLS
+//      }
       assertArrayEquals(expected, foundTokens.toArray());
     }
     System.out.println();
