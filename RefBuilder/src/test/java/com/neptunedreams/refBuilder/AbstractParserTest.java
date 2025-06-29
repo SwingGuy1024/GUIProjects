@@ -127,7 +127,6 @@ class AbstractParserTest {
         }
 //        System.out.printf("%n"); // NON-NLS
       }
-      int i=0;
       // These four lines may be uncommented to debug parsing errors. They show both the actual and expected tokens,
       // so you can see exactly where mismatches occur.
 //      for (AbstractParser.Token refToken: expected) {

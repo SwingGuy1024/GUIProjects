@@ -703,6 +703,7 @@ public class RefBuilder extends JPanel {
         if (key.toLowerCase().startsWith(tableKey)) {
           isNormal = false;
           String suffix = key.substring(tableKey.length());
+          @SuppressWarnings("MagicCharacter")
           Role role = (Character.toLowerCase(tableKey.charAt(0)) == 'e') ? Role.EDITOR : Role.WRITER;
           Author newAuthor = tableKey.contains("f") ? Author.ofFirstName(value, role) : Author.ofLastName(value, role);
           suffixToAuthorMap.merge(suffix, newAuthor, Author::remap);
@@ -739,6 +740,7 @@ public class RefBuilder extends JPanel {
     tableModel.populateAuthors(authorList);
   }
   
+  @SuppressWarnings("MagicCharacter")
   private static Map<Character, String> createEncodings() {
     Map<Character, String> encodings = new HashMap<>();
     encodings.put('<', "&lt;");
