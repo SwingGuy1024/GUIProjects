@@ -2,6 +2,7 @@ package com.neptunedreams.refBuilder.exception;
 
 import com.neptunedreams.refBuilder.AbstractParser.Marker;
 import com.neptunedreams.refBuilder.AbstractParser.Token;
+import com.neptunedreams.refBuilder.RefBuilder;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -12,7 +13,7 @@ import com.neptunedreams.refBuilder.AbstractParser.Token;
 public class MismatchException extends IllegalStateException {
   public MismatchException(Token token, Marker marker) {
     super(String.format
-        ("Expected token of type Marker.%s but found type Marker.%s holding %s", marker, token.marker(), token.text())
+        ("Expected token of type Marker.%s but found type Marker.%s holding %s", marker, token.marker(), RefBuilder.clean(token.text(), true))
     );
   }
 }
