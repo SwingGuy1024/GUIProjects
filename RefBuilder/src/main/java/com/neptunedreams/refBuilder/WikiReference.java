@@ -35,7 +35,7 @@ public class WikiReference {
   public void setName(String name) {
     this.name = name;
   }
-  
+
   public void setKeyValuePair(String key, String value) {
     dataMap.put(key, value);
     dataKeys.add(key);
@@ -65,16 +65,6 @@ public class WikiReference {
           .append(key)
           .append(" = ")
           .append(dataMap.get(key));
-    }
-    
-    for (Map.Entry<String, String> entry : dataMap.entrySet()) {
-      if (!dataKeys.contains(entry.getKey())) {
-        builder
-            .append(" | ")
-            .append(entry.getKey())
-            .append(" = ")
-            .append(entry.getValue());
-      }
     }
 
     builder.append(" }}</ref>");
