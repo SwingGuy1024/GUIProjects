@@ -1,5 +1,7 @@
 package com.neptunedreams.refBuilder;
 
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -100,9 +102,11 @@ public class ParseTests {
   void testParseRefDataSucceed() {
     String input1 = "{{ cite book | title=Bored of the Rings | first =  National  |   last   =   Lampoon   }}";
     String input2 = "{{cite book|title=Bored of the Rings|first=National|last=Lampoon}}";
+    String input3 = "{{CITE BOOK|TITLE=Bored of the Rings|FIRST=National|LAST=Lampoon}}";
     String expected = "<ref>{{ cite book | title = Bored of the Rings | first = National | last = Lampoon }}</ref>";
     doSucceedTest(input1, this::doParseRefData, expected, input1);
     doSucceedTest(input2, this::doParseRefData, expected, input2);
+    doSucceedTest(input3, this::doParseRefData, expected, input3);
   }
   
   @Test
@@ -111,6 +115,30 @@ public class ParseTests {
     String input2 = "{{ cite book | =Bored of the Rings | first =  National  |   last   =   Lampoon   }}";
     doFailureTest(input1, ReferenceParser::parseRefData, "book", "{{ book");
     doFailureTest(input2, ReferenceParser::parseRefData, "=", "{{ cite book | =");
+  }
+
+  private String doParse(ReferenceParser parser, String... extras) {
+    List<WikiReference> wikiReferenceList = parser.parse();
+    final WikiReference wikiReference = wikiReferenceList.get(0);
+    // Simulate a user-edited field
+    for (String extra : extras) {
+      StringTokenizer tokenizer = new StringTokenizer(extra, "=");
+      wikiReference.setKeyValuePair(tokenizer.nextToken(), tokenizer.nextToken());
+    }
+    return wikiReference.toString();
+  }
+
+  @Test
+  void testParseSucceed() {
+    String input1 = "<ref name=\"BOTR\">{{CITE book|title=Bored of the Rings|edition=first|website=There weren't any web sites back then!|first=National|last=Lampoon}}</ref>";
+    String expected1 = "<ref name=\"BOTR\">{{ cite book | title = Bored of the Rings | edition = first | website = There weren't any web sites back then! | first = National | last = Lampoon | language = lv }}</ref>";
+    String input2 = "<ref  name  =  \"BOTR\" > { {  cite  book   |  title  =   Bored of the Rings  | edition  =  first  |  website=There weren't any web sites back then! |  language  =  lv  |  first =  National  |   last   =   Lampoon   }}</ref>";
+    String input3 = "<REF NAME=\"BOTR\">{{ CITE BOOK | TITLE=Bored of the Rings |EDITION=first|   WEBSITE = There weren't any web sites back then!|LANGUAGE=lv | FIRST =  National  |   LAST   =   Lampoon   }}</REF>";
+    String expected = "<ref name=\"BOTR\">{{ cite book | title = Bored of the Rings | edition = first | website = There weren't any web sites back then! | language = lv | first = National | last = Lampoon }}</ref>";
+
+    doSucceedTest(input1, (p) -> doParse(p, "language=lv"), expected1, input1);
+    doSucceedTest(input2, this::doParse, expected, input2);
+    doSucceedTest(input3, this::doParse, expected, input3);
   }
 
   /**
