@@ -24,6 +24,7 @@ public class FreePushbackReader extends PushbackReader {
   public void unread(int c){
     try {
       super.unread(c);
+      // bookkeeping
       count --;
       unCountFromBuilder(1);
     } catch (IOException e) {
@@ -42,12 +43,10 @@ public class FreePushbackReader extends PushbackReader {
     }
   }
 
-  @Override
-  public void unread(char[] cbuf) {
+  public void unRead(String s) {
+    char[] cBuf = s.toCharArray();
     try {
-      super.unread(cbuf);
-      count -= cbuf.length;
-      unCountFromBuilder(count);
+      super.unread(cBuf); // This method calls this.unread(char[], int, int), which does the bookkeeping.
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
