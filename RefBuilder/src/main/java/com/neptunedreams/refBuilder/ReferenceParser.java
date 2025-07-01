@@ -210,7 +210,7 @@ public class ReferenceParser {
     try {
       Token nextToken = new Token(Marker.noMarker, "");
       do {
-        reader.unread(nextToken.text().toCharArray()); // We start by unreading the first token of the next reference
+        reader.unRead(nextToken.text()); // We start by unreading the first token of the next reference
         // This call will either return a Token with Marker.end, or the first token of the next reference.
         nextToken = parseReference(references); // Ths method adds the newly parsed reference to the list
       } while (nextToken.marker() != Marker.end);
@@ -238,7 +238,7 @@ public class ReferenceParser {
     Token nextToken = null;
     do {
       if (nextToken != null) {
-        reader.unread(nextToken.text().toCharArray());
+        reader.unRead(nextToken.text());
       }
       parseRefOpen();
       WikiReference reference = parseRefData();
@@ -309,6 +309,12 @@ public class ReferenceParser {
     return keywordProcessor.getToken();
   }
 
+  /**
+   * Expect a token of the specified Marker
+   * @param marker The expected Marker
+   * @return The text of the token with the specified Marker
+   * @throws MismatchException if the wrong kind of Marker was found
+   */
   private String expect(Marker marker) {
     Token token;
     if (marker == Marker.rawText) {
@@ -320,6 +326,13 @@ public class ReferenceParser {
     return token.text();
   }
 
+  /**
+   * Expects a series of Markers in the specified order. If not found, throws a MismatchException
+   * @param first The first marker, to ensure at compile time that at least one Marker was provided
+   * @param markers The rest of the expected Markers, which may be empty
+   * @return The text of the last Marker in the parameter list.
+   * @throws MismatchException if one of the expected Markers was not found or did not match.
+   */
   private String expect(Marker first, Marker... markers) {
     Token token = keywordProcessor.getToken();
     verify(token, first);
@@ -330,6 +343,12 @@ public class ReferenceParser {
     return token.text(); // returns last token
   }
 
+  /**
+   * <p>Expect a token of Marker.word. If it doesn't find that, throws a MismatchException with a message describing
+   * what was expected and what was found.</p>
+   * @return The text of the Marker.word.
+   * @throws MismatchException if the token was not of type Marker.word.
+   */
   private String expectWord() {
     Token token = keywordProcessor.getToken(false);
     
@@ -340,6 +359,7 @@ public class ReferenceParser {
     throw new MismatchException(token, Marker.word);
   }
   
+  // Currently unused, but I expect to use it one of these days.
   private String expectOneOf(Marker... markers) {
     assert markers.length > 0;
     Token token = keywordProcessor.getToken();
@@ -351,7 +371,13 @@ public class ReferenceParser {
     }
     throw new MismatchException(token, markers[0]);
   }
-  
+
+  /**
+   * Verifies that the token has the specified Marker
+   * @param token The token to test
+   * @param marker The expected Marker
+   * @throws MismatchException if the wrong Marker type was found}
+   */
   private void verify(Token token, Marker marker) {
     if(marker.matchText(token.text())) {
       return;
