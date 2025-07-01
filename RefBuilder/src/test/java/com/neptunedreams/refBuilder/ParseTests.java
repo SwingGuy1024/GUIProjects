@@ -131,14 +131,23 @@ public class ParseTests {
   @Test
   void testParseSucceed() {
     String input1 = "<ref name=\"BOTR\">{{CITE book|title=Bored of the Rings|edition=first|website=There weren't any web sites back then!|first=National|last=Lampoon}}</ref>";
-    String expected1 = "<ref name=\"BOTR\">{{ cite book | title = Bored of the Rings | edition = first | website = There weren't any web sites back then! | first = National | last = Lampoon | language = lv }}</ref>";
-    String input2 = "<ref  name  =  \"BOTR\" > { {  cite  book   |  title  =   Bored of the Rings  | edition  =  first  |  website=There weren't any web sites back then! |  language  =  lv  |  first =  National  |   last   =   Lampoon   }}</ref>";
-    String input3 = "<REF NAME=\"BOTR\">{{ CITE BOOK | TITLE=Bored of the Rings |EDITION=first|   WEBSITE = There weren't any web sites back then!|LANGUAGE=lv | FIRST =  National  |   LAST   =   Lampoon   }}</REF>";
-    String expected = "<ref name=\"BOTR\">{{ cite book | title = Bored of the Rings | edition = first | website = There weren't any web sites back then! | language = lv | first = National | last = Lampoon }}</ref>";
+    String expected1 = "<ref name=\"BOTR\">{{ cite book | title = Bored of the Rings | edition = first | website" +
+        " = There weren't any web sites back then! | first = National | last = Lampoon | language = lv }}</ref>";
+    String input2 = "<ref  name  =  \"BOTR\" > { {  cite  book   |  title  =   Bored of the Rings" +
+        "  | edition  =  first  |  website=There weren't any web sites back then! |    first =  National  |" +
+        "   last   =   Lampoon   }}</ref>";
+    String input3 = "<REF NAME=\"BOTR\">{{ CITE BOOK | TITLE=Bored of the Rings |EDITION=first" +
+        "|   WEBSITE = There weren't any web sites back then!| FIRST =  National  |   LAST   =   Lampoon   }}</REF>";
+    String expected = "<ref name=\"BOTR\">{{ cite book | title = Bored of the Rings | edition = first" +
+        " | website = There weren't any web sites back then! | first = National | last = Lampoon }}</ref>";
+    String input4 = "<ref>{{ cite web | title = Dummy Title }}</ref>";
 
     doSucceedTest(input1, (p) -> doParse(p, "language=lv"), expected1, input1);
     doSucceedTest(input2, this::doParse, expected, input2);
     doSucceedTest(input3, this::doParse, expected, input3);
+    //noinspection StringConcatenation
+    final String combinedInput = input1 + input4;
+    doSucceedTest(combinedInput, this::doParse, expected, combinedInput);
   }
 
   /**
@@ -171,7 +180,7 @@ public class ParseTests {
     }
     final FreePushbackReader reader = parser.getReaderTestOnly();
     final String stringSoFar = reader.getStringSoFar();
-    assertEquals(expectedSoFar, stringSoFar);
+    assertEquals(expectedSoFar, stringSoFar, "String so far");
     assertNotSame(expectedSoFar, stringSoFar);
     assertEquals(-1, reader.read());
   }
