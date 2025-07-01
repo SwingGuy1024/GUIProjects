@@ -199,6 +199,7 @@ public class ReferenceParser {
     rawTextParser = new RawTextParser(reader);
   }
 
+  @SuppressWarnings({"MagicNumber", "MagicCharacter"})
   public List<WikiReference> parse() {
     // ToDo. Pull try/catch out of this class and into RefBuilder class. JOptionPane doesn't belong here.
     List<WikiReference> references = new LinkedList<>();
@@ -360,6 +361,7 @@ public class ReferenceParser {
   }
   
   // Currently unused, but I expect to use it one of these days.
+  @SuppressWarnings("unused")
   private String expectOneOf(Marker... markers) {
     assert markers.length > 0;
     Token token = keywordProcessor.getToken();
