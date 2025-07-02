@@ -209,7 +209,7 @@ public class ReferenceParser {
     } while (nextToken.marker() != Marker.end);
     return Collections.unmodifiableList(referenceList);
   }
-  
+
   private Token parseReference(List<WikiReference> rList) {
     Token nextToken = null;
     do {
