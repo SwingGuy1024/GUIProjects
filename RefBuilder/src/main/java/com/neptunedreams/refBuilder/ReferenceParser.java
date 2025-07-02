@@ -86,10 +86,9 @@
 package com.neptunedreams.refBuilder;
 
 import java.io.StringReader;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
-import javax.swing.JOptionPane;
 
 import com.neptunedreams.refBuilder.AbstractParser.Marker;
 import com.neptunedreams.refBuilder.AbstractParser.Token;
@@ -190,7 +189,8 @@ public class ReferenceParser {
   private final RefKeywordProcessor keywordProcessor;
   private final RawTextParser rawTextParser;
   private final FreePushbackReader reader;
-  
+  private final List<WikiReference> referenceList = new LinkedList<>();
+
   private WikiReference wikiReference = new WikiReference();
 
   public ReferenceParser(String text) {
@@ -199,40 +199,15 @@ public class ReferenceParser {
     rawTextParser = new RawTextParser(reader);
   }
 
-  @SuppressWarnings({"MagicNumber", "MagicCharacter"})
   public List<WikiReference> parse() {
     // ToDo. Pull try/catch out of this class and into RefBuilder class. JOptionPane doesn't belong here.
-    List<WikiReference> references = new LinkedList<>();
-//    int ch = reader.read();
-//    if (ch == -1) {
-//      return references; // Return the empty List.
-//    }
-//    Token nextToken = new Token(Marker.noMarker, String.valueOf((char)ch));
-    try {
-      Token nextToken = new Token(Marker.noMarker, "");
-      do {
-        reader.unRead(nextToken.text()); // We start by unreading the first token of the next reference
-        // This call will either return a Token with Marker.end, or the first token of the next reference.
-        nextToken = parseReference(references); // Ths method adds the newly parsed reference to the list
-      } while (nextToken.marker() != Marker.end);
-    } catch (IllegalStateException e) {
-      Throwable exception = e;
-      int count = reader.getCount();
-      StringBuilder error = new StringBuilder(String.format("Unexpected error after %d characters.", count));
-      do {
-        error.append("<br>").append(exception.getMessage());
-        exception = exception.getCause();
-      } while (exception != null);
-      String stringSoFar = RefBuilder.clean(reader.getStringSoFar(), false);
-      final int lengthSoFar = stringSoFar.length();
-      if (lengthSoFar > 40) {
-        stringSoFar = '…' + stringSoFar.substring(lengthSoFar - 37);
-      }
-      error.append("<br>Text so far:<br>").append(stringSoFar);
-      error.insert(0, "<html><p>").append("</p></html>");
-      JOptionPane.showMessageDialog(null, error.toString(), "Error", JOptionPane.ERROR_MESSAGE);
-    }
-    return references;
+    Token nextToken = new Token(Marker.noMarker, "");
+    do {
+      reader.unRead(nextToken.text()); // We start by unreading the first token of the next reference
+      // This call will either return a Token with Marker.end, or the first token of the next reference.
+      nextToken = parseReference(referenceList); // Ths method adds the newly parsed reference to the list
+    } while (nextToken.marker() != Marker.end);
+    return Collections.unmodifiableList(referenceList);
   }
   
   private Token parseReference(List<WikiReference> rList) {
@@ -389,6 +364,13 @@ public class ReferenceParser {
       throw new MismatchException(token, marker);
     }
   }
+  
+  public List<WikiReference> getReferenceList() {
+    return Collections.unmodifiableList(referenceList);
+  }
+
+  public int getCount() { return reader.getCount(); }
+  public String getStringSoFar() { return reader.getStringSoFar(); }
   
   WikiReference getWikiReferenceTestOnly() { return wikiReference; }
   FreePushbackReader getReaderTestOnly() { return reader; }
