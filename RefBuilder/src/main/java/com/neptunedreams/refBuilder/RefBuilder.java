@@ -49,6 +49,7 @@ import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
@@ -176,6 +177,7 @@ public class RefBuilder extends JPanel {
   public static final char SPACE = ' ';
   
   private static final Map<Character, String> urlEncodings = createEncodings();
+  public static final char NEW_LINE = '\n';
 
   private final Color textFieldBgColor;
   private final Color fakeLabelColor = new Color(0, 0, 0, 0);
@@ -381,6 +383,8 @@ public class RefBuilder extends JPanel {
         builder.append(urlEncodings.get(ch));
       } else if (ch == NBSP) { // Non-breaking space
         builder.append("&nbsp;");
+      } else if (ch == NEW_LINE) {
+        builder.append("<br>");
       } else {
         builder.append(ch);
       }
@@ -654,7 +658,7 @@ public class RefBuilder extends JPanel {
   private void doOkay(JDialog dialog, JTextArea textArea) {
     dialog.dispose();
     ReferenceParser parser = new ReferenceParser(textArea.getText());
-    List<WikiReference> refs = parser.parse();
+    final List<WikiReference> refs = parseReferences(parser);
     if (!refs.isEmpty()) {
       Iterator<WikiReference> iterator = refs.iterator();
       WikiReference firstWikiReference = iterator.next();
@@ -666,6 +670,37 @@ public class RefBuilder extends JPanel {
         refBuilder.unpack(wikiReference);
       }
     }
+  }
+
+  private static List<WikiReference> parseReferences(ReferenceParser parser) {
+    List<WikiReference> refs = null;
+    try {
+      refs = parser.parse();
+    } catch (IllegalStateException e) {
+      Throwable exception = e;
+      int count = parser.getCount();
+      StringBuilder error = new StringBuilder(String.format("Unexpected error after %d characters.", count));
+      do {
+        error
+            .append("<br>")
+            .append(exception.getMessage());
+        exception = exception.getCause();
+      } while (exception != null);
+      String stringSoFar = RefBuilder.clean(parser.getStringSoFar(), false);
+      final int lengthSoFar = stringSoFar.length();
+      if (lengthSoFar > 40) {
+        stringSoFar = '…' + stringSoFar.substring(lengthSoFar - 37);
+      }
+      error
+          .append("<br>Text so far:<br>")
+          .append(stringSoFar);
+      error
+          .insert(0, "<html><p>")
+          .append("</p></html>");
+      JOptionPane.showMessageDialog(null, new JLabel(error.toString()), "Error", JOptionPane.ERROR_MESSAGE);
+      return parser.getReferenceList(); // return every Reference that completed.
+    }
+    return refs;
   }
 
   void unpack(WikiReference reference) {
