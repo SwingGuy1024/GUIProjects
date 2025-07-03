@@ -189,7 +189,8 @@ public class RefBuilder extends JPanel {
   
   private final List<Runnable> editorTerminatorOperations = new LinkedList<>();
   private static final AtomicInteger windowCounter = new AtomicInteger();
-  
+  private final JTextArea resultField = new JTextArea(6, 0);
+
   public static void main(String[] args) {
     LandF.Platform.quickSetLF();
     
@@ -257,14 +258,12 @@ public class RefBuilder extends JPanel {
   private Component makeControlPane() {
     JPanel controlPane = new JPanel(new BorderLayout());
 
-    JTextArea result = new JTextArea(6, 0);
-    tabPane.addChangeListener(e -> result.setText("")); // Clear the bottom JTextArea
-    JComponent scrollPane = scrollWrapTextArea(result);
+    tabPane.addChangeListener(e -> resultField.setText("")); // Clear the bottom JTextArea
+    JComponent scrollPane = scrollWrapTextArea(resultField);
     controlPane.add(scrollPane, BorderLayout.CENTER);
-    result.setEditable(false);
-    ActionListener actionListener = e -> buildReferenceText(result, getKeyField().getText().trim());
+    resultField.setEditable(false);
 
-    JPanel createPane = makeCreatePane(actionListener);
+    JPanel createPane = makeCreatePane();
     controlPane.add(createPane, BorderLayout.PAGE_END);
     return controlPane;
   }
@@ -313,20 +312,19 @@ public class RefBuilder extends JPanel {
     for (Runnable runner: editorTerminatorOperations) {
       runner.run();
     }
-
-    StringBuilder builder = new StringBuilder();
-
+    
+    WikiReference wikiReference = new WikiReference();
+    wikiReference.setName(name);
 
     String selectedTab = tabPane.getTitleAt(tabPane.getSelectedIndex());
     for (Map.Entry<String, Document> entry : keyMap.entrySet()) {
       String tag = entry.getKey();
-//      System.out.printf("ValueMap: %s%n", key); // NON-NLS
       if (tag.startsWith(selectedTab)) {
         Document doc = entry.getValue();
         final String fieldText = clean(getText(doc), isForUrl(tag));
         if (!fieldText.isEmpty()) {
           String fieldName = tag.substring(tag.indexOf(DOT) + 1);
-          appendPair(builder, fieldName, fieldText);
+          wikiReference.setKeyValuePair(fieldName, fieldText);
         }
       }
     }
@@ -344,17 +342,12 @@ public class RefBuilder extends JPanel {
         editorIndices.add(row);
       }
     }
-    addRoleData(builder, Role.WRITER, writerIndices);
-    addRoleData(builder, Role.EDITOR, editorIndices);
+    addRoleData(wikiReference, Role.WRITER, writerIndices);
+    addRoleData(wikiReference, Role.EDITOR, editorIndices);
 
-    builder.insert(0, selectedTab);
-    builder.insert(0, "{{cite ");
-    builder.append("}}");
-    String openRef = name.isEmpty()? "<ref>" : String.format("<ref name=\"%s\">", name);
-    builder.insert(0, openRef);
-    builder.append("</ref>");
-    
-    final String referenceText = builder.toString();
+    wikiReference.setRefKey(RefKey.valueOf(selectedTab));
+
+    final String referenceText = wikiReference.toString();
     resultView.setText(referenceText);
     StringSelection stringSelection = new StringSelection(referenceText);
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -392,14 +385,7 @@ public class RefBuilder extends JPanel {
     return builder.toString();
   }
 
-  private static void appendPair(StringBuilder builder, String fieldName, String fieldText) {
-    builder.append(" | ")
-        .append(fieldName)
-        .append(" = ")
-        .append(fieldText);
-  }
-
-  private void addRoleData(StringBuilder builder, Role role, List<Integer> indices) {
+  private void addRoleData(WikiReference wikiReference, Role role, List<Integer> indices) {
     List<String> firstNameList = new LinkedList<>();
     List<String> lastNameList = new LinkedList<>();
     // First, eliminate rows with no first or last name
@@ -419,10 +405,10 @@ public class RefBuilder extends JPanel {
       String firstText = firstNameList.get(0);
       String lastText = lastNameList.get(0);
       if (!firstText.isEmpty()) {
-        appendPair(builder, firstName, firstText);
+        wikiReference.setKeyValuePair(firstName, firstText);
       }
       if (!lastText.isEmpty()) {
-        appendPair(builder, lastName, lastText);
+        wikiReference.setKeyValuePair(lastName, lastText);
       }
     } else {
       for (int row=0; row<firstNameList.size(); ++row) {
@@ -430,10 +416,10 @@ public class RefBuilder extends JPanel {
         String firstText = firstNameList.get(row);
         String lastText = lastNameList.get(row);
         if (!firstText.isEmpty()) {
-          appendPair(builder, firstName+userIndex, firstText);
+          wikiReference.setKeyValuePair(firstName+userIndex, firstText);
         }
         if (!lastText.isEmpty()) {
-          appendPair(builder, lastName+userIndex, lastText);
+          wikiReference.setKeyValuePair(lastName+userIndex, lastText);
         }
       }
     }
@@ -466,18 +452,18 @@ public class RefBuilder extends JPanel {
   /**
    * <p>The CreatePane sits at the bottom-rite of the control pane, which itself sits at the bottom of the window.
    * It just has the "Create" button, on the right.</p> 
-   * @param actionListener The ActionListener to be fired by the "Create and Copy" button.
-   * @return The Create pane
+   * @return The CreatePane
    */
   @NotNull
-  private JPanel makeCreatePane(ActionListener actionListener) {
+  private JPanel makeCreatePane() {
+    ActionListener actionListener = e -> buildReferenceText(resultField, getKeyField().getText().trim());
     JButton createButton = new JButton("Create and Copy");
     createButton.addActionListener(actionListener);
     JPanel createPane = new JPanel(new BorderLayout());
     JPanel trailingPanel = new JPanel(new FlowLayout(FlowLayout.TRAILING));
     trailingPanel.add(createButton);
     createPane.add(trailingPanel, BorderLayout.LINE_END);
-    
+
     createPane.add(makeControlUtilityPane(), BorderLayout.LINE_START);
     return createPane;
   }
@@ -673,9 +659,8 @@ public class RefBuilder extends JPanel {
   }
 
   private static List<WikiReference> parseReferences(ReferenceParser parser) {
-    List<WikiReference> refs = null;
     try {
-      refs = parser.parse();
+      return parser.parse();
     } catch (IllegalStateException e) {
       Throwable exception = e;
       int count = parser.getCount();
@@ -700,7 +685,6 @@ public class RefBuilder extends JPanel {
       JOptionPane.showMessageDialog(null, new JLabel(error.toString()), "Error", JOptionPane.ERROR_MESSAGE);
       return parser.getReferenceList(); // return every Reference that completed.
     }
-    return refs;
   }
 
   void unpack(WikiReference reference) {
