@@ -14,6 +14,9 @@ import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
@@ -63,8 +66,13 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.CaretListener;
+import javax.swing.plaf.ColorUIResource;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Caret;
@@ -193,7 +201,18 @@ public class RefBuilder extends JPanel {
 
   public static void main(String[] args) {
     LandF.Platform.quickSetLF();
-    
+    if (UIManager.getLookAndFeel().getClass().toString().contains("Aqua")) {
+      // Aqua JTables use a selection color that's way too dark. So I reduce the saturation by 80% here. 
+      UIDefaults defaults = UIManager.getDefaults();
+      Color selBG = (Color) defaults.get("Table.selectionBackground");
+
+      float[] hsb = Color.RGBtoHSB(selBG.getRed(), selBG.getGreen(), selBG.getBlue(), null);
+      float sat = 0.2f*hsb[1]; // drop saturation a lot.
+      int newRGB = Color.HSBtoRGB(hsb[0], sat, hsb[2]);
+      Color revisedColor = new ColorUIResource(newRGB);
+      defaults.put("Table.selectionBackground", revisedColor);
+    }
+
     final RefBuilder refBuilder = new RefBuilder();
     makeNewFrame(refBuilder);
   }
@@ -226,7 +245,7 @@ public class RefBuilder extends JPanel {
   RefBuilder() {
     super(new BorderLayout());
     UIDefaults uiDefaults = UIManager.getDefaults();
-    Color textFieldForeground = Color.black; // uiDefaults.getColor("Label.foreground");
+    Color textFieldForeground = new ColorUIResource(Color.black);
     textFieldBgColor = uiDefaults.getColor("Label.background");
     uiDefaults.put("TextField.inactiveForeground", textFieldForeground);
     subjectMap = new HashMap<>();
@@ -674,6 +693,7 @@ public class RefBuilder extends JPanel {
       String stringSoFar = RefBuilder.clean(parser.getStringSoFar(), false);
       final int lengthSoFar = stringSoFar.length();
       if (lengthSoFar > 40) {
+        //noinspection MagicCharacter
         stringSoFar = '…' + stringSoFar.substring(lengthSoFar - 37);
       }
       error
@@ -963,9 +983,21 @@ public class RefBuilder extends JPanel {
 
     private AuthorNameEditorPane(List<Runnable> terminatorOperationList, AuthorTableModel tableModel) {
       super(new BorderLayout());
+      JLabel authorLabel = new JLabel("Writers and Editors:");
+      add(authorLabel, BorderLayout.NORTH);
       table = new JTable(tableModel);
       table.setFillsViewportHeight(true);
-      table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+      table.setAutoResizeMode(JTable.AUTO_RESIZE_SUBSEQUENT_COLUMNS);
+      table.setCellSelectionEnabled(true);
+      table.setDefaultRenderer(Object.class, new EmptyCellRenderer());
+      FocusListener tableFocusListener = new FocusAdapter() {
+        @Override
+        public void focusLost(FocusEvent e) {
+          table.getSelectionModel().clearSelection();
+        }
+      };
+      table.addFocusListener(tableFocusListener);
+
       JScrollPane scrollPane
           = new JScrollPane(table, VERTICAL_SCROLLBAR_ALWAYS, HORIZONTAL_SCROLLBAR_NEVER);
       table.setPreferredScrollableViewportSize(table.getPreferredSize());
@@ -978,19 +1010,19 @@ public class RefBuilder extends JPanel {
         revalidate();
         paintImmediately(getBounds());
       });
-      
-      table.addHierarchyListener(new HierarchyListener() {
-        @Override
-        public void hierarchyChanged(HierarchyEvent e) {
-          table.setPreferredScrollableViewportSize(table.getPreferredSize());
-          table.removeHierarchyListener(this); // I can't do "this" in a lambda!
-        }
-      });
-//      JTableHeader tableHeader = table.getTableHeader();
 
+      final TableColumnModel columnModel = table.getColumnModel();
+      final TableColumn roleColumn = columnModel.getColumn(2);
       JComboBox<Role> roleEditor = new JComboBox<>(new Role[]{Role.WRITER, Role.EDITOR});
-      table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(roleEditor));
+      roleColumn.setCellEditor(new DefaultCellEditor(roleEditor));
       
+      // Make the first two columns wide enough to make the full blank-text string visible.
+      // The default width is 1/3 of 580, or about 193.
+      columnModel.getColumn(0).setPreferredWidth(250);
+      columnModel.getColumn(1).setPreferredWidth(250);
+      final JTableHeader tableHeader = table.getTableHeader();
+      tableHeader.setReorderingAllowed(false);
+
       Runnable terminationOperation = () -> {
         TableCellEditor editor = table.getCellEditor();
         if (editor != null) {
@@ -999,8 +1031,41 @@ public class RefBuilder extends JPanel {
       };
       terminatorOperationList.add(terminationOperation);
     }
-    
-    private JTable getTable() { return table; }
+  }
+
+  /**
+   * The EmptyCellRenderer puts in a line of gray text on the last line of the table that
+   * invites the user to add new entries.
+   */
+  private static class EmptyCellRenderer extends DefaultTableCellRenderer {
+    EmptyCellRenderer() {
+      super();
+    }
+
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+      String cellString = value.toString();
+      boolean isEmpty = cellString.isEmpty() && ((column == 0) && (row == (table.getRowCount() - 1)));
+      if (isEmpty) {
+        cellString = "Add new writer/editor names here…";
+      } else {
+        // When I set the last line's foreground to gray, it fails to change it the next time the renderer gets used.
+        // So I change it before calling the super method.
+        if (isSelected) {
+          setForeground(table.getSelectionForeground());
+        } else {
+          setForeground(table.getForeground());
+        }
+      }
+//      Color fg = this.getForeground();
+//      if (fg == null) { fg = Color.BLACK; }
+      final Component tableCellRendererComponent = super.getTableCellRendererComponent(table, cellString, isSelected, hasFocus, row, column);
+      if (isEmpty) {
+        JLabel label = (JLabel) tableCellRendererComponent;
+        label.setForeground(new ColorUIResource(Color.gray));
+      }
+      return tableCellRendererComponent;
+    }
   }
 
   /**
@@ -1010,7 +1075,7 @@ public class RefBuilder extends JPanel {
   private static class Author {
     private String first="";
     private String last="";
-    private Role role = Role.NONE;
+    private Role role = Role.WRITER;
 
     public String getFirst() {
       return first;
@@ -1077,7 +1142,7 @@ public class RefBuilder extends JPanel {
    * {@code TableColumn}.</p>
    */
   private static class AuthorTableModel extends AbstractTableModel {
-    private final List<TableColumn<Author, ?>> columnList = new ArrayList<>();
+    private final List<AuthorTableColumn<Author, ?>> columnList = new ArrayList<>();
     private final List<Author> rowModel = new ArrayList<>();
     
     private final List<Runnable> rowCountListenerList = new LinkedList<>();
@@ -1085,9 +1150,9 @@ public class RefBuilder extends JPanel {
     AuthorTableModel() {
       super();
 
-      columnList.add(new TableColumn<>(String.class, "First", Author::getFirst, Author::setFirst));
-      columnList.add(new TableColumn<>(String.class, "Last", Author::getLast, Author::setLast));
-      columnList.add(new TableColumn<>(Role.class, "Role", Author::getRole, Author::setRole));
+      columnList.add(new AuthorTableColumn<>(String.class, "First", Author::getFirst, Author::setFirst));
+      columnList.add(new AuthorTableColumn<>(String.class, "Last", Author::getLast, Author::setLast));
+      columnList.add(new AuthorTableColumn<>(Role.class, "Role", Author::getRole, Author::setRole));
     }
 
     @Override
@@ -1112,6 +1177,10 @@ public class RefBuilder extends JPanel {
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
       if (rowIndex == rowModel.size()) {
+        if (aValue.toString().isBlank()) {
+          // Don't put blank cells in the table in the last row. It defeats the purpos of the last row.
+          return;
+        }
         final Author blankAuthor = new Author();
         
         // Role defaults to the value from the previous row, or WRITER for row zero.
@@ -1133,7 +1202,7 @@ public class RefBuilder extends JPanel {
 
     private <T> void setValueImpl(T aValue, int columnIndex, Author author) {
       @SuppressWarnings("unchecked")
-      final TableColumn<Author, T> column = (TableColumn<Author, T>) columnList.get(columnIndex);
+      final AuthorTableColumn<Author, T> column = (AuthorTableColumn<Author, T>) columnList.get(columnIndex);
 
       // JTable won't call this method if column.setter is null, but this won't compile without the test.
       if (column.setter != null) {
@@ -1172,14 +1241,14 @@ public class RefBuilder extends JPanel {
    * @param <R> The RowModel Type
    * @param <C>The class of the items held in the column.
    */
-  private static class TableColumn<R, C> {
+  private static class AuthorTableColumn<R, C> {
     private final String title;
     final Class<C> valueClass;
     final Function<R, C> getter;
     @Nullable
     final BiConsumer<R, C> setter;
     
-    TableColumn(Class<C> vClass, String title, Function<R, C> getter, @Nullable BiConsumer<R, C> setter) {
+    AuthorTableColumn(Class<C> vClass, String title, Function<R, C> getter, @Nullable BiConsumer<R, C> setter) {
       this.title = title;
       this.valueClass = vClass;
       this.getter = getter;
