@@ -21,6 +21,7 @@ import csk.taprats.general.Signal;
 
 @SuppressWarnings({"MagicNumber", "NumericCastThatLosesPrecision", "UnclearExpression", "UnusedAssignment", "unused", "RedundantCast", "ReassignedVariable", "RedundantThrows", "Convert2Lambda", "override", "FieldMayBeFinal", "FloatingPointEquality", "UnusedReturnValue", "UnnecessaryExplicitNumericCast", "PublicField"})
 public class Slider {
+  public static final char DOT = '.';
   private JLabel name;
   private JScrollBar scroll;
   private JTextField field;
@@ -30,13 +31,13 @@ public class Slider {
   private boolean integral;
   public Signal value_changed;
 
-  public Slider(String var1, double var2, double var4, double var6) {
+  public Slider(String text, double var2, double var4, double var6) {
     this.val = var2;
     this.min = var4;
     this.max = var6;
     this.integral = false;
-    this.name = new JLabel(var1);
-    this.field = new JTextField(this.ftoa(var2), 9);
+    this.name = new JLabel(text);
+    this.field = new JTextField(this.fToa(var2), 9);
     this.scroll = new JScrollBar(JScrollBar.HORIZONTAL, this.getSlideLoc(var2), 1, 0, 257);
     this.value_changed = new Signal();
     this.scroll.addAdjustmentListener(new AdjustmentListener() {
@@ -54,7 +55,7 @@ public class Slider {
   private void updateFromSlider() {
     double var1 = this.getValue(this.scroll.getValue());
     if (var1 != this.val) {
-      this.field.setText(this.ftoa(var1));
+      this.field.setText(this.fToa(var1));
       this.val = var1;
       this.value_changed.signotify(this.val);
     }
@@ -76,31 +77,36 @@ public class Slider {
       }
 
       if (var1 != this.val) {
-        this.field.setText(this.ftoa(var1));
+        this.field.setText(this.fToa(var1));
         this.scroll.setValue(this.getSlideLoc(var1));
         this.val = var1;
         this.value_changed.signotify(var1);
       }
     } catch (NumberFormatException var3) {
-      this.field.setText(this.ftoa(this.val));
+      this.field.setText(this.fToa(this.val));
     }
 
   }
 
-  private String ftoa(double var1) {
+  /**
+   * Returns the decimal value as a string, limiting the number of fractional digits to 5.
+   * @param dbl The double value
+   * @return The double value as a String.
+   */
+  private String fToa(double dbl) {
     if (this.integral) {
-      return String.valueOf((int) var1);
+      return String.valueOf((int) dbl);
     } else {
-      String var3 = String.valueOf(var1);
-      int var4 = var3.lastIndexOf(46);
-      if (var4 != -1) {
-        int var5 = var3.length() - (var4 + 1);
-        if (var5 > 5) {
-          var3 = var3.substring(0, var4 + 6);
+      String text = String.valueOf(dbl);
+      int dotSpot = text.lastIndexOf(DOT);
+      if (dotSpot != -1) {
+        int fracDigits = text.length() - (dotSpot + 1);
+        if (fracDigits > 5) {
+          text = text.substring(0, dotSpot + 6);
         }
       }
 
-      return var3;
+      return text;
     }
   }
 
@@ -124,7 +130,7 @@ public class Slider {
     }
 
     this.scroll.setValue(this.getSlideLoc(var1));
-    this.field.setText(this.ftoa(var1));
+    this.field.setText(this.fToa(var1));
     this.val = var1;
     if (var3) {
       this.value_changed.signotify(var1);
@@ -158,29 +164,29 @@ public class Slider {
     return var1;
   }
 
-  public void insert(JComponent var1, GridBagLayout var2, int var3, int var4) {
-    GridBagConstraints var5 = new GridBagConstraints();
-    var5.gridx = var3;
-    var5.gridy = var4;
-    var5.gridwidth = 1;
-    var5.gridheight = 1;
-    var5.weightx = 1.0D;
-    var5.weighty = 1.0D;
-    var5.anchor = 13;
-    var5.fill = 0;
-    var2.setConstraints(this.name, var5);
+  public void insert(JComponent var1, GridBagLayout gbLayout, int var3, int var4) {
+    GridBagConstraints constraints = new GridBagConstraints();
+    constraints.gridx = var3;
+    constraints.gridy = var4;
+    constraints.gridwidth = 1;
+    constraints.gridheight = 1;
+    constraints.weightx = 1.0D;
+    constraints.weighty = 1.0D;
+    constraints.anchor = 13;
+    constraints.fill = 0;
+    gbLayout.setConstraints(this.name, constraints);
     var1.add(this.name);
-    var5.gridx = var3 + 1;
-    var5.weightx = 10.0D;
-    var5.anchor = 10;
-    var5.fill = 2;
-    var2.setConstraints(this.scroll, var5);
+    constraints.gridx = var3 + 1;
+    constraints.weightx = 10.0D;
+    constraints.anchor = 10;
+    constraints.fill = 2;
+    gbLayout.setConstraints(this.scroll, constraints);
     var1.add(this.scroll);
-    var5.gridx = var3 + 2;
-    var5.weightx = 1.0D;
-    var5.anchor = 17;
-    var5.fill = 0;
-    var2.setConstraints(this.field, var5);
+    constraints.gridx = var3 + 2;
+    constraints.weightx = 1.0D;
+    constraints.anchor = 17;
+    constraints.fill = 0;
+    gbLayout.setConstraints(this.field, constraints);
     var1.add(this.field);
   }
 }

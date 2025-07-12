@@ -9,20 +9,25 @@ import csk.taprats.geometry.Point;
 import csk.taprats.geometry.Polygon;
 import csk.taprats.geometry.Rect;
 import csk.taprats.geometry.Transform;
+
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.RenderingHints;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 
-@SuppressWarnings({"MagicNumber", "UnclearExpression", "ProtectedField", "unused", "UnnecessaryConstantArrayCreationExpression", "ImplicitCallToSuper", "rawtypes", "RedundantCast", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "deprecation", "OverlyBroadCatchBlock", "override", "CatchMayIgnoreException", "ConcatenationWithEmptyString", "SingleCharacterStringConcatenation", "FinalStaticMethod", "DataFlowIssue", "UnnecessaryLocalVariable", "FinalPrivateMethod", "FieldMayBeFinal", "UnusedReturnValue", "UnnecessaryExplicitNumericCast"})
+@SuppressWarnings({"MagicNumber", "UnclearExpression", "ProtectedField", "unused",
+    "UnnecessaryConstantArrayCreationExpression", "ImplicitCallToSuper", "rawtypes", "RedundantCast",
+    "ReassignedVariable", "RedundantThrows", "StringConcatenation", "deprecation", "OverlyBroadCatchBlock", "override",
+    "CatchMayIgnoreException", "ConcatenationWithEmptyString", "SingleCharacterStringConcatenation",
+    "FinalStaticMethod", "DataFlowIssue", "UnnecessaryLocalVariable", "FinalPrivateMethod", "FieldMayBeFinal",
+    "UnusedReturnValue", "UnnecessaryExplicitNumericCast"})
 public class GeoView extends Canvas {
   private double left;
   private double top;
@@ -38,8 +43,8 @@ public class GeoView extends Canvas {
   protected int track_x;
   protected int track_y;
   private Dimension last_size;
-  private boolean j2d;
-  private boolean j2d_possible;
+  private final boolean j2d = true;
+  private final boolean j2d_possible = true;
   private static Color[] bevel_h_0 = new Color[]{new Color(1, 1, 1), new Color(1, 1, 1), new Color(1, 1, 1), new Color(76, 76, 76), new Color(103, 103, 103)};
   private static Color[] bevel_h_1 = new Color[]{new Color(27, 27, 27), new Color(53, 53, 53), new Color(78, 78, 78), new Color(153, 153, 153), new Color(180, 180, 180)};
   private static Color[] bevel_h_2 = new Color[]{new Color(127, 127, 127), new Color(178, 178, 178), new Color(228, 228, 228), new Color(255, 255, 255), new Color(255, 255, 255)};
@@ -56,22 +61,22 @@ public class GeoView extends Canvas {
     this.last_size = new Dimension(200, 200);
     this.do_tracking = false;
     this.setBackground(Color.white);
-    MouseENator var7 = new MouseENator();
-    this.addMouseListener(var7);
-    this.addMouseMotionListener(var7);
-    this.j2d = false;
-    this.j2d_possible = false;
+    MouseENator mouseENator = new MouseENator();
+    this.addMouseListener(mouseENator);
+    this.addMouseMotionListener(mouseENator);
+//    this.j2d = false;
+//    this.j2d_possible = false;
 
     try {
       Class var8 = Class.forName("java.awt.Graphics2D");
-      this.j2d_possible = true;
-      this.j2d = true;
+//      this.j2d_possible = true;
+//      this.j2d = true;
       this.addKeyListener(new KeyAdapter() {
         public void keyPressed(KeyEvent var1) {
-          if (var1.getKeyCode() == 113) {
-            GeoView.this.j2d = !GeoView.this.j2d;
+          if (var1.getKeyCode() == 113) {  // 0x71 (113 = 127 - 14 = 0x7F - 0x0E = 0x71) = VK_F2
+//            GeoView.this.j2d = !GeoView.this.j2d;
             GeoView.this.forceRedraw();
-          } else if (var1.getKeyCode() == 66) {
+          } else if (var1.getKeyCode() == 66) { // = 0x42 (66 = 64 + 2 = 0x40 + 0x02) = VK_B
             System.err.println("" + GeoView.this.left + " " + GeoView.this.top + " " + GeoView.this.width);
           }
 
@@ -119,8 +124,8 @@ public class GeoView extends Canvas {
     this.repaint();
   }
 
-  protected Graphics getBackGraphics() {
-    return this.backing_store.getGraphics();
+  protected Graphics2D getBackGraphics() {
+    return (Graphics2D) this.backing_store.getGraphics();
   }
 
   public void setSize(int var1, int var2) {
@@ -155,27 +160,27 @@ public class GeoView extends Canvas {
       return false;
     } else {
       this.computeTransform();
-      Graphics var1 = this.getBackGraphics();
-      if (this.j2d) {
+      Graphics2D var1 = this.getBackGraphics();
+//      if (this.j2d) {
         Graphics2D var2 = (Graphics2D) var1;
-        var2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-      }
+        GeoGraphics.installRenderingHints(var2);
+//      }
 
       Dimension var6 = this.getSize();
       var1.clearRect(0, 0, var6.width, var6.height);
       GeoGraphics var3 = new GeoGraphics(var1, this.transform, this);
       this.redraw(var3);
       if (this.sink) {
-        int var4 = var6.width;
-        int var5 = var6.height;
-        drawH(var4, 0, bevel_h_0, var1);
-        drawH(var4, 1, bevel_h_1, var1);
-        drawH(var4, var5 - 2, bevel_h_2, var1);
-        drawH(var4, var5 - 1, bevel_h_3, var1);
-        drawV(var5, 0, bevel_v[0], var1);
-        drawV(var5, 1, bevel_v[1], var1);
-        drawV(var5, var4 - 2, bevel_v[1], var1);
-        drawV(var5, var4 - 1, bevel_v[2], var1);
+        int wd = var6.width;
+        int ht = var6.height;
+        drawH(wd, 0, bevel_h_0, var1);
+        drawH(wd, 1, bevel_h_1, var1);
+        drawH(wd, ht - 2, bevel_h_2, var1);
+        drawH(wd, ht - 1, bevel_h_3, var1);
+        drawV(ht, 0, bevel_v[0], var1);
+        drawV(ht, 1, bevel_v[1], var1);
+        drawV(ht, wd - 2, bevel_v[1], var1);
+        drawV(ht, wd - 1, bevel_v[2], var1);
       }
 
       return true;
@@ -414,11 +419,9 @@ public class GeoView extends Canvas {
   }
 
   public final void setJava2D(boolean var1) {
-    if (this.j2d_possible && this.j2d != var1) {
-      this.j2d = var1;
-      this.forceRedraw();
-    }
-
+//    if (this.j2d_possible && this.j2d != var1) {
+//      this.j2d = var1;
+//      this.forceRedraw();
   }
 
   class MouseENator implements MouseListener, MouseMotionListener {

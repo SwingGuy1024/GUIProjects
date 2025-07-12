@@ -48,8 +48,8 @@ public class About extends JFrame {
     var2.gridy = 0;
     var2.gridwidth = 1;
     var2.gridheight = 1;
-    var2.anchor = 10;
-    var2.fill = 1;
+    var2.anchor = GridBagConstraints.CENTER;
+    var2.fill = GridBagConstraints.BOTH;
     var2.weighty = 3.0D;
     this.layout.setConstraints(this.canvas, var2);
     this.add(this.canvas);

@@ -5,28 +5,44 @@
 
 package csk.taprats.toolkit;
 
+import java.awt.BasicStroke;
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.geom.Line2D;
 import java.util.Stack;
 
 import csk.taprats.geometry.Point;
 import csk.taprats.geometry.Polygon;
 import csk.taprats.geometry.Transform;
 
+import static java.awt.RenderingHints.*;
+
 @SuppressWarnings({"MagicNumber", "NumericCastThatLosesPrecision", "unused", "UnnecessaryConstantArrayCreationExpression", "rawtypes", "RedundantCast", "ReassignedVariable", "UseOfObsoleteCollectionType", "unchecked", "RedundantThrows", "DataFlowIssue", "FieldMayBeFinal"})
 public class GeoGraphics {
-  private Graphics graphics;
+  private Graphics2D graphics;
   private Transform transform;
   private Stack pushed;
   private Canvas component;
 
   public GeoGraphics(Graphics var1, Transform var2, Canvas var3) {
-    this.graphics = var1;
+    this.graphics = (Graphics2D) var1;
     this.transform = var2;
     this.pushed = null;
     this.component = var3;
+    installRenderingHints(this.graphics);
+  }
+  
+  public static void installRenderingHints(Graphics2D var1) {
+    // These are an attempt to use the higher resolution for drawing. They didn't work.
+    var1.setRenderingHint(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
+    var1.setRenderingHint(KEY_RENDERING, VALUE_RENDER_QUALITY);
+    var1.setRenderingHint(KEY_STROKE_CONTROL, VALUE_STROKE_NORMALIZE);
+    var1.setRenderingHint(KEY_RESOLUTION_VARIANT, VALUE_RESOLUTION_VARIANT_DPI_FIT);
+    var1.setRenderingHint(KEY_INTERPOLATION, VALUE_INTERPOLATION_BICUBIC);
+    var1.setStroke(new BasicStroke(1.0f));
   }
 
   public GeoGraphics(Graphics var1, Transform var2) {
@@ -37,7 +53,7 @@ public class GeoGraphics {
     this.graphics.dispose();
   }
 
-  public final Graphics getDirectGraphics() {
+  public final Graphics2D getDirectGraphics() {
     return this.graphics;
   }
 
@@ -50,7 +66,10 @@ public class GeoGraphics {
     double var11 = this.transform.applyY(var1, var3);
     double var13 = this.transform.applyX(var5, var7);
     double var15 = this.transform.applyY(var5, var7);
-    this.graphics.drawLine((int) var9, (int) var11, (int) var13, (int) var15);
+    // I replaced this with the line below it to try to improve the drawing resolution, but it didn't work.
+//    this.graphics.drawLine((int) var9, (int) var11, (int) var13, (int) var15);
+    Line2D line = new Line2D.Double(var9, var11, var13, var15);
+    graphics.draw(line);
   }
 
   public final void drawLine(Point var1, Point var2) {
@@ -81,33 +100,43 @@ public class GeoGraphics {
   }
 
   public final void drawPolygon(Point[] var1, int var2, int var3, boolean var4) {
-    int var5 = var3 - var2;
-    int[] var6 = new int[var5];
-    int[] var7 = new int[var5];
+    int size = var3 - var2;
+    double[] var6 = new double[size];
+    double[] var7 = new double[size];
     int var8 = 0;
 
     for (int var9 = var2; var9 < var3; ++var9) {
       double var10 = var1[var9].getX();
       double var12 = var1[var9].getY();
-      var6[var8] = (int) this.transform.applyX(var10, var12);
-      var7[var8] = (int) this.transform.applyY(var10, var12);
+      var6[var8] = this.transform.applyX(var10, var12);
+      var7[var8] = this.transform.applyY(var10, var12);
       ++var8;
     }
+    
+    // This used to call this.graphics.fillPolygon() or .drawPolygon. I replaced it with a Path2D in a failed
+    // attempt to fix the drawing resolution. I get the same results..
+    java.awt.geom.Path2D path2D = new java.awt.geom.Path2D.Double();
+    path2D.moveTo(var6[0], var7[0]);
+    for (int i=1; i<var6.length; ++i) {
+      path2D.lineTo(var6[i], var7[i]);
+    }
+    path2D.lineTo(var6[0], var7[0]);
 
     if (var4) {
-      this.graphics.fillPolygon(var6, var7, var5);
+      this.graphics.fill(path2D);
+//      this.graphics.fillPolygon(var6, var7, var5);
     } else {
-      this.graphics.drawPolygon(var6, var7, var5);
+      this.graphics.draw(path2D);
+//      this.graphics.drawPolygon(var6, var7, var5);
     }
-
   }
 
   public final void drawPolygon(Polygon var1, boolean var2) {
-    int var3 = var1.numVertices();
-    int[] var4 = new int[var3];
-    int[] var5 = new int[var3];
+    int size = var1.numVertices();
+    int[] var4 = new int[size];
+    int[] var5 = new int[size];
 
-    for (int var6 = 0; var6 < var3; ++var6) {
+    for (int var6 = 0; var6 < size; ++var6) {
       Point var7 = var1.getVertex(var6);
       double var8 = var7.getX();
       double var10 = var7.getY();
@@ -116,11 +145,10 @@ public class GeoGraphics {
     }
 
     if (var2) {
-      this.graphics.fillPolygon(var4, var5, var3);
+      this.graphics.fillPolygon(var4, var5, size);
     } else {
-      this.graphics.drawPolygon(var4, var5, var3);
+      this.graphics.drawPolygon(var4, var5, size);
     }
-
   }
 
   public final void drawCircle(Point var1, double var2, boolean var4) {
