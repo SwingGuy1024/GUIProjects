@@ -6,6 +6,7 @@
 package csk.penrose;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -38,9 +39,11 @@ import csk.taprats.toolkit.WindowCloser;
 import org.w3c.dom.Element;
 import org.w3c.dom.ProcessingInstruction;
 
-//@SuppressWarnings({"HardCodedStringLiteral", "MagicCharacter", "MagicNumber", "UseOfSystemOutOrSystemErr"})
-@SuppressWarnings({"MagicNumber", "ProtectedField", "unused", "ImplicitCallToSuper", "ReassignedVariable", "RedundantThrows", "StringConcatenation", "MagicCharacter", "Convert2Lambda", "deprecation", "OverlyBroadCatchBlock", "override"})
+@SuppressWarnings({"MagicNumber", "ProtectedField", "unused", "ImplicitCallToSuper", "ReassignedVariable", 
+    "RedundantThrows", "MagicCharacter", "Convert2Lambda", "deprecation", "OverlyBroadCatchBlock", "override"})
 public class PenroseApp extends JPanel implements App {
+  public static final Color STANDARD_COLOR = new Color(80, 144, 255);   // was  80,  95, 255
+  public static final Color BRIGHTER_COLOR = new Color(114, 166, 255); // was 114, 126, 255
   protected PenroseTile tile;
   protected Viewer viewer;
   protected Editor edit_first;

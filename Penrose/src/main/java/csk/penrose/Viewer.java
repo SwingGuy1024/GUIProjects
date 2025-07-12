@@ -83,8 +83,8 @@ public class Viewer extends GeoView {
       Point[] var2 = this.tile.getFirstShape();
       Point[] var3 = this.tile.getSecondShape();
       Color var4 = Color.black;
-      Color var5 = new Color(0.87058824F, 0.8392157F, 0.7764706F);
-      Color var6 = new Color(0.9372549F, 0.90588236F, 0.8392157F);
+      Color var5 = PenroseApp.STANDARD_COLOR;
+      Color var6 = PenroseApp.BRIGHTER_COLOR;
 
       int var7;
       Point[] var8;

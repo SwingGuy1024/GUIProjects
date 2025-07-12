@@ -81,7 +81,7 @@ public class Editor extends GeoView {
     int var10;
     if (this.first) {
       var2 = this.tile.getFirstShape();
-      var6 = new Color(0.87058824F, 0.8392157F, 0.7764706F);
+      var6 = PenroseApp.STANDARD_COLOR;
       var3 = new Point[this.tile.numFirstEdges()];
       var4 = new Point[this.tile.numFirstEdges()][];
 
@@ -91,7 +91,7 @@ public class Editor extends GeoView {
       }
     } else {
       var2 = this.tile.getSecondShape();
-      var6 = new Color(0.9372549F, 0.90588236F, 0.8392157F);
+      var6 = PenroseApp.BRIGHTER_COLOR;
       var3 = new Point[this.tile.numSecondEdges()];
       var4 = new Point[this.tile.numSecondEdges()][];
 
