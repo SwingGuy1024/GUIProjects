@@ -59,45 +59,45 @@ public class PenroseApp extends JPanel implements App {
     this(var1, var2, false);
   }
 
-  public PenroseApp(PenroseTile var1, JFrame var2, boolean var3) {
-    this.tile = var1;
-    this.parent = var2;
-    this.viewer = new Viewer(var1);
+  public PenroseApp(PenroseTile penroseTile, JFrame frame, boolean var3) {
+    this.tile = penroseTile;
+    this.parent = frame;
+    this.viewer = new Viewer(penroseTile);
     this.viewer.setSize(400, 400);
     this.viewer.addKeyListener(new KeyAdapter() {
-      public void keyPressed(KeyEvent var1) {
-        if (var1.getKeyChar() == 's') {
+      public void keyPressed(KeyEvent keyEvent) {
+        if (keyEvent.getKeyChar() == 's') {
           System.err.println("Writing to output.txt");
 
           try {
-            FileWriter var2 = new FileWriter("output.txt");
-            PrintWriter var3 = new PrintWriter(var2);
-            PenroseApp.this.viewer.emitShapes(var3);
-            var3.flush();
-            var2.close();
+            FileWriter fileWriter = new FileWriter("output.txt");
+            PrintWriter printWriter = new PrintWriter(fileWriter);
+            PenroseApp.this.viewer.emitShapes(printWriter);
+            printWriter.flush();
+            fileWriter.close();
           } catch (IOException ignore) {
           }
         }
 
       }
     });
-    this.edit_first = new Editor(var1, true);
+    this.edit_first = new Editor(penroseTile, true);
     this.edit_first.setSize(200, 200);
     this.edit_first.setApp(this);
-    this.edit_second = new Editor(var1, false);
+    this.edit_second = new Editor(penroseTile, false);
     this.edit_second.setSize(200, 200);
     this.edit_second.setApp(this);
     this.s1 = new Slider("P1", 0.0D, 0.0D, 1.0D);
     this.s2 = new Slider("P2", 0.0D, 0.0D, 1.0D);
     this.s3 = new Slider("P3", 0.0D, 0.0D, 1.0D);
     this.s4 = new Slider("P4", 0.0D, 0.0D, 1.0D);
-    JPanel var4 = new JPanel();
-    GridBagLayout var5 = new GridBagLayout();
-    var4.setLayout(var5);
-    this.s1.insert(var4, var5, 0, 0);
-    this.s2.insert(var4, var5, 0, 1);
-    this.s3.insert(var4, var5, 0, 2);
-    this.s4.insert(var4, var5, 0, 3);
+    JPanel sliderPanel = new JPanel();
+    GridBagLayout sLayout = new GridBagLayout();
+    sliderPanel.setLayout(sLayout);
+    this.s1.insert(sliderPanel, sLayout, 0, 0);
+    this.s2.insert(sliderPanel, sLayout, 0, 1);
+    this.s3.insert(sliderPanel, sLayout, 0, 2);
+    this.s4.insert(sliderPanel, sLayout, 0, 3);
     this.s1.value_changed.addObserver(new Observer() {
       public void update(Observable var1, Object var2) {
         PenroseApp.this.tile.setParameter(0, (Double) var2);
@@ -122,102 +122,104 @@ public class PenroseApp extends JPanel implements App {
         PenroseApp.this.doUpdate();
       }
     });
-    var5 = new GridBagLayout();
-    this.setLayout(var5);
-    GridBagConstraints var6 = new GridBagConstraints();
-    JButton var7 = new JButton("New P2");
-    var7.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent var1) {
+    GridBagLayout mainLayout = new GridBagLayout();
+    this.setLayout(mainLayout);
+    GridBagConstraints gbConstraints = new GridBagConstraints();
+    JButton newP2Button = new JButton("New P2");
+    newP2Button.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent actonEvent) {
         PenroseApp.this.doNewP2();
       }
     });
-    JButton var8 = new JButton("New P3");
-    var8.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent var1) {
+    JButton newP3Button = new JButton("New P3");
+    newP3Button.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent actonEvent) {
         PenroseApp.this.doNewP3();
       }
     });
-    JButton var9 = new JButton("Save As...");
-    var9.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent var1) {
+    JButton saveAsButton = new JButton("Save As...");
+    saveAsButton.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent actonEvent) {
         PenroseApp.this.doSaveAs();
       }
     });
-    JButton var10 = new JButton("Load...");
-    var10.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent var1) {
+    JButton loadButton = new JButton("Load...");
+    loadButton.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent actonEvent) {
         PenroseApp.this.doLoad();
       }
     });
-    JButton var11 = new JButton("Quit");
-    var11.addActionListener(new ActionListener() {
-      public void actionPerformed(ActionEvent var1) {
+    JButton quitButton = new JButton("Quit");
+    quitButton.addActionListener(new ActionListener() {
+      public void actionPerformed(ActionEvent actonEvent) {
         System.exit(0);
       }
     });
-    var6.gridx = 0;
-    var6.gridy = 0;
-    var6.gridwidth = 2;
-    var6.gridheight = 1;
-    var6.weightx = 1.0D;
-    var6.weighty = 1.0D;
-    var6.anchor = 10;
-    var6.fill = 2;
-    JPanel var12 = new JPanel();
+    gbConstraints.gridx = 0;
+    gbConstraints.gridy = 0;
+    gbConstraints.gridwidth = 2;
+    gbConstraints.gridheight = 1;
+    gbConstraints.weightx = 1.0D;
+    gbConstraints.weighty = 0.0D;
+    gbConstraints.anchor = 10;
+    gbConstraints.fill = 2;
+    JPanel buttonPanel = new JPanel();
     if (var3) {
-      var12.setLayout(new GridLayout(1, 2));
-      var12.add(var7);
-      var12.add(var8);
+      buttonPanel.setLayout(new GridLayout(1, 2));
+      buttonPanel.add(newP2Button);
+      buttonPanel.add(newP3Button);
     } else {
-      var12.setLayout(new GridLayout(1, 5));
-      var12.add(var7);
-      var12.add(var8);
-      var12.add(var9);
-      var12.add(var10);
-      var12.add(var11);
+      buttonPanel.setLayout(new GridLayout(1, 5));
+      buttonPanel.add(newP2Button);
+      buttonPanel.add(newP3Button);
+      buttonPanel.add(saveAsButton);
+      buttonPanel.add(loadButton);
+      buttonPanel.add(quitButton);
     }
 
-    var5.setConstraints(var12, var6);
-    this.add(var12);
-    var6.gridx = 0;
-    var6.gridy = 1;
-    var6.gridwidth = 1;
-    var6.gridheight = 1;
-    var6.weightx = 2.0D;
-    var6.weighty = 2.0D;
-    var6.anchor = 10;
-    var6.fill = 1;
-    var5.setConstraints(this.edit_first, var6);
+    mainLayout.setConstraints(buttonPanel, gbConstraints);
+    this.add(buttonPanel);
+    gbConstraints.gridx = 0;
+    gbConstraints.gridy = 1;
+    gbConstraints.gridwidth = 1;
+    gbConstraints.gridheight = 1;
+    gbConstraints.weightx = 2.0D;
+    gbConstraints.weighty = 2.0D;
+    gbConstraints.anchor = 10;
+    gbConstraints.fill = 1;
+    mainLayout.setConstraints(this.edit_first, gbConstraints);
     this.add(this.edit_first);
-    var6.gridy = 2;
-    var5.setConstraints(this.edit_second, var6);
+    gbConstraints.gridy = 2;
+    mainLayout.setConstraints(this.edit_second, gbConstraints);
     this.add(this.edit_second);
-    var6.gridx = 1;
-    var6.gridy = 1;
-    var6.gridheight = 2;
-    var5.setConstraints(this.viewer, var6);
+    gbConstraints.gridx = 1;
+    gbConstraints.gridy = 1;
+    gbConstraints.gridheight = 2;
+    gbConstraints.weightx = 4.0D;
+    mainLayout.setConstraints(this.viewer, gbConstraints);
     this.add(this.viewer);
-    var6.gridx = 0;
-    var6.gridy = 3;
-    var6.gridwidth = 2;
-    var6.fill = 2;
-    var5.setConstraints(var4, var6);
-    this.add(var4);
+    gbConstraints.gridx = 0;
+    gbConstraints.gridy = 3;
+    gbConstraints.gridwidth = 2;
+    gbConstraints.fill = 2;
+    gbConstraints.weighty = 0.0D;
+    mainLayout.setConstraints(sliderPanel, gbConstraints);
+    this.add(sliderPanel);
     this.menu = new JPopupMenu("Penrose");
-    JMenuItem var13 = new JMenuItem("Save As...");
-    var13.addActionListener(new ActionListener() {
+    JMenuItem saveAsItem = new JMenuItem("Save As...");
+    saveAsItem.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         PenroseApp.this.doSaveAs();
       }
     });
-    this.menu.add(var13);
-    var13 = new JMenuItem("Quit");
-    var13.addActionListener(new ActionListener() {
+    this.menu.add(saveAsItem);
+    saveAsItem = new JMenuItem("Quit");
+    saveAsItem.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent var1) {
         System.exit(0);
       }
     });
-    this.menu.add(var13);
+    this.menu.add(saveAsItem);
     this.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent e) {
@@ -236,7 +238,7 @@ public class PenroseApp extends JPanel implements App {
       }
     });
 //    this.viewer.add(this.menu);
-    if (var1 instanceof KiteDart) {
+    if (penroseTile instanceof KiteDart) {
       this.viewer.loadConfig(Places.p2_first, Places.p2_second);
     } else {
       this.viewer.loadConfig(Places.p3_first, Places.p3_second);
