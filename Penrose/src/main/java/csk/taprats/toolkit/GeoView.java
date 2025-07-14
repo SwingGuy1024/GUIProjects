@@ -45,11 +45,40 @@ public class GeoView extends Canvas {
   private Dimension last_size;
   private final boolean j2d = true;
   private final boolean j2d_possible = true;
-  private static Color[] bevel_h_0 = new Color[]{new Color(1, 1, 1), new Color(1, 1, 1), new Color(1, 1, 1), new Color(76, 76, 76), new Color(103, 103, 103)};
-  private static Color[] bevel_h_1 = new Color[]{new Color(27, 27, 27), new Color(53, 53, 53), new Color(78, 78, 78), new Color(153, 153, 153), new Color(180, 180, 180)};
-  private static Color[] bevel_h_2 = new Color[]{new Color(127, 127, 127), new Color(178, 178, 178), new Color(228, 228, 228), new Color(255, 255, 255), new Color(255, 255, 255)};
-  private static Color[] bevel_h_3 = new Color[]{new Color(154, 154, 154), new Color(205, 205, 205), new Color(255, 255, 255), new Color(255, 255, 255), new Color(255, 255, 255)};
-  private static Color[] bevel_v = new Color[]{new Color(52, 52, 52), new Color(103, 103, 103), new Color(228, 228, 228), new Color(255, 255, 255)};
+  private static Color[] bevel_h_0 = new Color[]{
+      new Color(1, 1, 1),
+      new Color(1, 1, 1),
+      new Color(1, 1, 1),
+      new Color(76, 76, 76),
+      new Color(103, 103, 103)
+  };
+  private static Color[] bevel_h_1 = new Color[]{
+      new Color(27, 27, 27),
+      new Color(53, 53, 53),
+      new Color(78, 78, 78),
+      new Color(153, 153, 153),
+      new Color(180, 180, 180)
+  };
+  private static Color[] bevel_h_2 = new Color[]{
+      new Color(127, 127, 127),
+      new Color(178, 178, 178),
+      new Color(228, 228, 228),
+      new Color(255, 255, 255),
+      new Color(255, 255, 255)
+  };
+  private static Color[] bevel_h_3 = new Color[]{
+      new Color(154, 154, 154),
+      new Color(205, 205, 205),
+      new Color(255, 255, 255),
+      new Color(255, 255, 255),
+      new Color(255, 255, 255)
+  };
+  private static Color[] bevel_v = new Color[]{
+      new Color(52, 52, 52),
+      new Color(103, 103, 103),
+      new Color(228, 228, 228),
+      new Color(255, 255, 255)
+  };
 
   public GeoView(double var1, double var3, double var5) {
     this.left = var1;
