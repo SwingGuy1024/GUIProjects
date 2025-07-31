@@ -1,9 +1,7 @@
 package com.mm.util;
 
 import java.awt.GridBagConstraints;
-import java.awt.GridBagLayout;
 import java.awt.Insets;
-import javax.swing.JPanel;
 
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.Range;
@@ -11,7 +9,7 @@ import org.jetbrains.annotations.Range;
 /**
  * <p>This is a much-improved version of GridBagConstraints, which is its base class.</p>
  * <p>This class adds no new fields, but adds several new methods which may be chained. It also
- * changes one default value. The fill member now defaults to BOTH instead of NONE, which is 
+ * changes one default value. The fill member now defaults to BOTH instead of NONE, which is
  * much more useful.</p>
  * <p>Here is an example to show the method chaining in action. With GridBagConstraints, I would write code like this:</p>
  * <pre>
@@ -21,18 +19,18 @@ import org.jetbrains.annotations.Range;
  *   GridBagConstraints c = new GridBagConstraints();
  *   c.anchor = LINE_START;
  *   panel.add(versionLabel, c);
- *   
+ *
  *   c.gridy = 1;
  *   c.anchor = CENTER;
  *   c.weightx = 1.0;
  *   panel.add(new JLabel("Find:"), c);
- *   
+ *
  *   c.gridx = 1;
  *   c.gridwidth = 3;
  *   panel.add(new JTextField(15), c);
  *   // ...
  * </pre>
- * 
+ *
  * <p>With The Constrainer Class, it would look like this:</p>
  * <pre>
  *   import static GridBagConstraints.*;
@@ -44,7 +42,7 @@ import org.jetbrains.annotations.Range;
  *   panel.add(new JTextField(15), c.at(1, 1).gridSize(1, 3));
  *   // ...
  * </pre>
- * 
+ *
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 2/3/25
  * <br>Time: 4:59 PM
@@ -52,9 +50,10 @@ import org.jetbrains.annotations.Range;
  */
 @SuppressWarnings("unused")
 public class Constrainer extends GridBagConstraints {
-//  private final JPanel panel;
-//  private GridBagConstraints constraints = defaultConstraint();
-  
+
+  /**
+   * Construct a constrainer with a fill value of BOTH.
+   */
   public Constrainer() {
     super();
     //noinspection AssignmentToSuperclassField
@@ -63,6 +62,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * <p>Copy Constructor. Use this to make a copy of another instance of Constrainer or GridBagConstraints.</p>
+   *
    * @param model The original Constrainer to copy.
    */
   public Constrainer(GridBagConstraints model) {
@@ -74,32 +74,19 @@ public class Constrainer extends GridBagConstraints {
         .weight(model.weightx, model.weighty)
         .insets(model.insets)
         .pad(model.ipadx, model.ipady)
-        ;
+    ;
   }
 
-//  private static GridBagConstraints defaultConstraint() {
-//    GridBagConstraints constraints = new GridBagConstraints();
-//    constraints.fill = GridBagConstraints.BOTH;
-//    return constraints;
-//  }
-  
-//  public GridHelp() {
-//    this.panel = new JPanel(new GridBagLayout());
-//  }
 
-//  public GridHelp(JPanel panel) {
-//    this.panel = panel;
-//  }
-  
-  public static JPanel createPanel() { return new JPanel(new GridBagLayout()); }
-
+  @SuppressWarnings("UseOfClone")
   @Override
-  public Object clone() {
-    return super.clone();
+  public Constrainer clone() {
+    return (Constrainer) super.clone();
   }
 
   /**
    * Sets the gridx and gridy properties to x and y, respectively.
+   *
    * @param x the new gridx value
    * @param y the new gridy value
    * @return this, for method chaining
@@ -108,13 +95,13 @@ public class Constrainer extends GridBagConstraints {
    */
   public Constrainer at(int x, int y) {
     gridx = x;
-    
     gridy = y;
     return this;
   }
 
   /**
    * Sets gridx to the parameter
+   *
    * @param x the new gridx
    * @return this, for method chaining
    * @see #at(int, int)
@@ -138,6 +125,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets gridwidth and gridheight to x and y
+   *
    * @param x The new gridwidth
    * @param y The new gridheight
    * @return this, for method chaining 
@@ -152,6 +140,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets gridwidth to w
+   *
    * @param w the new gridwidth
    * @return this, for method chaining
    * @see #gridSize(int, int) 
@@ -160,6 +149,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets gridheight to h
+   *
    * @param h the new gridheight
    * @return this, for method chaining
    * @see #gridSize(int, int) 
@@ -168,6 +158,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the weightx and weighty values
+   *
    * @param weightX the new weightx
    * @param weightY the new weighty
    * @return this, for method chaining
@@ -182,7 +173,8 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the weightx value
-   * @param weightX the new wieghtx value
+   * 
+   * @param weightX the new weightx value
    * @return this, for method chaining
    * @see #weight(double, double) 
    */
@@ -190,12 +182,19 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the new weighty value
+   *
    * @param weightY the new weighty value
    * @return this, for method chaining
    * @see #weight(double, double) 
    */
   public Constrainer weightY(double weightY) { weighty = weightY; return this; }
-  
+
+  /**
+   * Sets the new anchor value
+   *
+   * @param anchor The new anchor value
+   * @return this, for method chaining
+   */
   @Range(from = GridBagConstraints.CENTER, to = GridBagConstraints.BELOW_BASELINE_TRAILING)
   @MagicConstant(valuesFromClass = GridBagConstraints.class)
   public Constrainer anchor(int anchor) {
@@ -203,6 +202,12 @@ public class Constrainer extends GridBagConstraints {
     return this;
   }
 
+  /**
+   * Sets the new fill value
+   *
+   * @param fill The new fill value
+   * @return this, for method chaining
+   */
   @Range(from = GridBagConstraints.NONE, to = GridBagConstraints.VERTICAL)
   @MagicConstant(valuesFromClass = GridBagConstraints.class)
   public Constrainer fill(int fill) {
@@ -210,18 +215,46 @@ public class Constrainer extends GridBagConstraints {
     return this;
   }
 
+  /**
+   * Sets the new insets
+   *
+   * @param top    The new top value
+   * @param left   the new left value
+   * @param bottom the new bottom value
+   * @param right  the new right value
+   * @return this, for method chaining
+   */
   public Constrainer insets(int top, int left, int bottom, int right) {
     this.insets = new Insets(top, left, bottom, right);
     return this;
   }
 
+  /**
+   * Sets the new insets to a copy of the specified insets
+   *
+   * @param insets The insets to set
+   * @return this, for method chaining
+   */
+  @SuppressWarnings("UseOfClone")
   public Constrainer insets(Insets insets) {
-    this.insets = insets;
+    this.insets = (Insets) insets.clone();
+    return this;
+  }
+
+  /**
+   * Sets the insets to a new Insets instance with all four sides set to the same value.
+   *
+   * @param allSides The insets for all four sides
+   * @return this, for method chaining
+   */
+  public Constrainer insets(int allSides) {
+    this.insets = new Insets(allSides, allSides, allSides, allSides);
     return this;
   }
 
   /**
    * Sets the ipadx and ipady values
+   *
    * @param padX the new ipadx value
    * @param padY the new ipady value
    * @return this, for method chaining
@@ -236,6 +269,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the ipadx value
+   *
    * @param padX the new ipadx value
    * @return this, for method chaining
    * @see #pad(int, int) 
@@ -244,28 +278,10 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the ipady value
+   *
    * @param padY the new ipady value
    * @return this, for method chaining
    * @see #pad(int, int) 
    */
   public Constrainer iPadY(int padY) { ipady = padY; return this; }
-
-  
-//  public void add(JComponent child) {
-//    panel.add(child, constraints);
-//  }
-  
-//  public GridHelp withConstraints(GridBagConstraints constraints) {
-//    this.constraints = (GridBagConstraints) constraints.clone();
-//    return this;
-//  }
-//  
-//  public GridBagConstraints copyOfConstraints() {
-//    return (GridBagConstraints) constraints.clone();
-//  }
-//  
-//  public GridHelp clear() {
-//    constraints = defaultConstraint();
-//    return this;
-//  }
 }
