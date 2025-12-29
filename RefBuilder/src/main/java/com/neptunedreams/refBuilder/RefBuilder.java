@@ -55,6 +55,7 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
@@ -119,7 +120,7 @@ import static javax.swing.ScrollPaneConstants.*;
  * <p>@author Miguel Muñoz</p>
  */
 @SuppressWarnings("MagicNumber")
-public class RefBuilder extends JPanel {
+public class RefBuilder extends JSplitPane {
 
   // Done: Add buttons for lower case and title case. 
   // DONE: Add Multiples
@@ -243,7 +244,7 @@ public class RefBuilder extends JPanel {
   }
 
   RefBuilder() {
-    super(new BorderLayout());
+    super(JSplitPane.VERTICAL_SPLIT);
     UIDefaults uiDefaults = UIManager.getDefaults();
     Color textFieldForeground = new ColorUIResource(Color.black);
     textFieldBgColor = uiDefaults.getColor("Label.background");
@@ -254,15 +255,15 @@ public class RefBuilder extends JPanel {
     for (String subject: subjectMap.keySet()) {
       tabPane.add(subject, new RefTabPane(subject));
     }
-    add(makeImportPane(), BorderLayout.PAGE_START);
-    add(tabPane, BorderLayout.CENTER);
-    add(makeControlPane(), BorderLayout.PAGE_END);
-
-//    uiDefaults.keySet()
-//        .stream()
-////        .filter(s -> s.toString().contains("border") || s.toString().contains("font"))
-//        .filter(s -> s.toString().contains("ground"))
-//        .forEach(s -> System.out.printf("%-40s: %s%n", s, uiDefaults.get(s)));
+    setTopComponent(makeTopSplitPane());
+    setBottomComponent(makeControlPane());
+  }
+  
+  private JPanel makeTopSplitPane() {
+    JPanel topSplitPane = new JPanel(new BorderLayout());
+    topSplitPane.add(makeImportPane(), BorderLayout.PAGE_START);
+    topSplitPane.add(tabPane, BorderLayout.CENTER);
+    return topSplitPane;
   }
   
   private JPanel makeImportPane() {
@@ -271,6 +272,10 @@ public class RefBuilder extends JPanel {
     importPanel.add(importButton, BorderLayout.LINE_END);
     importButton.addActionListener(e -> doImport());
     Borders.addEmptyBorder(importPanel, 12);
+    
+    JButton newWindow = new JButton("New Window");
+    importPanel.add(newWindow, BorderLayout.LINE_START);
+    newWindow.addActionListener(e -> makeNewFrame(new RefBuilder()));
     return importPanel;
   }
 
@@ -459,7 +464,7 @@ public class RefBuilder extends JPanel {
     }
   }
 
-  private JComponent makeControlPane(JTextField textField) {
+  private JComponent makeNamePane(JTextField textField) {
     JLabel nameLabel = new JLabel("Name: ");
     JPanel northPane = new JPanel(new BorderLayout());
     northPane.add(nameLabel, BorderLayout.LINE_START);
@@ -1354,7 +1359,7 @@ public class RefBuilder extends JPanel {
       tabSubject = subject;
       Borders.addEmptyBorder(this, 12);
 
-      add(makeControlPane(nameField), BorderLayout.PAGE_END);
+      add(makeNamePane(nameField), BorderLayout.PAGE_END);
 
       tabContent = new ScrollingPane(new GridBagLayout());
       Borders.addEmptyBorder(tabContent, 0, 4, 0, 4);
