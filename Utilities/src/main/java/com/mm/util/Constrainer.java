@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Range;
  * much more useful.</p>
  * <p>Here is an example to show the method chaining in action. With GridBagConstraints, I would write code like this:</p>
  * <pre>
- *   import static GridBagConstraints.*;
+ *   import GridBagConstraints;
  *   ...
  *   JPanel panel = new JPanel(new GridBagLayout());
  *   GridBagConstraints c = new GridBagConstraints();
@@ -33,15 +33,27 @@ import org.jetbrains.annotations.Range;
  *
  * <p>With The Constrainer Class, it would look like this:</p>
  * <pre>
- *   import static GridBagConstraints.*;
+ *   import Constrainer;
  *   ...
  *   JPanel panel = new JPanel(new GridBagLayout());
  *   Constrainer c = new Constrainer();
  *   panel.add(versionLabel, c.anchor(LINE_START));
- *   panel.add(new JLabel("Find:"), c.at(0, 1).anchor(CENTER).weight(1.0, 0.0));
- *   panel.add(new JTextField(15), c.at(1, 1).gridSize(1, 3));
+ *   panel.add(new JLabel("Find:"), c.gridy(1).anchor(CENTER).weightx(1.0));
+ *   panel.add(new JTextField(15), c.gridx(1).gridWidth(3));
  *   // ...
  * </pre>
+ * <p>Alternatively, we can use multi-parameter calls, like this:</p>
+ * <pre>
+ *   import Constrainer;
+ *   ...
+ *   JPanel panel = new JPanel(new GridBagLayout());
+ *   Constrainer c = new Constrainer();
+ *   panel.add(versionLabel, c.anchor(LINE_START));
+ *   panel.add(new JLabel("Find:"), c.grid(0, 1).anchor(CENTER).weight(1.0, 0.0));
+ *   panel.add(new JTextField(15), c.at(1, 1).gridSize(3, 1));
+ *   // ...
+ * </pre>
+ * 
  *
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 2/3/25

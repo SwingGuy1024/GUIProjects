@@ -13,6 +13,9 @@ import org.jetbrains.annotations.Nullable;
 
  
 /**
+ * <p><b>Don't use this class. Use the Constrainer class instead. It has a much better interface. In retrospect,
+ * I should have written this with chained functions. I may go back one day and do that. The Constrainer class
+ * uses chained functions to fill out the members of a GridBagConstraints object.</b></p>
  * The GridHelper exists to make it easier to use the GridBagLayout. The simplest way to use it is to instantiate
  * one, add all the components using the GridHelper API, then extract the JPanel and put it wherever you need it.
  * Or you can create your own JPanel and pass it to the GridHelper's constructor, which is just as easy.

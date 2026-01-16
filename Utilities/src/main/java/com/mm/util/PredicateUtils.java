@@ -13,13 +13,19 @@ public enum PredicateUtils {
   ;
 
   /**
-   * <p>Convenience method to negate a predicate that's less verbose. This way, we can write this</p>
+   * <p>Convenience method to negate a predicate that's less verbose. This is primarily useful when you're passing a
+   * function pointer to a method that takes a predicate, and you want to negate the function. This way, we can write
+   * this</p>
    * <pre>
    *   stream.filter(negate(Character::isWhitespace)) ...
    * </pre>
    * <p>instead of this</p>
    * <pre>
-   *  {@literal stream.filter((Predicate<Character>)} Character::isWhitespace).negate() ...
+   *   {@literal stream.filter((Predicate<Character>)} Character::isWhitespace).negate() ...
+   * </pre>
+   * <p>or this</p>
+   * <pre>
+   *   stream.filter(c -> ! Character.isWhitespace(c)) ...
    * </pre>
    *
    * @param p A predicate

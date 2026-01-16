@@ -10,7 +10,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
- * <p>Immutable Collector to use when using an IntStream or{@literal Stream<Integer>} to filter text. I wrote this
+ * <p>Immutable Collector to use when using an IntStream or {@literal Stream<Integer>} to filter text. I wrote this
  * because the {@code String.chars()} method returns an {@code IntStream}, which doesn't have a method that takes 
  * a Collector, which would look something like this:</p>
  * <pre>
@@ -48,6 +48,9 @@ import java.util.stream.Collector;
  *       .toString();
  *   }
  * </pre>
+ * <p>Of course, this is often accomplished using a regular expression. This method is most useful when your condition
+ * is too complicated for regex to handle. This is also helpful if you want to filter numeric characters in any
+ * numbering system.</p>
  * 
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 6/22/22</p>
@@ -55,7 +58,6 @@ import java.util.stream.Collector;
  *
  * @author Miguel Muñoz
  * @see #filterString(String, IntPredicate) 
- * @author Miguel Mu\u00f1oz
  */
 @SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
 public class StringCollector implements Collector<Integer, StringBuilder, String> {
