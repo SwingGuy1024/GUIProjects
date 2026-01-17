@@ -8,16 +8,18 @@ import org.jetbrains.annotations.Range;
 
 /**
  * <p>This is a much-improved version of GridBagConstraints, which is its base class.</p>
- * <p>This class adds no new fields, but adds several new methods which may be chained. It also
- * changes one default value. The fill member now defaults to BOTH instead of NONE, which is
- * much more useful.</p>
+ * <p>This class adds no new fields, but adds several new methods which may be chained. It also rewrites the
+ * {@code clone()} method to make that chainable too. And it changes one default value. The fill member now 
+ * defaults to BOTH instead of NONE, which is much more useful.</p>
  * <p>Here is an example to show the method chaining in action. With GridBagConstraints, I would write code like this:</p>
  * <pre>
  *   import GridBagConstraints;
+ *   import static GridBagConstraints.*
  *   ...
  *   JPanel panel = new JPanel(new GridBagLayout());
  *   GridBagConstraints c = new GridBagConstraints();
  *   c.anchor = LINE_START;
+ *   c.fill = BOTH
  *   panel.add(versionLabel, c);
  *
  *   c.gridy = 1;
@@ -25,35 +27,30 @@ import org.jetbrains.annotations.Range;
  *   c.weightx = 1.0;
  *   panel.add(new JLabel("Find:"), c);
  *
- *   c.gridx = 1;
- *   c.gridwidth = 3;
- *   panel.add(new JTextField(15), c);
+ *   cGrid = (GridBagConstraints) c.clone()
+ *   cGrid.gridx = 1;
+ *   cGrid.gridwidth = 3;
+ *   panel.add(new JTextField(15), cGrid);
  *   // ...
  * </pre>
  *
  * <p>With The Constrainer Class, it would look like this:</p>
  * <pre>
  *   import Constrainer;
+ *   import static GridBagConstraints.*
  *   ...
  *   JPanel panel = new JPanel(new GridBagLayout());
  *   Constrainer c = new Constrainer();
  *   panel.add(versionLabel, c.anchor(LINE_START));
  *   panel.add(new JLabel("Find:"), c.gridy(1).anchor(CENTER).weightx(1.0));
- *   panel.add(new JTextField(15), c.gridx(1).gridWidth(3));
+ *   panel.add(new JTextField(15), c.clone().gridx(1).gridWidth(3));
  *   // ...
  * </pre>
- * <p>Alternatively, we can use multi-parameter calls, like this:</p>
- * <pre>
- *   import Constrainer;
- *   ...
- *   JPanel panel = new JPanel(new GridBagLayout());
- *   Constrainer c = new Constrainer();
- *   panel.add(versionLabel, c.anchor(LINE_START));
- *   panel.add(new JLabel("Find:"), c.grid(0, 1).anchor(CENTER).weight(1.0, 0.0));
- *   panel.add(new JTextField(15), c.at(1, 1).gridSize(3, 1));
- *   // ...
- * </pre>
- * 
+ * <p>It also provides four optional two-dimensional methods, to set both dimensions at once. So these…</p>
+ * <p>{@code gridx(5).gridy(6)} can be written as {@code at(5, 6)}</p>
+ * <p>{@code ipadx(5).ipady(6)} can be written as {@code pad(5, 6)}</p>
+ * <p>{@code weightX(5.0).weightY(6.0)} can be written as {@code weight(5.0, 6.0)}</p>
+ * <p>{@code gridWidth(5).gridHeight(6)} can be written as {@code gridSize(5, 6)}</p>
  *
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 2/3/25
