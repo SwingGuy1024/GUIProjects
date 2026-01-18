@@ -21,7 +21,10 @@ import java.awt.event.HierarchyEvent;
 import java.awt.event.HierarchyListener;
 import java.awt.event.ItemEvent;
 import java.beans.PropertyChangeListener;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -81,6 +84,7 @@ import javax.swing.text.Document;
 import javax.swing.text.DocumentFilter;
 import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
+import javax.swing.text.SimpleAttributeSet;
 
 import com.mm.gui.Borders;
 import com.mm.gui.LandF;
@@ -148,10 +152,11 @@ public class RefBuilder extends JSplitPane {
       b. Url fields: url encode the following: < > and space and soft hyphen.
       c. normal fields: url encode the following: < > and soft hyphen
    */
-  
+
+  public static final String ACCESS_DATE = "access-date";
   private static final Set<String> common = new LinkedHashSet<>(
       List.of("title", "year", "date", "url", "page", "pages", "volume", "language", "publisher",
-          "location", "access-date", "url-access", "url-status", "archive-url", "archive-date", "ref")
+          "location", ACCESS_DATE, "url-access", "url-status", "archive-url", "archive-date", "ref")
   );
   private static final Set<String> sources
       = new LinkedHashSet<>(List.of("book.isbn", "book.location", "book.orig-year", "book.edition",
@@ -164,7 +169,6 @@ public class RefBuilder extends JSplitPane {
   public static final int TEXT_FIELD_LENGTH = 500;
   public static final int FIRST_COLUMN = 0;
   public static final int LAST_COLUMN = 1;
-  public static final int ROLE_COLUMN = 2;
 
   // http://www.strangeChars.com/!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ ¬­­/中文
 
@@ -270,7 +274,7 @@ public class RefBuilder extends JSplitPane {
     JButton importButton = new JButton("Import");
     JPanel importPanel = new JPanel(new BorderLayout());
     importPanel.add(importButton, BorderLayout.LINE_END);
-    importButton.addActionListener(e -> doImport());
+    importButton.addActionListener(e -> showImportDialog());
     Borders.addEmptyBorder(importPanel, 12);
     
     JButton newWindow = new JButton("New Window");
@@ -589,6 +593,15 @@ public class RefBuilder extends JSplitPane {
     SingleFieldDisplay valueField = new SingleFieldDisplay();
     content.add(valueField, constrain(1));
     keyMap.put(subject + DOT + fieldName, valueField.getDocument());
+    if (fieldName.equals(ACCESS_DATE)) {
+      Date today = new Date();
+      DateFormat dateFormat = new SimpleDateFormat("d MMMM yyyy");
+      try {
+        valueField.getDocument().insertString(0, dateFormat.format(today), new SimpleAttributeSet());
+      } catch (BadLocationException e) {
+        throw new InternalError("Should not happen", e);
+      }
+    }
     return valueField.getDocument();
   }
 
@@ -636,7 +649,7 @@ public class RefBuilder extends JSplitPane {
     return set;
   }
   
-  private void doImport() {
+  private void showImportDialog() {
     final int MATTE_SIZE = 24;
     JTextArea textArea = new JTextArea(6, 80);
     JScrollPane scrollPane = scrollWrapTextArea(textArea);
@@ -657,7 +670,7 @@ public class RefBuilder extends JSplitPane {
     dialog.add(inputPanel, BorderLayout.CENTER);
     dialog.setModalityType(Dialog.ModalityType.DOCUMENT_MODAL);
 
-    ok.addActionListener(e -> doOkay(dialog, textArea));
+    ok.addActionListener(e -> doImport(dialog, textArea));
     cancel.addActionListener(e -> dialog.dispose());
     dialog.getRootPane().setDefaultButton(ok);
 
@@ -665,7 +678,7 @@ public class RefBuilder extends JSplitPane {
     dialog.setVisible(true);
   }
   
-  private void doOkay(JDialog dialog, JTextArea textArea) {
+  private void doImport(JDialog dialog, JTextArea textArea) {
     dialog.dispose();
     ReferenceParser parser = new ReferenceParser(textArea.getText());
     final List<WikiReference> refs = parseReferences(parser);
@@ -761,6 +774,12 @@ public class RefBuilder extends JSplitPane {
             document = makeFixedField(selectedTab.getTabContent(), citeName, key, true); // unexpected
           }
           if (value != null) {
+            // AccessDate field may have default text.
+            // Remove all existing text from any field. (Most will be blank.)
+            int length = document.getLength();
+            if (length > 0) {
+              document.remove(0, length);
+            }
             document.insertString(0, value, null);
           }
         } catch (BadLocationException e) {
@@ -849,6 +868,7 @@ public class RefBuilder extends JSplitPane {
           JComponent.WHEN_IN_FOCUSED_WINDOW,
           JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT};
       for (int i: conditions) {
+        //noinspection MagicConstant
         System.out.printf("For %s inputMap %d, InputMap size = %d%n", cmp.getClass().getSimpleName(), i, cmp.getInputMap(i).size()); // NON-NLS
       }
       System.out.println();
@@ -1350,13 +1370,10 @@ public class RefBuilder extends JSplitPane {
    */
   private class RefTabPane extends JPanel {
     private final JTextField nameField = new JTextField();
-    private final String tabSubject;
     private final JPanel tabContent;
-    private final AuthorNameEditorPane editorPane;
 
     RefTabPane(String subject) {
       super(new BorderLayout());
-      tabSubject = subject;
       Borders.addEmptyBorder(this, 12);
 
       add(makeNamePane(nameField), BorderLayout.PAGE_END);
@@ -1370,7 +1387,7 @@ public class RefBuilder extends JSplitPane {
       tableConstraint.ipady = 0;
       AuthorTableModel tableModel = new AuthorTableModel();
       tableModelMap.put(subject, tableModel);
-      editorPane = new AuthorNameEditorPane(editorTerminatorOperations, tableModel);
+      AuthorNameEditorPane editorPane = new AuthorNameEditorPane(editorTerminatorOperations, tableModel);
       tabContent.add(editorPane, tableConstraint);
       tabContent.add(hStrut(1), constrain(0));
       tabContent.add(hStrut(TEXT_FIELD_LENGTH), constrain(1));
@@ -1399,11 +1416,7 @@ public class RefBuilder extends JSplitPane {
       return nameField;
     }
     
-    String getSubject() { return tabSubject; }
-    
     JPanel getTabContent() { return tabContent; }
-    
-    AuthorNameEditorPane getEditorPane() { return editorPane; }
   }
 }
 
