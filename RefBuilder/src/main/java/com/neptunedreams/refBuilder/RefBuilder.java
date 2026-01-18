@@ -154,9 +154,10 @@ public class RefBuilder extends JSplitPane {
    */
 
   public static final String ACCESS_DATE = "access-date";
+  public static final String URL_STATUS = "url-status";
   private static final Set<String> common = new LinkedHashSet<>(
       List.of("title", "year", "date", "url", "page", "pages", "volume", "language", "publisher",
-          "location", ACCESS_DATE, "url-access", "url-status", "archive-url", "archive-date", "ref")
+          "location", ACCESS_DATE, "url-access", URL_STATUS, "archive-url", "archive-date", "ref")
   );
   private static final Set<String> sources
       = new LinkedHashSet<>(List.of("book.isbn", "book.location", "book.orig-year", "book.edition",
@@ -593,11 +594,19 @@ public class RefBuilder extends JSplitPane {
     SingleFieldDisplay valueField = new SingleFieldDisplay();
     content.add(valueField, constrain(1));
     keyMap.put(subject + DOT + fieldName, valueField.getDocument());
-    if (fieldName.equals(ACCESS_DATE)) {
-      Date today = new Date();
-      DateFormat dateFormat = new SimpleDateFormat("d MMMM yyyy");
+    String defaultValue = "";
+    switch (fieldName) {
+      case URL_STATUS -> defaultValue = "live";
+      case ACCESS_DATE -> {
+        Date today = new Date();
+        DateFormat dateFormat = new SimpleDateFormat("d MMMM yyyy");
+        defaultValue = dateFormat.format(today);
+      }
+      default -> { }
+    }
+    if (!defaultValue.isEmpty()) {
       try {
-        valueField.getDocument().insertString(0, dateFormat.format(today), new SimpleAttributeSet());
+        valueField.getDocument().insertString(0, defaultValue, new SimpleAttributeSet());
       } catch (BadLocationException e) {
         throw new InternalError("Should not happen", e);
       }
@@ -769,18 +778,15 @@ public class RefBuilder extends JSplitPane {
       if (isNormal) {
         String nameKey = String.format("%s.%s", citeName, key);
         try {
-          Document document = keyMap.get(nameKey);
+          PlainDocument document = (PlainDocument) keyMap.get(nameKey);
           if (document == null) {
-            document = makeFixedField(selectedTab.getTabContent(), citeName, key, true); // unexpected
+            document = (PlainDocument) makeFixedField(selectedTab.getTabContent(), citeName, key, true); // unexpected
           }
           if (value != null) {
-            // AccessDate field may have default text.
-            // Remove all existing text from any field. (Most will be blank.)
+            // access-date and url-status fields may have default text.
+            // replace all existing text from any field. (Most will be blank.)
             int length = document.getLength();
-            if (length > 0) {
-              document.remove(0, length);
-            }
-            document.insertString(0, value, null);
+            document.replace(0, length, value, null);
           }
         } catch (BadLocationException e) {
           throw new IllegalStateException(String.format("Could not insert %s", nameKey), e);
