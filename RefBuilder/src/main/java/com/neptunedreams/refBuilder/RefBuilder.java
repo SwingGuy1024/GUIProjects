@@ -135,12 +135,30 @@ public class RefBuilder extends JSplitPane {
   //       minor branch so they may be put at the end.
   // Done: Move page and pages & volume to news, journal, and book.
   // TODO: Add a custom field?
-  // TODO: Try another L&F
   // Done: Put tab pane in a ScrollPane!
-  // TODO: Add a parser to paste in existing references. This may require adding the ability to add 
+  // Done: Add a parser to paste in existing references. This may require adding the ability to add 
   //       custom attributes.
+  // TODO: Add error-checking. (See Note.)
+  // TODO: add second output field using only the reference name.
+  // Done: Add contributor and interviewer to author types
   
   // Cite subjects: book, news, journal, web
+
+  /*
+    Error Checking:
+    * url-status tag should only be "live", "dead" or left blank. When present, it should have both "archive-url"
+    and "archive-date". It should generally be left blank. 
+    See https://en.wikipedia.org/wiki/Category:CS1_maint:_url-status
+    
+    * data and year: Don't use both, except under special circumstances:
+    See https://en.wikipedia.org/wiki/Category:CS1_maint:_date_and_year
+    
+    * first & last: "first" must be accompanied by its "last." (Reverse is not true. "last" need not have a "first".)
+    See https://en.wikipedia.org/wiki/Help:CS1_errors#first_missing_last
+    
+    * Contributor (writer/editor/...) is only used in book citations
+    See https://en.wikipedia.org/wiki/Help:CS1_errors#contributor_ignored
+   */
   
   /*
     Filter Specs:
@@ -361,18 +379,26 @@ public class RefBuilder extends JSplitPane {
     // Count Writers and Editors
     List<Integer> writerIndices = new LinkedList<>();
     List<Integer> editorIndices = new LinkedList<>();
+    List<Integer> contributorIndices = new LinkedList<>();
+    List<Integer> interviewerIndices = new LinkedList<>();
+
     AuthorTableModel tableModel = getCurrentTableModel();
     for (int row = 0; row < (tableModel.getRowCount() - 1); ++row) {
       final Object valueAt = tableModel.getValueAt(row, 2);
       Role role = (Role) valueAt;
-      if (role == Role.WRITER) {
-        writerIndices.add(row);
-      } else if (role == Role.EDITOR) {
-        editorIndices.add(row);
-      }
+      List<Integer> roleList = switch (role) {
+        case WRITER -> writerIndices;
+        case EDITOR -> editorIndices;
+        case CONTRIBUTOR -> contributorIndices;
+        case INTERVIEWER -> interviewerIndices;
+        case NONE -> throw new  IllegalStateException("Unexpected value: " + role);
+      };
+      roleList.add(row);
     }
     addRoleData(wikiReference, Role.WRITER, writerIndices);
     addRoleData(wikiReference, Role.EDITOR, editorIndices);
+    addRoleData(wikiReference, Role.CONTRIBUTOR, contributorIndices);
+    addRoleData(wikiReference, Role.INTERVIEWER, interviewerIndices);
 
     wikiReference.setRefKey(RefKey.valueOf(selectedTab));
 
@@ -596,7 +622,6 @@ public class RefBuilder extends JSplitPane {
     keyMap.put(subject + DOT + fieldName, valueField.getDocument());
     String defaultValue = "";
     switch (fieldName) {
-      case URL_STATUS -> defaultValue = "live";
       case ACCESS_DATE -> {
         Date today = new Date();
         DateFormat dateFormat = new SimpleDateFormat("d MMMM yyyy");
@@ -757,7 +782,7 @@ public class RefBuilder extends JSplitPane {
     }
     getKeyField().setText(reference.getName());
 
-    Set<String> tableKeys = new TreeSet<>(List.of("first", "last", "editor-first", "editor-last"));
+    Set<String> tableKeys = new TreeSet<>(List.of("first", "last", "editor-first", "editor-last", "contributor-first", "contributor-last", "interviewer-first", "interviewer-last" ));
     Map<String, Author> suffixToAuthorMap = new TreeMap<>();
     final List<String> dataKeys = reference.getDataKeys();
     Map<String, String> valueMap = reference.getDataMap();
@@ -770,7 +795,12 @@ public class RefBuilder extends JSplitPane {
           isNormal = false;
           String suffix = key.substring(tableKey.length());
           @SuppressWarnings("MagicCharacter")
-          Role role = (Character.toLowerCase(tableKey.charAt(0)) == 'e') ? Role.EDITOR : Role.WRITER;
+          Role role = switch(Character.toLowerCase(tableKey.charAt(0))) {
+            case 'e' -> Role.EDITOR;
+            case 'i' -> Role.INTERVIEWER;
+            case 'c' -> Role.CONTRIBUTOR;
+            default -> Role.WRITER;
+          };
           Author newAuthor = tableKey.contains("f") ? Author.ofFirstName(value, role) : Author.ofLastName(value, role);
           suffixToAuthorMap.merge(suffix, newAuthor, Author::remap);
         }
@@ -794,17 +824,14 @@ public class RefBuilder extends JSplitPane {
       }
     }
     List<Author> authorList = new LinkedList<>();
+    for (Role role: new Role[]{Role.WRITER, Role.EDITOR, Role.CONTRIBUTOR, Role.INTERVIEWER}) {
+      for (Author author: suffixToAuthorMap.values()) {
+        if (author.getRole() == role) {
+          authorList.add(author);
+        }
+      }
+    }
 
-    for (Author author : suffixToAuthorMap.values()) {
-      if (author.getRole() == Role.WRITER) {
-        authorList.add(author);
-      }
-    }
-    for (Author author : suffixToAuthorMap.values()) {
-      if (author.getRole() == Role.EDITOR) {
-        authorList.add(author);
-      }
-    }
     AuthorTableModel tableModel = getCurrentTableModel();
     tableModel.populateAuthors(authorList);
   }
@@ -1044,13 +1071,17 @@ public class RefBuilder extends JSplitPane {
 
       final TableColumnModel columnModel = table.getColumnModel();
       final TableColumn roleColumn = columnModel.getColumn(2);
-      JComboBox<Role> roleEditor = new JComboBox<>(new Role[]{Role.WRITER, Role.EDITOR});
+
+      Role[] roles = Role.values();
+      JComboBox<Role> roleEditor = new JComboBox<>(roles);
+      roleEditor.removeItem(Role.NONE);
+      
       roleColumn.setCellEditor(new DefaultCellEditor(roleEditor));
       
       // Make the first two columns wide enough to make the full blank-text string visible.
       // The default width is 1/3 of 580, or about 193.
-      columnModel.getColumn(0).setPreferredWidth(250);
-      columnModel.getColumn(1).setPreferredWidth(250);
+      columnModel.getColumn(0).setPreferredWidth(230);
+      columnModel.getColumn(1).setPreferredWidth(230);
       final JTableHeader tableHeader = table.getTableHeader();
       tableHeader.setReorderingAllowed(false);
 
@@ -1078,7 +1109,7 @@ public class RefBuilder extends JSplitPane {
       String cellString = value.toString();
       boolean isEmpty = cellString.isEmpty() && ((column == 0) && (row == (table.getRowCount() - 1)));
       if (isEmpty) {
-        cellString = "Add new writer/editor names here…";
+        cellString = "Add new names here…";
       } else {
         // When I set the last line's foreground to gray, it fails to change it the next time the renderer gets used.
         // So I change it before calling the super method.
@@ -1301,6 +1332,8 @@ public class RefBuilder extends JSplitPane {
   private enum Role {
     WRITER(""),
     EDITOR("editor-"),
+    CONTRIBUTOR("contributor-"),
+    INTERVIEWER("interviewer-"),
     NONE("");
     
     final @NonNls String namePrefix;
