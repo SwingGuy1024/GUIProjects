@@ -128,19 +128,24 @@ public class RefBuilder extends JSplitPane {
 
   // Done: Add buttons for lower case and title case. 
   // DONE: Add Multiples
+  // DONE: FIX PARSING EDITORS! It fails to show the editor with one writer and one editor.
+  // TODO: Add "Remove Row" to the table.
   // Todo: Add a Date Utility
   // Done: Add URL Encoder. From 32 to 47  and 58 to 64 and 123 to 126 Need to experiment with > 128
   //       Encode <>&()\#%[\]^`{|} 0xa0, 0xad (nbs and soft hyphen) & anything above 0xff
   // TODO: Move subject-specific tags to the end. Maybe split off access and archive names into a second,
   //       minor branch so they may be put at the end.
   // Done: Move page and pages & volume to news, journal, and book.
-  // TODO: Add a custom field?
+  // TODO: Add a custom field. For example, see https://en.wikipedia.org/wiki/Template:Cite_web
   // Done: Put tab pane in a ScrollPane!
   // Done: Add a parser to paste in existing references. This may require adding the ability to add 
   //       custom attributes.
   // TODO: Add error-checking. (See Note.)
   // TODO: add second output field using only the reference name.
+  // TODO: Add StandardCarat to all fields and text areas
+  // TODO: Add link column to writer table
   // Done: Add contributor and interviewer to author types
+  // Done: Put last before first, then only let users add a new field in the 'last' field.
   
   // Cite subjects: book, news, journal, web
 
@@ -158,6 +163,12 @@ public class RefBuilder extends JSplitPane {
     
     * Contributor (writer/editor/...) is only used in book citations
     See https://en.wikipedia.org/wiki/Help:CS1_errors#contributor_ignored
+    
+    For more info on the different categories, see:
+    https://en.wikipedia.org/wiki/Template:Cite_web
+    https://en.wikipedia.org/wiki/Template:Cite_news
+    https://en.wikipedia.org/wiki/Template:Cite_journal
+    https://en.wikipedia.org/wiki/Template:Cite_book
    */
   
   /*
@@ -186,8 +197,6 @@ public class RefBuilder extends JSplitPane {
   public static final String DELIMITER = "\\.";
   public static final char DOT = '.';
   public static final int TEXT_FIELD_LENGTH = 500;
-  public static final int FIRST_COLUMN = 0;
-  public static final int LAST_COLUMN = 1;
 
   // http://www.strangeChars.com/!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ ¬­­/中文
 
@@ -381,24 +390,29 @@ public class RefBuilder extends JSplitPane {
     List<Integer> editorIndices = new LinkedList<>();
     List<Integer> contributorIndices = new LinkedList<>();
     List<Integer> interviewerIndices = new LinkedList<>();
+    List<Integer> translatorIndices = new LinkedList<>();
 
+    // Fill the role lists with data
     AuthorTableModel tableModel = getCurrentTableModel();
     for (int row = 0; row < (tableModel.getRowCount() - 1); ++row) {
-      final Object valueAt = tableModel.getValueAt(row, 2);
-      Role role = (Role) valueAt;
+      final Role role = (Role) tableModel.getValueAt(row, tableModel.roleColumn);
       List<Integer> roleList = switch (role) {
         case WRITER -> writerIndices;
         case EDITOR -> editorIndices;
         case CONTRIBUTOR -> contributorIndices;
         case INTERVIEWER -> interviewerIndices;
+        case TRANSLATOR -> translatorIndices;
         case NONE -> throw new  IllegalStateException("Unexpected value: " + role);
       };
       roleList.add(row);
     }
+
+    // Now write the data to the reference.
     addRoleData(wikiReference, Role.WRITER, writerIndices);
     addRoleData(wikiReference, Role.EDITOR, editorIndices);
     addRoleData(wikiReference, Role.CONTRIBUTOR, contributorIndices);
     addRoleData(wikiReference, Role.INTERVIEWER, interviewerIndices);
+    addRoleData(wikiReference, Role.TRANSLATOR, translatorIndices);
 
     wikiReference.setRefKey(RefKey.valueOf(selectedTab));
 
@@ -408,7 +422,7 @@ public class RefBuilder extends JSplitPane {
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     clipboard.setContents(stringSelection, stringSelection);
   }
-  
+
   boolean isForUrl(String tag) {
     return tag.endsWith("url"); // .url and .archive-url
   }
@@ -446,8 +460,8 @@ public class RefBuilder extends JSplitPane {
     // First, eliminate rows with no first or last name
     AuthorTableModel tableModel = getCurrentTableModel();
     for (int row : indices) {
-      final String first = clean(tableModel.getValueAt(row, FIRST_COLUMN).toString(), false).trim();
-      final String last = clean(tableModel.getValueAt(row, LAST_COLUMN).toString(), false).trim();
+      final String first = clean(tableModel.getValueAt(row, tableModel.firstNameColumn).toString(), false).trim();
+      final String last = clean(tableModel.getValueAt(row, tableModel.lastNameColumn).toString(), false).trim();
       if (!first.isEmpty() || !last.isEmpty()) {
         firstNameList.add(first);
         lastNameList.add(last);
@@ -621,13 +635,12 @@ public class RefBuilder extends JSplitPane {
     content.add(valueField, constrain(1));
     keyMap.put(subject + DOT + fieldName, valueField.getDocument());
     String defaultValue = "";
-    switch (fieldName) {
-      case ACCESS_DATE -> {
-        Date today = new Date();
-        DateFormat dateFormat = new SimpleDateFormat("d MMMM yyyy");
-        defaultValue = dateFormat.format(today);
-      }
-      default -> { }
+    
+    // Set a default value for the Access Date.
+    if (fieldName.equals(ACCESS_DATE)) {
+      Date today = new Date();
+      DateFormat dateFormat = new SimpleDateFormat("d MMMM yyyy");
+      defaultValue = dateFormat.format(today);
     }
     if (!defaultValue.isEmpty()) {
       try {
@@ -782,7 +795,7 @@ public class RefBuilder extends JSplitPane {
     }
     getKeyField().setText(reference.getName());
 
-    Set<String> tableKeys = new TreeSet<>(List.of("first", "last", "editor-first", "editor-last", "contributor-first", "contributor-last", "interviewer-first", "interviewer-last" ));
+    Set<String> tableKeys = new TreeSet<>(List.of("first", "last", "editor-first", "editor-last", "contributor-first", "contributor-last", "interviewer-first", "interviewer-last", "translator-first", "translator-last" ));
     Map<String, Author> suffixToAuthorMap = new TreeMap<>();
     final List<String> dataKeys = reference.getDataKeys();
     Map<String, String> valueMap = reference.getDataMap();
@@ -799,10 +812,14 @@ public class RefBuilder extends JSplitPane {
             case 'e' -> Role.EDITOR;
             case 'i' -> Role.INTERVIEWER;
             case 'c' -> Role.CONTRIBUTOR;
+            case 't' -> Role.TRANSLATOR;
             default -> Role.WRITER;
           };
-          Author newAuthor = tableKey.contains("f") ? Author.ofFirstName(value, role) : Author.ofLastName(value, role);
-          suffixToAuthorMap.merge(suffix, newAuthor, Author::remap);
+          @NonNls
+          String authorKey = role + suffix; 
+          Author newAuthor = tableKey.contains("first") ? Author.ofFirstName(value, role) : Author.ofLastName(value, role);
+          suffixToAuthorMap.merge(authorKey, newAuthor, Author::remap);
+          break;
         }
       }
       if (isNormal) {
@@ -824,7 +841,7 @@ public class RefBuilder extends JSplitPane {
       }
     }
     List<Author> authorList = new LinkedList<>();
-    for (Role role: new Role[]{Role.WRITER, Role.EDITOR, Role.CONTRIBUTOR, Role.INTERVIEWER}) {
+    for (Role role: Role.values()) {
       for (Author author: suffixToAuthorMap.values()) {
         if (author.getRole() == role) {
           authorList.add(author);
@@ -1106,7 +1123,7 @@ public class RefBuilder extends JSplitPane {
 
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-      String cellString = value.toString();
+      String cellString = avoidNull(value);
       boolean isEmpty = cellString.isEmpty() && ((column == 0) && (row == (table.getRowCount() - 1)));
       if (isEmpty) {
         cellString = "Add new names here…";
@@ -1134,67 +1151,49 @@ public class RefBuilder extends JSplitPane {
    * <p>The Author class handles first and last names for authors and editors. The role of author or editor
    * is handled by the Role field, which has values of "Writer" and "Editor"</p>
    */
-  private static class Author {
-    private String first="";
-    private String last="";
-    private Role role = Role.WRITER;
-
-    public String getFirst() {
-      return first;
-    }
-
-    public void setFirst(String first) {
-      this.first = avoidNull(first);
-    }
-
-    public String getLast() {
-      return last;
-    }
-
-    public void setLast(String last) {
-      this.last = avoidNull(last);
-    }
-
-    public Role getRole() {
-      return role;
-    }
-
-    public void setRole(Role role) {
-      this.role = role;
-    }
+  private static final class Author  extends HashMap<String, Object>{
+    public String getFirst() { return avoidNull((String) get("first")); }
+    public String getLast() { return avoidNull((String) get("last")); }
+    public Role getRole() { return (Role) get("role"); }
+    public void setFirst(String first) { put("first", first); }
+    public void setLast(String last) { put("last", last); }
+    public void setRole(Role role) { put("role", role); }
     
+    private Author() {
+      super();
+      put("role", Role.WRITER);
+    }
+
     public static Author ofFirstName(String firstName, Role role) {
+      assert role != null;
       Author author = new Author();
-      author.setFirst(firstName);
-      author.setRole(role);
+      author.put("first", firstName);
+      author.put("role", role);
+//      author.setFirst(firstName);
+//      author.setRole(role);
       return author;
     }
-    
+
     public static Author ofLastName(String lastName, Role role) {
       Author author = new Author();
-      author.setLast(lastName);
-      author.setRole(role);
+      author.put("last", lastName);
+      author.put("role", role);
       return author;
     }
     
     public static Author remap(Author existing, Author newAuthor) {
-      return existing.copyFrom(newAuthor);
-    }
-    
-    public Author copyFrom(Author newAuthor) {
-      if (!newAuthor.getFirst().isEmpty()) {
-        setFirst(newAuthor.getFirst());
-      }
-      if (!newAuthor.getLast().isEmpty()) {
-        setLast(newAuthor.getLast());
-      }
-      return this;
+      existing.putAll(newAuthor);
+      return existing;
     }
   }
   
   private static String avoidNull(String s) {
     if (s == null) { return ""; }
     return s;
+  }
+  
+  private static String avoidNull(Object o) {
+    return (o == null) ? "" : o.toString();
   }
 
   /**
@@ -1206,15 +1205,24 @@ public class RefBuilder extends JSplitPane {
   private static class AuthorTableModel extends AbstractTableModel {
     private final List<AuthorTableColumn<Author, ?>> columnList = new ArrayList<>();
     private final List<Author> rowModel = new ArrayList<>();
+    public final int lastNameColumn;
+    public final int firstNameColumn;
+    public final int roleColumn;
     
     private final List<Runnable> rowCountListenerList = new LinkedList<>();
     
     AuthorTableModel() {
       super();
 
-      columnList.add(new AuthorTableColumn<>(String.class, "First", Author::getFirst, Author::setFirst));
-      columnList.add(new AuthorTableColumn<>(String.class, "Last", Author::getLast, Author::setLast));
-      columnList.add(new AuthorTableColumn<>(Role.class, "Role", Author::getRole, Author::setRole));
+      lastNameColumn = addColumn(String.class, "Last", Author::getLast, Author::setLast);
+      firstNameColumn = addColumn(String.class, "First", Author::getFirst, Author::setFirst);
+      roleColumn = addColumn(Role.class, "Role", Author::getRole, Author::setRole);
+    }
+    
+    private <C> int addColumn(Class<C> columnClass, String name, Function<Author, C> getter, BiConsumer<Author, C> setter) {
+      int columnIndex = columnList.size();
+      columnList.add(new AuthorTableColumn<>(columnClass, name, getter, setter));
+      return columnIndex;
     }
 
     @Override
@@ -1238,9 +1246,11 @@ public class RefBuilder extends JSplitPane {
 
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+      // This looks like an invalid test at first. But rowModel has one fewer rows than the TableModel does.
+      // So this tests if the index is for the last row of the table.
       if (rowIndex == rowModel.size()) {
         if (aValue.toString().isBlank()) {
-          // Don't put blank cells in the table in the last row. It defeats the purpos of the last row.
+          // Don't put blank cells in the table in the last row. It defeats the purpose of the last row.
           return;
         }
         final Author blankAuthor = new Author();
@@ -1274,8 +1284,9 @@ public class RefBuilder extends JSplitPane {
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-      // Role column is not editable in the last row.
-      return ((rowIndex < rowModel.size()) || (columnIndex < 2)) && columnList.get(columnIndex).isEditable();
+      // Only the last name is editable in the last row. This forces all first names to have a last name.
+      // (First name is optional but last name is required.)
+      return ((rowIndex < rowModel.size()) || (columnIndex < 1)) && columnList.get(columnIndex).isEditable();
     }
 
     @Override
@@ -1331,16 +1342,21 @@ public class RefBuilder extends JSplitPane {
    */
   private enum Role {
     WRITER(""),
-    EDITOR("editor-"),
-    CONTRIBUTOR("contributor-"),
-    INTERVIEWER("interviewer-"),
+    EDITOR(),
+    CONTRIBUTOR(),
+    INTERVIEWER(),
+    TRANSLATOR(),
     NONE("");
     
     final @NonNls String namePrefix;
+
+    Role() {
+      this.namePrefix = this.name().toLowerCase() + '-';
+    }
+
     Role(String namePrefix) {
       this.namePrefix = namePrefix;
     }
-
 
     @Override
     public String toString() {
