@@ -10,13 +10,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 1/25/26
  * <br>Time: 10:53?AM
- * <br>@author Miguel Muñoz</p>
+ * <br>@author Miguel Mu√±oz</p>
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ReferenceParserTest {

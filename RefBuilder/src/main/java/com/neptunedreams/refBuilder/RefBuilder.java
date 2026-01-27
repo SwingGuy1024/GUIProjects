@@ -70,6 +70,8 @@ import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.event.CaretListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.plaf.ColorUIResource;
 import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -231,6 +233,7 @@ public class RefBuilder extends JSplitPane {
   private final List<Runnable> editorTerminatorOperations = new LinkedList<>();
   private static final AtomicInteger windowCounter = new AtomicInteger();
   private final JTextArea resultField = new JTextArea(6, 0);
+  private JTextField shortResultField;
 
   public static void main(String[] args) {
     LandF.Platform.quickSetLF();
@@ -314,16 +317,41 @@ public class RefBuilder extends JSplitPane {
   private Component makeControlPane() {
     JPanel controlPane = new JPanel(new BorderLayout());
 
-    tabPane.addChangeListener(e -> resultField.setText("")); // Clear the bottom JTextArea
+    tabPane.addChangeListener(ignored -> {
+          resultField.setText("");
+          shortResultField.setText("");
+        }); // Clear the bottom JTextArea
     JComponent scrollPane = scrollWrapTextArea(resultField);
-    controlPane.add(scrollPane, BorderLayout.CENTER);
+    controlPane.add(scrollPane, BorderLayout.PAGE_START);
     resultField.setEditable(false);
+
+    shortResultField = new JTextField();
+    controlPane.add(wrap(shortResultField), BorderLayout.CENTER);
+    shortResultField.setEditable(false);
 
     JPanel createPane = makeCreatePane();
     controlPane.add(createPane, BorderLayout.PAGE_END);
     return controlPane;
   }
   
+  private JPanel wrap(final JTextField field) {
+    final JButton copyShortFieldBtn = new JButton("← Copy Short Version");
+    copyShortFieldBtn.addActionListener(e -> copyToClipboard(field.getText()));
+    final JPanel wrapPanel = new JPanel(new BorderLayout());
+    wrapPanel.add(copyShortFieldBtn, BorderLayout.LINE_END);
+    wrapPanel.add(field, BorderLayout.CENTER);
+    copyShortFieldBtn.setEnabled(false);
+    DocumentListener documentListener = new DocumentListener() {
+      private void process(DocumentEvent e) { copyShortFieldBtn.setEnabled(e.getDocument().getLength() > 0); }
+      @Override public void insertUpdate(DocumentEvent e)  { process(e); }
+      @Override public void removeUpdate(DocumentEvent e)  { process(e); }
+      @Override public void changedUpdate(DocumentEvent e) { process(e); }
+    };
+    field.getDocument().addDocumentListener(documentListener);
+    return wrapPanel;
+  }
+
+
   private static void examineInputMaps() {
     examineInputMap(new JTextField());
     examineInputMap(new JFormattedTextField());
@@ -363,7 +391,7 @@ public class RefBuilder extends JSplitPane {
     return tableModelMap.get(currentTab);
   }
   
-  private void buildReferenceText(JTextArea resultView, String name) {
+  private void buildReferenceText(JTextArea resultView, JTextField shortResultFiled, String name) {
     // Close all active editors first.
     for (Runnable runner: editorTerminatorOperations) {
       runner.run();
@@ -418,6 +446,15 @@ public class RefBuilder extends JSplitPane {
 
     final String referenceText = wikiReference.toString();
     resultView.setText(referenceText);
+    if (name.isEmpty()) {
+      shortResultField.setText("");
+    } else {
+      shortResultFiled.setText(String.format("<ref name=\"%s\"/>", name));
+    }
+    copyToClipboard(referenceText);
+  }
+
+  private static void copyToClipboard(String referenceText) {
     StringSelection stringSelection = new StringSelection(referenceText);
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     clipboard.setContents(stringSelection, stringSelection);
@@ -525,7 +562,7 @@ public class RefBuilder extends JSplitPane {
    */
   @NotNull
   private JPanel makeCreatePane() {
-    ActionListener actionListener = e -> buildReferenceText(resultField, getKeyField().getText().trim());
+    ActionListener actionListener = e -> buildReferenceText(resultField, shortResultField, getKeyField().getText().trim());
     JButton createButton = new JButton("Create and Copy");
     createButton.addActionListener(actionListener);
     JPanel createPane = new JPanel(new BorderLayout());
