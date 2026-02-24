@@ -269,7 +269,6 @@ public enum ClipboardTray {
     try (BufferedReader reader = new BufferedReader(new StringReader(trim))) {
       String theLine = reader.readLine();
       while (theLine != null) {
-        System.out.printf("Counting line <%s>\n", theLine);
         lineCount++;
         theLine = reader.readLine();
       }
