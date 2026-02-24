@@ -17,6 +17,7 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -32,9 +33,11 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 import javax.swing.ImageIcon;
+import javax.swing.JOptionPane;
 
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * <p>Text utilities for the clipboard tray.</p>
@@ -45,6 +48,10 @@ import org.jetbrains.annotations.NotNull;
  * for each operation, there may be two methods with similar names. So for the methods that operate on many
  * lines, the String input parameter will be called {@code lines}, while the method that operates on a single
  * line at a time will have a String input parameter called {@code lineIn}.</p>
+ * 
+ * <p><b>To Install:</b> Drag this into the Utilities folder.
+ * On a Macintosh, the first time, you should then open <b>System Settings:General:Login Items & Extensions</b> and add it to the list of <b>Open at Login</b>items.</p>
+ * <p>I don't remember how to add it to the System Tray on Windows, but it's not hard.</p>
  * 
  * <p>Icon: <a href="https://clipartix.com/hummingbird-clipart/">Hummingbird Clip Art</a></p>
  * <p>Created by IntelliJ IDEA.</p>
@@ -81,6 +88,7 @@ public enum ClipboardTray {
     addLineFilter(popupMenu, "Indent 4 spaces", t -> prePadLine(t, "    "));
     addLineFilter(popupMenu, "Unordered List <li>", t -> wrapLine(t, "li"));
     addLineFilter(popupMenu, "Paragraph <p>", t -> wrapLine(t, "p"));
+    addStringFilter(popupMenu, "Counts", ClipboardTray::stats);
     popupMenu.addSeparator();
     popupMenu.add(exitItem());
     return trayIcon;
@@ -134,7 +142,7 @@ public enum ClipboardTray {
    */
   private static void addLineFilter(PopupMenu popupMenu, String name, UnaryOperator<String> lineFunction) {
     MenuItem menuItem = new MenuItem(name);
-    
+
     Function<String, String> allLinesProcessor = t -> transformLines(t, lineFunction);
     menuItem.addActionListener(e -> processClipboardData(allLinesProcessor));
     popupMenu.add(menuItem);
@@ -143,7 +151,7 @@ public enum ClipboardTray {
   private static void processClipboardData(IntUnaryOperator function) {
     processClipboardData(toStringFunction(function));
   }
-  
+
   private static Function<String, String> toStringFunction(IntUnaryOperator operator) {
     return s -> s
         .chars()
@@ -151,21 +159,26 @@ public enum ClipboardTray {
         .boxed()
         .collect(StringCollector.instance);
   }
-  
+
   private static MenuItem exitItem() {
     MenuItem exitItem = new MenuItem("Exit");
     exitItem.addActionListener((e) -> System.exit(0));
     return exitItem;
   }
-  
+
   private static void processClipboardData(Function<String, String> stringFunction) { 
     Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
     try {
       String contents = clipboard.getData(DataFlavor.stringFlavor).toString();
       final String result = stringFunction.apply(contents);
-      StringSelection stringSelection = new StringSelection(result);
-      clipboard.setContents(stringSelection, stringSelection);
-    } catch (UnsupportedFlavorException | IOException ignored) { }
+      // Allow some MenuItems to avoid replacing clipboard data by returning null. 
+      if (result != null) {
+        StringSelection stringSelection = new StringSelection(result);
+        clipboard.setContents(stringSelection, stringSelection);
+      }
+    } catch (UnsupportedFlavorException | IOException shouldNotHappen) {
+      throw new IllegalStateException(shouldNotHappen);
+    }
   }
 
   /**
@@ -195,31 +208,40 @@ public enum ClipboardTray {
   }
   
   private static String toTitleCase(String lines) {
+    // Prepositions, articles, and conjunctions 
     String[] prepArray = preps.split("\n");
     Set<String> prepSet = new HashSet<>(Arrays.asList(prepArray));
     StringBuilder builder = new StringBuilder();
     List<String> tokens = new LinkedList<>();
-    StringTokenizer tokenizer = new StringTokenizer(lines, " .,?!()@-+=<>/", true);
+    StringTokenizer tokenizer = new StringTokenizer(lines, " .,?!()@-+=<>/\n\r\t", true);
     while (tokenizer.hasMoreTokens()) {
       tokens.add(tokenizer.nextToken());
     }
-    for (String word: tokens) {
+    Iterator<String> itr = tokens.iterator();
+    String firstToken = itr.next();
+    appendTitleCaseWord(firstToken, builder); // First word is always capitalized
+    while (itr.hasNext()) {
+      String word = itr.next();
       final String lowWord = word.toLowerCase();
       if (prepSet.contains(lowWord)) {
         builder.append(lowWord);
       } else {
-        final char firstLetter = word.charAt(0);
-        if (Character.isLetter(firstLetter)) {
-          builder.append(Character.toTitleCase(firstLetter));
-          builder.append(word.substring(1).toLowerCase());
-        } else {
-          builder.append(word);
-        }
+        appendTitleCaseWord(word, builder);
       }
     }
     return builder.toString();
   }
-  
+
+  private static void appendTitleCaseWord(String word, StringBuilder builder) {
+    final char firstLetter = word.charAt(0);
+    if (Character.isLetter(firstLetter)) {
+      builder.append(Character.toTitleCase(firstLetter));
+      builder.append(word.substring(1).toLowerCase());
+    } else {
+      builder.append(word);
+    }
+  }
+
   private static String combineLines(String lines) {
     StringBuilder builder = new StringBuilder();
     try (BufferedReader reader = new BufferedReader(new StringReader(lines))) {
@@ -239,6 +261,24 @@ public enum ClipboardTray {
       throw new IllegalStateException(e);
     }
     return builder.toString().trim();
+  }
+  
+  private static @Nullable String stats(String lines) {
+    int lineCount = 0;
+    final String trim = lines.trim();
+    try (BufferedReader reader = new BufferedReader(new StringReader(trim))) {
+      String theLine = reader.readLine();
+      while (theLine != null) {
+        System.out.printf("Counting line <%s>\n", theLine);
+        lineCount++;
+        theLine = reader.readLine();
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    String message = String.format("Characters: %d\n\nTrimmed:\nCharacters: %d\nLines: %d", lines.length(), trim.length(), lineCount);
+    JOptionPane.showMessageDialog(null, message);
+    return null;
   }
   
   private static String wrapLine(String lineIn, String tag) {
@@ -299,7 +339,7 @@ public enum ClipboardTray {
    * @author Miguel Muñoz
    * @see #filterString(String, IntPredicate)
    */
-  @SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
+  @SuppressWarnings({"unused", "UnnecessaryUnicodeEscape", "GrazieInspection"})
   private static final class StringCollector implements Collector<Integer, StringBuilder, String> {
     private final Supplier<StringBuilder> supplier = StringBuilder::new;
     private final BiConsumer<StringBuilder, Integer> accumulator = (sb, i) -> sb.append((char) i.intValue());
@@ -377,14 +417,13 @@ public enum ClipboardTray {
      * @return The negated predicate
      */
     public static <T> Predicate<T> negate(Predicate<T> p) {
-//      System.out.println("Predicate");
       return p.negate();
     }
 
     /**
      * <p>Convenience method to negate an {@code IntPredicate} that's less verbose. This way, we can write this</p>
      * <pre>
-     *   stream.filter(negate(Character::isWhitespace)) ...
+     *   stream.filter(negateI(Character::isWhitespace)) ...
      * </pre>
      * <p>instead of this</p>
      * <pre>
@@ -395,7 +434,6 @@ public enum ClipboardTray {
      * @return The negated predicate
      */
     public static IntPredicate negateI(IntPredicate p) {
-//      System.out.println("IntPredicate");
       return p.negate();
     }
 
