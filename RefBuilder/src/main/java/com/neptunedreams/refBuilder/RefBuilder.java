@@ -40,7 +40,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.swing.ActionMap;
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.ButtonModel;
 import javax.swing.DefaultCellEditor;
@@ -59,13 +58,13 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.KeyStroke;
 import javax.swing.Scrollable;
+import javax.swing.SwingUtilities;
 import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
@@ -91,6 +90,8 @@ import javax.swing.text.SimpleAttributeSet;
 import com.mm.gui.Borders;
 import com.mm.gui.LandF;
 import com.mm.gui.Utils;
+import com.mm.gui.undo.UndoFramework;
+import com.mm.gui.undo.UndoableTabbedPane;
 import com.mm.util.Constrainer;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -224,7 +225,8 @@ public class RefBuilder extends JSplitPane {
 
   private final Color textFieldBgColor;
   private final Color fakeLabelColor = new Color(0, 0, 0, 0);
-  private final ReferenceTabbedPane tabPane = new ReferenceTabbedPane();
+  private final UndoFramework undoFramework = new UndoFramework();
+  private final ReferenceTabbedPane tabPane = new ReferenceTabbedPane(undoFramework);
   private final Map<String, AuthorTableModel> tableModelMap = new HashMap<>();
 
   private final Map<String, Set<String>> subjectMap;
@@ -251,6 +253,9 @@ public class RefBuilder extends JSplitPane {
 
     final RefBuilder refBuilder = new RefBuilder();
     makeNewFrame(refBuilder);
+    SwingUtilities.invokeLater(() -> {
+      refBuilder.undoFramework.installInChildren(refBuilder);
+    });
   }
   
   private static void makeNewFrame(RefBuilder refBuilder) {
@@ -292,6 +297,8 @@ public class RefBuilder extends JSplitPane {
     }
     setTopComponent(makeTopSplitPane());
     setBottomComponent(makeControlPane());
+    tabPane.addUndoableEditListener(e -> undoFramework.addEdit(e.getEdit()));
+//    undoFramework.installUndoableFocusChangeListener();
   }
   
   private JPanel makeTopSplitPane() {
@@ -305,6 +312,7 @@ public class RefBuilder extends JSplitPane {
     JButton importButton = new JButton("Import");
     JPanel importPanel = new JPanel(new BorderLayout());
     importPanel.add(importButton, BorderLayout.LINE_END);
+    importPanel.add(makeUndoPanel(), BorderLayout.CENTER);
     importButton.addActionListener(e -> showImportDialog());
     Borders.addEmptyBorder(importPanel, 12);
     
@@ -312,6 +320,19 @@ public class RefBuilder extends JSplitPane {
     importPanel.add(newWindow, BorderLayout.LINE_START);
     newWindow.addActionListener(e -> makeNewFrame(new RefBuilder()));
     return importPanel;
+  }
+  
+  private JPanel makeUndoPanel() {
+    JButton  undoButton = new JButton("Undo");
+    undoButton.setAction(undoFramework.getUndoAction());
+    undoButton.setRequestFocusEnabled(false);
+    JButton redoButton = new JButton("Redo");
+    redoButton.setAction(undoFramework.getRedoAction());
+    redoButton.setRequestFocusEnabled(false);
+    JPanel undoPanel = new JPanel(new BorderLayout());
+    undoPanel.add(undoButton, BorderLayout.LINE_START);
+    undoPanel.add(redoButton, BorderLayout.LINE_END);
+    return undoPanel;
   }
 
   private Component makeControlPane() {
@@ -322,19 +343,28 @@ public class RefBuilder extends JSplitPane {
           shortResultField.setText("");
         }); // Clear the bottom JTextArea
     JComponent scrollPane = scrollWrapTextArea(resultField);
-    controlPane.add(scrollPane, BorderLayout.PAGE_START);
+    controlPane.add(scrollPane, BorderLayout.CENTER);
     resultField.setEditable(false);
-
-    shortResultField = new JTextField();
-    controlPane.add(wrap(shortResultField), BorderLayout.CENTER);
-    shortResultField.setEditable(false);
-
-    JPanel createPane = makeCreatePane();
-    controlPane.add(createPane, BorderLayout.PAGE_END);
+    controlPane.add(makeEndPane(), BorderLayout.PAGE_END);
     return controlPane;
   }
+
+  /**
+   * The endPane consists of the small JTextField that can display the short versin of the reference, along with the row of buttons at the bottom.
+   * @return
+   */
+  private JPanel makeEndPane() {
+    shortResultField = new JTextField();
+
+    JPanel endPane = new JPanel(new BorderLayout());
+    endPane.add(makeShortVersionPane(shortResultField), BorderLayout.PAGE_START);
+    shortResultField.setEditable(false);
+    JPanel createPane = makeCreatePane();
+    endPane.add(createPane, BorderLayout.PAGE_END);
+    return endPane;
+  }
   
-  private JPanel wrap(final JTextField field) {
+  private JPanel makeShortVersionPane(final JTextField field) {
     final JButton copyShortFieldBtn = new JButton("← Copy Short Version");
     copyShortFieldBtn.addActionListener(e -> copyToClipboard(field.getText()));
     final JPanel wrapPanel = new JPanel(new BorderLayout());
@@ -593,9 +623,26 @@ public class RefBuilder extends JSplitPane {
     utilityPane.add(toUpperCase);
     utilityPane.add(toTitleCase);
 
-    final CaretListener caretListener = e -> processCaretEvent(e.getDot() != e.getMark(), toLowerCase, toUpperCase, toTitleCase);
+    // The focusWatchPCL keeps moving the CaretListener to the focussed component. The CaretListener watches
+    // for selected text and enables/disables buttons that act on the selection.
+    final PropertyChangeListener focusWatchPCL = getFocusWatchPCL(toLowerCase, toUpperCase, toTitleCase);
 
-    PropertyChangeListener propertyChangeListener = evt -> {
+    final FocusManager currentManager = FocusManager.getCurrentManager();
+    currentManager.addPropertyChangeListener("permanentFocusOwner", focusWatchPCL);
+    return utilityPane;
+  }
+
+  /**
+   * This listener watches selections of text to enable/disable the specified buttons when text is selected or not.
+   * @param buttons The buttons to enable/disable that act on selected text.
+   * @return a PropertyChangeListener to handle these events.
+   */
+  private @NotNull PropertyChangeListener getFocusWatchPCL(JButton... buttons) {
+    final CaretListener caretListener = e -> processCaretEvent(e.getDot() != e.getMark(), buttons);
+
+    // Every time the focus moves to a new component, we need to move the CaretListener to that component. The
+    // CaretListener watches for selected text and enables or disables buttons that act on selected text.
+    return evt -> {
       if (focusedTextComponent != null) {
         focusedTextComponent.removeCaretListener(caretListener);
       }
@@ -603,18 +650,14 @@ public class RefBuilder extends JSplitPane {
         focusedTextComponent = textComponent;
         focusedTextComponent.addCaretListener(caretListener);
         final Caret caret = focusedTextComponent.getCaret();
-        processCaretEvent(caret.getDot() != caret.getMark(), toLowerCase, toUpperCase, toTitleCase);
+        processCaretEvent(caret.getDot() != caret.getMark(), buttons);
       } else {
         focusedTextComponent = null;
-        processCaretEvent(false, toLowerCase, toUpperCase, toTitleCase);
+        processCaretEvent(false, buttons);
       }
     };
-
-    final FocusManager currentManager = FocusManager.getCurrentManager();
-    currentManager.addPropertyChangeListener("permanentFocusOwner", propertyChangeListener);
-    return utilityPane;
   }
-  
+
   private void processCaretEvent(boolean isSelection, JButton... buttons) {
     for (JButton button : buttons) {
       button.setEnabled(isSelection);
@@ -732,7 +775,7 @@ public class RefBuilder extends JSplitPane {
     theSubjectMap.put(subject, set);
     return set;
   }
-  
+
   private void showImportDialog() {
     final int MATTE_SIZE = 24;
     JTextArea textArea = new JTextArea(6, 80);
@@ -900,11 +943,18 @@ public class RefBuilder extends JSplitPane {
     return encodings;
   }
   
-  private static class ReferenceTabbedPane extends JTabbedPane {
+  private static class ReferenceTabbedPane extends UndoableTabbedPane {
+//    private final UndoFramework myUndoFramework;
+    ReferenceTabbedPane(UndoFramework undoFramework) {
+      super();
+//      this.myUndoFramework = undoFramework;
+    }
+
     @Override
     public RefTabPane getSelectedComponent() {
       return (RefTabPane) super.getSelectedComponent();
     }
+    
   }
   
   /**
@@ -1062,18 +1112,23 @@ public class RefBuilder extends JSplitPane {
   }
 
   private JComponent makeFakeLabel(String text, boolean unexpected) {
-    // I don't remember why I decided to use a JTextField that looks and acts like a JLabel, but it
-    // may have had something to do with the Aqua look and feel.
-    JTextField textField = new JTextField(text);
-    textField.setEnabled(false);
-    textField.setBackground(fakeLabelColor);
+    JLabel label = new JLabel(text);
     if (unexpected) {
-      textField.setForeground(Color.RED.darker()); // Figure out why this doesn't work.
+      label.setForeground(Color.RED.darker());
     }
-    textField.setOpaque(false);
-    textField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-  
-    return textField;
+    return label;
+    // I don't remember why I decided to use a JTextField that looks and acts like a JLabel, but it
+    // may have had something to do with the Aqua look and feel. It doesn't seem to be to handle "unexpected,"
+    // because that works fine with JLabels. I'm returning JLabels to this code.
+//    JTextField textField = new JTextField(text);
+//    textField.setEnabled(false);
+//    textField.setBackground(fakeLabelColor);
+//    if (unexpected) {
+//      textField.setForeground(Color.RED.darker()); // Figure out why this doesn't work.
+//    }
+//    textField.setOpaque(false);
+//    textField.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+//    return textField;
   }
   
   private JTextField getKeyField() {
@@ -1232,7 +1287,7 @@ public class RefBuilder extends JSplitPane {
   private static String avoidNull(Object o) {
     return (o == null) ? "" : o.toString();
   }
-
+  
   /**
    * <p>The AuthorTableModel is the TableModel for the JTable that holds the first and last names of all the
    * authors and editors. For ease of maintenance, this model divides the data into separate row models and 
