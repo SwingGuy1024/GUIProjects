@@ -48,9 +48,9 @@ import java.util.stream.Collector;
  *       .toString();
  *   }
  * </pre>
- * <p>Of course, this is often accomplished using a regular expression. This method is most useful when your condition
- * is too complicated for regex to handle. This is also helpful if you want to filter numeric characters in any
- * numbering system.</p>
+ * <p>Of course, in this particular case, this task is often accomplished using a regular expression. However, this
+ * method is most useful when your condition is too complicated for regex to handle. This is also helpful if you
+ * want to filter numeric characters in any numbering system.</p>
  * 
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 6/22/22</p>
@@ -62,6 +62,7 @@ import java.util.stream.Collector;
 @SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
 public class StringCollector implements Collector<Integer, StringBuilder, String> {
   private final Supplier<StringBuilder> supplier = StringBuilder::new;
+  // Integer is used here to stand in for Character. Many filtering methods for characters use Integer parameters.
   private final BiConsumer<StringBuilder, Integer> accumulator = (sb, i) -> sb.append((char)i.intValue());
   private final BinaryOperator<StringBuilder> combiner = (t, u) -> t.append(u.toString());
   private final Function<StringBuilder, String> finisher = StringBuilder::toString;
@@ -101,7 +102,7 @@ public class StringCollector implements Collector<Integer, StringBuilder, String
    * using a sequential stream. For example, to remove all white space from a String, you would write this:</p>
    * <pre>
    *   String input = ...
-   *   String cleanedInput = StringCollector.filterString(input,{@literal ((Predicate<Character>)} Character::isWhitespace).negate())
+   *   String cleanedInput = StringCollector.filterString(input,{@literal ((Predicate<Character>) Character::isWhitespace).negate())}
    * </pre>
    * <p>or</p>
    * <pre>
@@ -115,7 +116,6 @@ public class StringCollector implements Collector<Integer, StringBuilder, String
   public static String filterString(String input, IntPredicate filter) {
     return input
         .chars()
-        .sequential()
         .filter(filter)
         .boxed()
         .collect(instance);
@@ -137,7 +137,6 @@ public class StringCollector implements Collector<Integer, StringBuilder, String
   public static String reMapString(String input, IntPredicate filter, char replacement) {
     return input
         .chars()
-        .sequential()
         .map(i -> filter.test(i) ? replacement : i)
         .boxed()
         .collect(instance);
