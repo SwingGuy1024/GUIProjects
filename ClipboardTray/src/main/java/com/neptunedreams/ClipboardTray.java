@@ -64,6 +64,7 @@ public enum ClipboardTray {
 
   public static final char NEW_LINE = '\n';
   public static final char SPACE = ' ';
+  public static final char TAB = '\t';
 
   public static void main(String[] args) throws AWTException {
     SystemTray systemTray = SystemTray.getSystemTray();
@@ -89,6 +90,7 @@ public enum ClipboardTray {
     addLineFilter(popupMenu, "Unordered List <li>", t -> wrapLine(t, "li"));
     addLineFilter(popupMenu, "Paragraph <p>", t -> wrapLine(t, "p"));
     addStringFilter(popupMenu, "Counts", ClipboardTray::stats);
+    addStringFilter(popupMenu, "To Table…", ClipboardTray::toTable);
     popupMenu.addSeparator();
     popupMenu.add(exitItem());
     return trayIcon;
@@ -178,7 +180,7 @@ public enum ClipboardTray {
       }
     } catch (UnsupportedFlavorException | IOException shouldNotHappen) {
       throw new IllegalStateException(shouldNotHappen);
-    }
+    } catch (CancelledOperationException ignore) { } // Do Nothing
   }
 
   /**
@@ -209,8 +211,10 @@ public enum ClipboardTray {
   
   private static String toTitleCase(String lines) {
     // Prepositions, articles, and conjunctions 
-    String[] prepArray = preps.split("\n");
+    String[] prepArray = PREPS.split("\n");
     Set<String> prepSet = new HashSet<>(Arrays.asList(prepArray));
+    String[] acronymArray = ACRONYMS.split("\n");
+    Set<String> acronymSet = new HashSet<>(Arrays.asList(acronymArray));
     StringBuilder builder = new StringBuilder();
     List<String> tokens = new LinkedList<>();
     StringTokenizer tokenizer = new StringTokenizer(lines, " .,?!()@-+=<>/\n\r\t", true);
@@ -219,12 +223,18 @@ public enum ClipboardTray {
     }
     Iterator<String> itr = tokens.iterator();
     String firstToken = itr.next();
-    appendTitleCaseWord(firstToken, builder); // First word is always capitalized
+    if (acronymSet.contains(firstToken.toLowerCase())) {
+      builder.append(firstToken.toUpperCase());
+    } else {
+      appendTitleCaseWord(firstToken, builder); // First word is always capitalized
+    }
     while (itr.hasNext()) {
       String word = itr.next();
       final String lowWord = word.toLowerCase();
       if (prepSet.contains(lowWord)) {
         builder.append(lowWord);
+      } else if  (acronymSet.contains(lowWord)) {
+        builder.append(lowWord.toUpperCase());
       } else {
         appendTitleCaseWord(word, builder);
       }
@@ -280,6 +290,54 @@ public enum ClipboardTray {
     return null;
   }
   
+  private static @Nullable String toTable(String lines) {
+    if (lines.isEmpty()) {
+      return null;
+    }
+    final int columnCount = getColumnCount();
+
+    StringBuilder builder = new StringBuilder();
+    try (BufferedReader reader = new BufferedReader(new StringReader(lines.trim()))) {
+      String theLine = reader.readLine();
+      outerLoop: while (theLine != null) {
+        for (int i = 1; i < columnCount; i++) {
+          builder.append(theLine);
+          builder.append(TAB);
+          theLine = reader.readLine();
+          if (theLine == null) {
+            break outerLoop;
+          }
+        }
+        builder.append(theLine);
+        builder.append(NEW_LINE);
+        theLine = reader.readLine();
+      }
+    } catch (IOException ioe) { throw new IllegalStateException(ioe); }
+    return builder.toString();
+  }
+
+  private static int getColumnCount() {
+    boolean invalid = true;
+    int columnCount = -1;
+    while (invalid) {
+      String tValue = JOptionPane.showInputDialog(null, "How Many Columns?", 5);
+      if(tValue == null) {
+        throw new CancelledOperationException(); 
+      }
+      try {
+        columnCount = Integer.parseInt(tValue);
+        if (columnCount > 0) {
+          invalid = false;
+        } else {
+          JOptionPane.showMessageDialog(null, "Column Count: %d must be greater than zero".formatted(columnCount), "Notice", JOptionPane.INFORMATION_MESSAGE);
+        }
+      } catch (NumberFormatException ignored) {
+        JOptionPane.showMessageDialog(null, "Columns must be an integer");
+      }
+    }
+    return columnCount;
+  }
+
   private static String wrapLine(String lineIn, String tag) {
     return wrapLine(lineIn, String.format("<%s>", tag), String.format("</%s>", tag));
   }
@@ -338,7 +396,7 @@ public enum ClipboardTray {
    * @author Miguel Muñoz
    * @see #filterString(String, IntPredicate)
    */
-  @SuppressWarnings({"unused", "UnnecessaryUnicodeEscape", "GrazieInspection"})
+  @SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
   private static final class StringCollector implements Collector<Integer, StringBuilder, String> {
     private final Supplier<StringBuilder> supplier = StringBuilder::new;
     private final BiConsumer<StringBuilder, Integer> accumulator = (sb, i) -> sb.append((char) i.intValue());
@@ -459,9 +517,11 @@ public enum ClipboardTray {
           .collect(instance);
     }
   }
+  
+  private static class CancelledOperationException extends RuntimeException { }
 
   // Articles, prepositions and conjunctions:
-  private static final String preps = """
+  private static final String PREPS = """
 a
 aboard
 about
@@ -600,5 +660,10 @@ whenever
 while
 yet
 though
+""";
+
+  private static final String ACRONYMS = """
+la
+dj
 """;
 }
