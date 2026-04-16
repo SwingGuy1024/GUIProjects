@@ -153,7 +153,7 @@ public enum ClipboardTray {
   private static void processClipboardData(IntUnaryOperator function) {
     processClipboardData(toStringFunction(function));
   }
-
+  
   private static Function<String, String> toStringFunction(IntUnaryOperator operator) {
     return s -> s
         .chars()
@@ -289,7 +289,7 @@ public enum ClipboardTray {
     JOptionPane.showMessageDialog(null, message);
     return null;
   }
-  
+
   private static @Nullable String toTable(String lines) {
     if (lines.isEmpty()) {
       return null;
@@ -440,7 +440,7 @@ public enum ClipboardTray {
      * using a sequential stream. For example, to remove all white space from a String, you would write this:</p>
      * <pre>
      *   String input = ...
-     *   String cleanedInput = StringCollector.filterString(input,{@literal ((Predicate<Character>)} Character::isWhitespace).negate())
+     *   String cleanedInput = StringCollector.filterString(input,{@literal ((Predicate<Character>) Character::isWhitespace).negate())}
      * </pre>
      * <p>or</p>
      * <pre>
