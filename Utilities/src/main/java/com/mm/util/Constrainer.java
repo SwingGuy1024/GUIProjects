@@ -13,13 +13,12 @@ import org.jetbrains.annotations.Range;
  * defaults to BOTH instead of NONE, which is much more useful.</p>
  * <p>Here is an example to show the method chaining in action. With GridBagConstraints, I would write code like this:</p>
  * <pre>
- *   import GridBagConstraints;
- *   import static GridBagConstraints.*
+ *   import static GridBagConstraints.*;
  *   ...
  *   JPanel panel = new JPanel(new GridBagLayout());
  *   GridBagConstraints c = new GridBagConstraints();
+ *   c.fill = BOTH;
  *   c.anchor = LINE_START;
- *   c.fill = BOTH
  *   panel.add(versionLabel, c);
  *
  *   c.gridy = 1;
@@ -27,23 +26,21 @@ import org.jetbrains.annotations.Range;
  *   c.weightx = 1.0;
  *   panel.add(new JLabel("Find:"), c);
  *
- *   cGrid = (GridBagConstraints) c.clone()
- *   cGrid.gridx = 1;
- *   cGrid.gridwidth = 3;
- *   panel.add(new JTextField(15), cGrid);
+ *   c.gridx = 1;
+ *   c.gridwidth = 3;
+ *   panel.add(new JTextField(15), c);
  *   // ...
  * </pre>
  *
  * <p>With The Constrainer Class, it would look like this:</p>
  * <pre>
- *   import Constrainer;
- *   import static GridBagConstraints.*
+ *   import static Constrainer.*;
  *   ...
  *   JPanel panel = new JPanel(new GridBagLayout());
  *   Constrainer c = new Constrainer();
  *   panel.add(versionLabel, c.anchor(LINE_START));
- *   panel.add(new JLabel("Find:"), c.gridy(1).anchor(CENTER).weightx(1.0));
- *   panel.add(new JTextField(15), c.clone().gridx(1).gridWidth(3));
+ *   panel.add(new JLabel("Find:"), c.at(0, 1).anchor(CENTER).weight(1.0, 0.0));
+ *   panel.add(new JTextField(15), c.at(1, 1).gridSize(1, 3));
  *   // ...
  * </pre>
  * <p>It also provides four optional two-dimensional methods, to set both dimensions at once. So these…</p>
@@ -51,13 +48,49 @@ import org.jetbrains.annotations.Range;
  * <p>{@code ipadx(5).ipady(6)} can be written as {@code pad(5, 6)}</p>
  * <p>{@code weightX(5.0).weightY(6.0)} can be written as {@code weight(5.0, 6.0)}</p>
  * <p>{@code gridWidth(5).gridHeight(6)} can be written as {@code gridSize(5, 6)}</p>
+
+ * <table>
+ *   <caption>Here is a side-by-side look at the same example:</caption>
+ *   <tr>
+ *     <td><pre>  import static GridBagConstraints.*;</pre></td><td><pre> import static Constrainer.*;</pre></td>
+ *   </tr>
+ *   <tr>
+ *     <td><pre>  ...</pre></td>
+ *   </tr>
+ *   <tr>
+ *     <td><pre>  JPanel panel = new JPanel(new GridBagLayout());</pre></td>
+ *     <td><pre>JPanel panel = new JPanel(new GridBagLayout());</pre></td>
+ *   </tr>
+ *   <tr>
+ *     <td><pre>  GridBagConstraints c = new GridBagConstraints();</pre></td>
+ *     <td><pre>Constrainer c = new Constrainer();</pre></td>
+ *   </tr>
+ *   <tr>
+ *     <td><pre>  c.fill = BOTH;
+ * c.anchor = LINE_START;
+ * panel.add(versionLabel, c);</pre></td>
+ *    <td style="valign: top;"><pre>panel.add(versionLabel, c.anchor(LINE_START));</pre></td>
+ *   </tr>
+ *   <tr>
+ *     <td><pre>  c.gridy = 1;
+ * c.anchor = CENTER;
+ * c.weightx = 1.0;
+ * panel.add(new JLabel("Find:"), c);</pre></td>
+ * <td><pre>panel.add(new JLabel("Find:"), c.at(0, 1).anchor(CENTER).weight(1.0, 0.0));</pre>
+ *   </tr>
+ *   <tr>
+ *     <td><pre>  c.gridx = 1;
+ * c.gridwidth = 3;
+ * panel.add(new JTextField(15), c);</pre></td>
+ *     <td><pre>panel.add(new JTextField(15), c.at(1, 1).gridSize(1, 3));</pre></td>
+ *   </tr>
+ * </table>
  *
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 2/3/25
  * <br>Time: 4:59 PM
  * <br>@author Miguel Muñoz</p>
  */
-@SuppressWarnings("unused")
 public class Constrainer extends GridBagConstraints {
 
   /**
@@ -73,6 +106,7 @@ public class Constrainer extends GridBagConstraints {
    * <p>Copy Constructor. Use this to make a copy of another instance of Constrainer or GridBagConstraints.</p>
    *
    * @param model The original Constrainer to copy.
+   * @see #clone()
    */
   public Constrainer(final GridBagConstraints model) {
     this();
@@ -86,6 +120,11 @@ public class Constrainer extends GridBagConstraints {
     ;
   }
 
+  /**
+   * Create a clone of this Constrainer, cast as a Constrainer
+   * @return A new Constrainer identical to this Constrainer
+   * @see #Constrainer(GridBagConstraints)
+   */
   @SuppressWarnings("UseOfClone")
   @Override
   public Constrainer clone() {
@@ -136,9 +175,9 @@ public class Constrainer extends GridBagConstraints {
    *
    * @param x The new gridwidth
    * @param y The new gridheight
-   * @return this, for method chaining 
+   * @return this, for method chaining
    * @see #gridWidth(int)
-   * @see #gridHeight(int) 
+   * @see #gridHeight(int)
    */
   public Constrainer gridSize(int x, int y) {
     gridwidth = x;
@@ -151,18 +190,24 @@ public class Constrainer extends GridBagConstraints {
    *
    * @param w the new gridwidth
    * @return this, for method chaining
-   * @see #gridSize(int, int) 
+   * @see #gridSize(int, int)
    */
-  public Constrainer gridWidth(int w) { gridwidth = w; return this; }
+  public Constrainer gridWidth(int w) {
+    gridwidth = w;
+    return this;
+  }
 
   /**
    * Sets gridheight to h
    *
    * @param h the new gridheight
    * @return this, for method chaining
-   * @see #gridSize(int, int) 
+   * @see #gridSize(int, int)
    */
-  public Constrainer gridHeight(int h) { gridheight = h; return this; }
+  public Constrainer gridHeight(int h) {
+    gridheight = h;
+    return this;
+  }
 
   /**
    * Sets the weightx and weighty values
@@ -170,8 +215,8 @@ public class Constrainer extends GridBagConstraints {
    * @param weightX the new weightx
    * @param weightY the new weighty
    * @return this, for method chaining
-   * @see #weightX(double) 
-   * @see #weightY(double) 
+   * @see #weightX(double)
+   * @see #weightY(double)
    */
   public Constrainer weight(double weightX, double weightY) {
     this.weightx = weightX;
@@ -181,24 +226,30 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the weightx value
-   * 
+   *
    * @param weightX the new weightx value
    * @return this, for method chaining
-   * @see #weight(double, double) 
+   * @see #weight(double, double)
    */
-  public Constrainer weightX(double weightX) { weightx = weightX; return this; }
+  public Constrainer weightX(double weightX) {
+    weightx = weightX;
+    return this;
+  }
 
   /**
    * Sets the new weighty value
    *
    * @param weightY the new weighty value
    * @return this, for method chaining
-   * @see #weight(double, double) 
+   * @see #weight(double, double)
    */
-  public Constrainer weightY(double weightY) { weighty = weightY; return this; }
+  public Constrainer weightY(double weightY) {
+    weighty = weightY;
+    return this;
+  }
 
   /**
-   * Sets the new {@code anchor} value
+   * Sets the new  {@code anchor} value
    *
    * @param anchor The new {@code anchor} value
    * @return this, for method chaining
@@ -266,8 +317,8 @@ public class Constrainer extends GridBagConstraints {
    * @param padX the new ipadx value
    * @param padY the new ipady value
    * @return this, for method chaining
-   * @see #iPadX(int) 
-   * @see #iPadY(int) 
+   * @see #iPadX(int)
+   * @see #iPadY(int)
    */
   public Constrainer pad(int padX, int padY) {
     ipadx = padX;
@@ -280,18 +331,24 @@ public class Constrainer extends GridBagConstraints {
    *
    * @param padX the new ipadx value
    * @return this, for method chaining
-   * @see #pad(int, int) 
+   * @see #pad(int, int)
    */
-  public Constrainer iPadX(int padX) { ipadx = padX; return this; }
+  public Constrainer iPadX(int padX) {
+    ipadx = padX;
+    return this;
+  }
 
   /**
    * Sets the ipady value
    *
    * @param padY the new ipady value
    * @return this, for method chaining
-   * @see #pad(int, int) 
+   * @see #pad(int, int)
    */
-  public Constrainer iPadY(int padY) { ipady = padY; return this; }
+  public Constrainer iPadY(int padY) {
+    ipady = padY;
+    return this;
+  }
 
   /**
    * Sets the {@code gridx} value to {@code RELATIVE}, indicating that the component should be placed next to the
@@ -423,6 +480,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the {@code anchor} value to {@code CENTER}, which is one of the absolute values for {@code anchor}.
+   *
    * @return this, for method chaining
    * @see GridBagConstraints#anchor
    * @see GridBagConstraints#CENTER
@@ -531,6 +589,7 @@ public class Constrainer extends GridBagConstraints {
   /**
    * Sets the {@code anchor} value to {@code PAGE_START}, which is one of the orientation relative values for
    * {@code anchor}
+   *
    * @return this, for method chaining
    * @see GridBagConstraints#PAGE_START
    * @see GridBagConstraints#anchor
@@ -633,6 +692,7 @@ public class Constrainer extends GridBagConstraints {
 
   /**
    * Sets the {@code anchor} field to BASELINE, which is one of the baseline relative values for {@code anchor}.
+   *
    * @return this, for method chaining
    * @see GridBagConstraints#BASELINE
    * @see GridBagConstraints#anchor
