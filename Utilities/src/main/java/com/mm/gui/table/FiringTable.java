@@ -9,14 +9,18 @@ import javax.swing.table.TableModel;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * JTable meant to ensure its TableModel implements FiringTableModel. This will ensure subclasses will have access
+ * <p>JTable meant to ensure its TableModel implements FiringTableModel. This will ensure subclasses will have access
  * to the fireXxx methods found in AbstractTableModel and DefaultTableModel without needing to cast the model to
- * a concrete class.
+ * a concrete class.</p>
+ * <p>Ideally, if a developer tried to use the wrong table model, it should be a compile time error. But Java
+ * doesn't let me override a method parameter with a subclass, so the setModel(TableModel) method has to resort
+ * to throwing an exception at runtime.</p>
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 4/21/26
  * <br>Time: 11:51 PM
  * <br>@author Miguel Muñoz (<a href="https://github.com/SwingGuy1024">https://github.com/SwingGuy1024</a>)</p>
  */
+@SuppressWarnings("unused")
 public class FiringTable extends JTable {
   public FiringTable() {
     super();
