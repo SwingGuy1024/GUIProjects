@@ -10,14 +10,18 @@ import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import javax.swing.Box;
+import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by IntelliJ IDEA.
@@ -84,23 +88,68 @@ public enum Utils {
 		}
 		return builder.toString();
 	}
-	
-	public static JScrollPane wrap(JTextArea textArea, boolean monospace) {
+
+  /**
+   * <p>Wrap a JTextArea in a JScrollPane, set up for handling normal text, optionally using a monospace font.
+   * This turns on line-wrapping on word breaks, and gives the JTextArea a vertical scrollbar</p>
+   * @param textArea The JTextArea to wrap 
+   * @param monospace True if a monospace font is needed.
+   * @return A JScrollPane that wraps the JTextArea
+   */
+	public static JScrollPane prepareForText(JTextArea textArea, boolean monospace) {
 		Font originalFont = textArea.getFont();
 		if (monospace) {
 			Font monoFont = new Font(Font.MONOSPACED, originalFont.getStyle(), originalFont.getSize());
 			textArea.setFont(monoFont);
 		}
-		return wrap(textArea);
+		return prepareForText(textArea);
 	}
-	
-	public static JScrollPane wrap(JTextArea textArea) {
+
+  /**
+   * <p>Wrap a JTextArea in a JScrollPane, set up for handling normal text. This turns on line-wrapping on word
+   * breaks, and gives the JTextArea a vertical scrollbar</p>
+   * @param textArea The TextArea to wrap
+   * @return A JScrollPane that wraps the JTextArea
+   */
+	public static JScrollPane prepareForText(JTextArea textArea) {
 		textArea.setWrapStyleWord(true);
 		textArea.setLineWrap(true);
 		return new JScrollPane(textArea,
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 	}
+
+  /**
+   * <p>Attaches a text Label to a component. More formally, wraps a component inside a JPanel with a JLabel
+   * showing the specified text and an optional Icon.</p>
+   * @param component The component to text
+   * @param text The text of the text
+   * @param icon The optional icon, usually an ImageIcon, or null for no icon
+   * @return A JPanel containing the label, optional icon, and the component
+   */
+  public static JPanel wrapWithLabel(JComponent component, String text, @Nullable Icon icon) {
+    JPanel labelPanel = new JPanel(new BorderLayout());
+    JLabel label = new JLabel(text);
+    label.setIcon(icon); // This method accepts null values.
+    labelPanel.add(label, BorderLayout.LINE_START);
+    labelPanel.add(component, BorderLayout.CENTER);
+    return labelPanel;
+  }
+
+  /**
+   * <p>Gives the specified component a specific minimum width by wrapping inside a JPanel with a rigid horizontal
+   * strut along the bottom.</p>
+   * This is preferable to using setPreferredSize() because it leaves the height to its natural value.
+   * @param component The component to stretch
+   * @param width The revised width
+   * @return A JPanel guaranteed not to be smaller than the specified width
+   */
+  public static JPanel stretchHorizontal(JComponent component, int width) {
+    JPanel panel = new JPanel(new BorderLayout());
+    panel.add(component, BorderLayout.CENTER);
+    panel.add(Box.createHorizontalStrut(width), BorderLayout.PAGE_END);
+    return panel;
+  }
 
 	/**
 	 * <p>This returns an Iterable that iterates over the characters of a String.</p>
@@ -126,13 +175,13 @@ public enum Utils {
 	 */
 	public static Iterable<Character> iterator(String s) {
 
-		return new Iterable<Character>() {
+		return new Iterable<>() {
 			private int i = 0;
 
 			@NotNull
 			@Override
 			public Iterator<Character> iterator() {
-				return new Iterator<Character>() {
+				return new Iterator<>() {
 
 					@Override
 					public boolean hasNext() {
@@ -217,7 +266,11 @@ public enum Utils {
 	 * named fonts are found, returns Dialog
 	 */
 	@SuppressWarnings("SameParameterValue")
-	public static Font getFont(String fontNameList, @MagicConstant(valuesFromClass = Font.class) int style, int size) {
+	public static Font getFont(
+      String fontNameList,
+      @MagicConstant(flags = {Font.PLAIN, Font.BOLD, Font.ITALIC}) int style,
+      int size
+  ) {
 		String[] fonts = fontNameList.split(",");
 		for (String name : fonts) {
 			Font f = new Font(name.trim(), style, size);
