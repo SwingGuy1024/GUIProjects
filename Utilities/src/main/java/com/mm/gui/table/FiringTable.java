@@ -75,4 +75,9 @@ public class FiringTable extends JTable {
     }
     super.setModel(dataModel);
   }
+
+  @Override
+  protected TableModel createDefaultDataModel() {
+    return new DefaultFiringTableModel();
+  }
 }
