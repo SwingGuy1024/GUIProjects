@@ -13,9 +13,7 @@
 package com.mm.gui;
 
 import java.awt.event.FocusEvent;
-import javax.swing.text.Caret;
 import javax.swing.text.DefaultCaret;
-import javax.swing.text.Highlighter;
 import javax.swing.text.JTextComponent;
 
 /**
@@ -27,20 +25,18 @@ import javax.swing.text.JTextComponent;
  * editing cells in a JTable. Turn on the isInTable property to 
  * use this in a JTable.
  */
+@SuppressWarnings("unused")
 public class SelectCaret extends DefaultCaret
 {
-  int     myBlinkRate;
-  boolean myIsInTable = false;
-  SelectCaret(Caret oldCaret)
+  private boolean myIsInTable = false;
+  SelectCaret()
   {
     super();
-    myBlinkRate = oldCaret.getBlinkRate();
   }
 
-  SelectCaret(Caret oldCaret, boolean isInTable)
+  SelectCaret(boolean isInTable)
   {
     super();
-    myBlinkRate = oldCaret.getBlinkRate();
     myIsInTable = isInTable;
   }
 
@@ -50,12 +46,13 @@ public class SelectCaret extends DefaultCaret
 	  // This one just sets visible false. But this doesn't work anymore. It worked fine 
 	  // in 1.3 and (I think) 1.4. I don't know if it worked in 1.5 but it fails in 1.6 and
 	  // I don't know why.
-    if (!myIsInTable)
+    if (!myIsInTable) {
       setVisible(false);
+    }
   }
   
   public boolean isInTable() { return myIsInTable; }
-  public void setIsInTable(boolean inTable) { myIsInTable = inTable; }
+  public void setInTable(boolean inTable) { myIsInTable = inTable; }
 
   /**
    * Since the caret and selection aren't visible by default,
@@ -64,10 +61,11 @@ public class SelectCaret extends DefaultCaret
   @Override
   public void install(JTextComponent tc)
   {
+    int blinkRate = tc.getCaret().getBlinkRate();
     super.install(tc);
 
-    setBlinkRate(myBlinkRate);// set the blinkRate before setVisible...
-    if (tc.hasFocus()) // (I don't think this is ever true!)
+    setBlinkRate(blinkRate);// set the blinkRate before setVisible...
+    if (tc.hasFocus())
     {
       setVisible(true);         // ...or it won't blink the first time.
     }
@@ -75,13 +73,8 @@ public class SelectCaret extends DefaultCaret
   }
 	
 	public static void installCaret(JTextComponent tc) {
-		SelectCaret newCaret = new SelectCaret(tc.getCaret());
+		SelectCaret newCaret = new SelectCaret();
 		newCaret.install(tc);
-	}
-
-	@Override
-	protected Highlighter.HighlightPainter getSelectionPainter() {
-		return super.getSelectionPainter();
 	}
 }
 
