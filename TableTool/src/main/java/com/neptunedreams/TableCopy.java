@@ -37,6 +37,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.UIManager;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
+import javax.swing.table.DefaultTableCellRenderer;
 
 import com.mm.gui.Borders;
 import com.mm.gui.Utils;
@@ -73,7 +74,7 @@ public class TableCopy extends JPanel {
   public static final String LINE_BREAK = "\n";
 
   private final List<String> tableData = new ArrayList<>();
-  private final JTable table = new FiringTable();
+  private final JTable table = makeTable();
   private final JPanel topPanel = new JPanel(new BorderLayout());
   private static final TableCopy tableCopy = new TableCopy();
 
@@ -94,6 +95,30 @@ public class TableCopy extends JPanel {
     text = text.replace("\t", "\\t");
     return text;
   }
+  
+  private static JTable makeTable() {
+    JTable table = new FiringTable();
+    table.setOpaque(false);
+    DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+      @Override
+      public DefaultTableCellRenderer getTableCellRendererComponent(
+          final JTable table,
+          final Object value,
+          final boolean isSelected,
+          final boolean hasFocus,
+          final int row,
+          final int column
+      ) {
+        final var rendererBase = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        DefaultTableCellRenderer renderer = (DefaultTableCellRenderer) rendererBase;
+        renderer.setBackground(UIManager.getColor("Panel.background"));
+        Borders.addMatte(renderer, 0, 0, 1, 0, Color.darkGray);
+        return renderer;
+      }
+    };
+    table.getTableHeader().setDefaultRenderer(renderer);
+    return table;
+  }
 
   // This needs to go after the main method sets the look and feel, if it does so.
   private final Color bgColor = UIManager.getColor("panel.background");
@@ -113,7 +138,7 @@ public class TableCopy extends JPanel {
       if (tableCopy.rawClipboard.isEmpty()) {
         tableCopy.processRawClipboardData(rawDataObject);
       } else if (!rawDataObject.equals(tableCopy.rawClipboard)) {
-        if (tableCopy.confirmReload2(tableCopy.frame)) {
+        if (tableCopy.confirmReload(tableCopy.frame)) {
           tableCopy.processRawClipboardData(rawDataObject);
         }
       }
@@ -131,7 +156,7 @@ public class TableCopy extends JPanel {
     JOptionPane.showMessageDialog(null, fullMessage, "Error", JOptionPane.ERROR_MESSAGE);
   }
   
-  private static boolean confirmReload2(JFrame owner) {
+  private static boolean confirmReload(JFrame owner) {
     int result = JOptionPane.showConfirmDialog(owner, "Clipboard contents have changed. Reload Table Data?",
         "Reload", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
     return result == JOptionPane.YES_OPTION;
@@ -144,7 +169,7 @@ public class TableCopy extends JPanel {
    * @param owner The owning component
    * @return True if the user chooses to replace the table data, false otherwise.
    */
-  private boolean confirmReload(JFrame owner) {
+  private boolean confirmReloadDlg(JFrame owner) {
     if (dialog == null) {
       // reusable dialog
       dialog = new JDialog(owner, "Reload?", true);
@@ -426,6 +451,14 @@ public class TableCopy extends JPanel {
       rowCount = rows + (((elements.size() % columnCount) == 0) ? 0 : 1);
       fireTableStructureChanged();
     }
+  }
+  
+  record tableStructure(String[] elements, String encoded, TableType tableType, int rows, int columns) {}
+  
+  private enum TableType {
+    HTML,
+    FLEX,
+    GRID
   }
 }
 
