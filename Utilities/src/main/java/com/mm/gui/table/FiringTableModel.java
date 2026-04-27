@@ -5,8 +5,9 @@ import javax.swing.table.TableModel;
 
 /**
  * <p>These methods are all implemented by AbstractTableModel and DefaultTableModel. This interface allows the
- * developer to take any subclass of AbstractTableModel, such as DefaultTableModel, and cast it to a FiringTableModel,
- * then to call the appropriate fireXxx() method to update the view.</p>
+ * developer to take any subclass of AbstractTableModel, such as DefaultTableModel, and cast it to this interface,
+ * then to call the appropriate {@code fireXxx()} method to update the view. Alternatively, you may use this interface
+ * indirectly by subclassing AbstractFiringTableModel or DefaultFiringTableModel.</p>
  * 
  * <p>These methods often need to be called by the view, but since they are not in the TableModel interface, code
  * in the view layer doesn't have access to them without first casting them to the appropriate concrete table
@@ -17,6 +18,7 @@ import javax.swing.table.TableModel;
  * <br>Time: 2:16 AM
  * <br>@author Miguel Muñoz (<a href="https://github.com/SwingGuy1024">https://github.com/SwingGuy1024</a>)</p>
  */
+@SuppressWarnings("unused")
 public interface FiringTableModel extends TableModel {
   void fireTableDataChanged();
   void fireTableStructureChanged();
