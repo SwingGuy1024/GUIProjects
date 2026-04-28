@@ -17,6 +17,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTable;
 import javax.swing.JTextArea;
 
 import org.intellij.lang.annotations.MagicConstant;
@@ -118,6 +119,10 @@ public enum Utils {
 				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
 				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 	}
+  
+  public static JScrollPane prepareTable(JTable table) {
+      return new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+  }
 
   /**
    * <p>Attaches a text Label to a component. More formally, wraps a component inside a JPanel with a JLabel
