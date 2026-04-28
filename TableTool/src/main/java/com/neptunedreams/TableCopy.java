@@ -2,7 +2,6 @@ package com.neptunedreams;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Toolkit;
@@ -18,14 +17,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -57,11 +55,15 @@ import com.mm.gui.table.FiringTable;
  * attributes.<br>
  * <b>Note: </b>The necessary data to deduce the number of columns can be found in the html fragment that gets
  * put on the clipboard, so this looks viable.</p>
- * <p><b>For CSS Grid Tables,</b> find an element like this: "grid-template-columns: 2fr 1fr 1fr;" and count the
+ * <b>Note 2: </b>This worked well.
+ * <p><b>For CSS Grid Tables,</b> find an element like this: {@code "grid-template-columns: 2fr 1fr 1fr;"} and count the
  * number of words between grid-template-columns and the semicolon.<br>
  * <b>Note: </b>This doesn't work, because the grid-template-columns attribute appears before any of the table
  * contents. This means it doesn't get copied to the clipboard. The data on the clipboard doesn't have any
  * clues showing where the lines break.</p>
+ * <p>However, If the user includes the entire table header line, this can be used to deduce the number of columns.
+ * There will be one {@code grid-header} for each table column.</p>
+ * <p>I have not yet implemented this, although it should be pretty easy.</p>
  * <p>Created by IntelliJ IDEA.
  * <br>Date: 4/20/26
  * <br>Time: 3:15 AM
@@ -72,6 +74,9 @@ public class TableCopy extends JPanel {
 
   public static final String TAB = "\t";
   public static final String LINE_BREAK = "\n";
+  private static final String rowDelimiter = "flex-row";
+  private static final String cellDelimiter = "flex-cell";
+  private static final Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
   private final List<String> tableData = new ArrayList<>();
   private final JTable table = makeTable();
@@ -79,9 +84,7 @@ public class TableCopy extends JPanel {
   private static final TableCopy tableCopy = new TableCopy();
 
   private String rawClipboard = "";
-//  private String lastClipboardData = "";
 
-  private JDialog dialog;
   private JFrame frame;
 
   public static void main(String[] args) {
@@ -91,14 +94,23 @@ public class TableCopy extends JPanel {
   }
   
   private static String filterText(String text) {
-    text = text.replace("\n", "\\n");
-    text = text.replace("\t", "\\t");
+    text = text.replace(LINE_BREAK, "\\n");
+    text = text.replace(TAB, "\\t");
     return text;
   }
   
   private static JTable makeTable() {
     JTable table = new FiringTable();
-    table.setOpaque(false);
+    shadeTableHeader(table);
+    return table;
+  }
+
+  /**
+   * Tints the table header a light shade of gray, to distinguish its column headers from the table data to
+   * be copied.
+   * @param table The table
+   */
+  private static void shadeTableHeader(final JTable table) {
     DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
       @Override
       public DefaultTableCellRenderer getTableCellRendererComponent(
@@ -117,17 +129,14 @@ public class TableCopy extends JPanel {
       }
     };
     table.getTableHeader().setDefaultRenderer(renderer);
-    return table;
   }
 
   // This needs to go after the main method sets the look and feel, if it does so.
   private final Color bgColor = UIManager.getColor("panel.background");
 
   private static void loadClipboard() {
-    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-    
     try {
-      String rawDataObject = clipboard.getData(DataFlavor.stringFlavor).toString();
+      String rawDataObject = systemClipboard.getData(DataFlavor.stringFlavor).toString();
       System.out.printf("*** Comparing: %d chars to %d chars%nnew: %s%nold: %s%n",
           rawDataObject.length(),
           tableCopy.rawClipboard.length(),
@@ -135,11 +144,14 @@ public class TableCopy extends JPanel {
           filterText(tableCopy.rawClipboard)
       ); // NON-NLS
 
+      TableMaker tableMaker = tableCopy.processRawClipboardData(rawDataObject);
       if (tableCopy.rawClipboard.isEmpty()) {
-        tableCopy.processRawClipboardData(rawDataObject);
+        tableCopy.rawClipboard = rawDataObject;
+        tableCopy.displayData(tableMaker);
       } else if (!rawDataObject.equals(tableCopy.rawClipboard)) {
-        if (tableCopy.confirmReload(tableCopy.frame)) {
-          tableCopy.processRawClipboardData(rawDataObject);
+        if (tableCopy.confirmReload(tableCopy.frame, tableMaker)) {
+          tableCopy.rawClipboard = rawDataObject;
+          tableCopy.displayData(tableMaker);
         }
       }
     } catch (UnsupportedFlavorException e) {
@@ -152,56 +164,29 @@ public class TableCopy extends JPanel {
   }
 
   private static void showError(Exception e, String message) {
-    String fullMessage = String.format("%s%n%nError Message: %s", message, e.getMessage());
-    JOptionPane.showMessageDialog(null, fullMessage, "Error", JOptionPane.ERROR_MESSAGE);
+    String fullMessage = String.format("<html><p>TableCopy was unable to read the clipboard data.</p><p>Reason: %s.<br><br></p><p>Error Message: %s</p>", message, e.getMessage());
+    JOptionPane.showMessageDialog(null, fullMessage, "TableCopy Error", JOptionPane.ERROR_MESSAGE);
+    throw new IllegalStateException(e.getMessage(), e);
   }
   
-  private static boolean confirmReload(JFrame owner) {
-    int result = JOptionPane.showConfirmDialog(owner, "Clipboard contents have changed. Reload Table Data?",
-        "Reload", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-    return result == JOptionPane.YES_OPTION;
-  }
+  private static boolean confirmReload(JFrame owner, TableMaker tableMaker) {
+    JPanel messagePanel = new JPanel(new BorderLayout());
+    Borders.addMatte(messagePanel, 20);
+    final var messageLabel = new JLabel(String.format(
+        "<html><p>Clipboard data has changed. Would you like to reload?</p><br><br><p>%s</p><br></html>",
+        tableMaker.getTableDescription()
+    ));
 
-  /**
-   * <p>I'm not currently using this, but I may change the UI to show the user the text on the clipboard when I ask
-   * if they want to replace the data. If so, this dialog may come in handy, although it may be possible to do this
-   * with a JOptionPane, too.</p>
-   * @param owner The owning component
-   * @return True if the user chooses to replace the table data, false otherwise.
-   */
-  private boolean confirmReloadDlg(JFrame owner) {
-    if (dialog == null) {
-      // reusable dialog
-      dialog = new JDialog(owner, "Reload?", true);
-      dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-      dialog.setModalityType(Dialog.ModalityType.DOCUMENT_MODAL);
-      dialog.setResizable(false);
-    }
-    JLabel message = new JLabel("Clipboard contents have changed. Reload Table Data?");
-    JPanel questionPanel = new JPanel(new BorderLayout());
-    questionPanel.add(message, BorderLayout.NORTH);
-    JPanel buttonPanel = new JPanel(new FlowLayout());
-    JButton yesButton = new JButton("Yes");
-    JButton noButton = new JButton("No");
-    buttonPanel.add(yesButton);
-    buttonPanel.add(noButton);
-    questionPanel.add(buttonPanel, BorderLayout.SOUTH);
-    AtomicBoolean confirmed = new AtomicBoolean(false);
-    ActionListener buttonListener = e -> {
-        //noinspection ObjectEquality
-      confirmed.set(e.getSource() == yesButton);
-      dialog.setVisible(false);
-    };
-    yesButton.addActionListener(buttonListener);
-    noButton.addActionListener(buttonListener);
-    int matteSize = 40;
-    Borders.addMatte(questionPanel, matteSize);
-    
-    dialog.setContentPane(questionPanel);
-    dialog.pack();
-    dialog.setLocationRelativeTo(frame);
-    dialog.setVisible(true);
-    return confirmed.get();
+    messagePanel.add(messageLabel, BorderLayout.PAGE_START);
+    CopyTableModel tableModel = tableMaker.create();
+    final var messageTable = new JTable(tableModel);
+    shadeTableHeader(messageTable);
+    final var comp = Utils.prepareTable(messageTable);
+    comp.setPreferredSize(new Dimension(300, 100));
+    messagePanel.add(BorderLayout.CENTER, comp);
+    int result = JOptionPane.showConfirmDialog(owner, messagePanel,
+        "Reload", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+    return result == JOptionPane.YES_OPTION;
   }
 
   TableCopy() {
@@ -215,58 +200,39 @@ public class TableCopy extends JPanel {
     add(makeCopyPanel(), BorderLayout.PAGE_END);
   }
 
-  private void processRawClipboardData(String rawData) throws IOException {
-    this.rawClipboard = rawData;
-    StringTokenizer tabTokenizer = new StringTokenizer(rawData, "\t");
-    int tokenCount = tabTokenizer.countTokens();
+  private TableMaker processRawClipboardData(String rawData) throws IOException, UnsupportedFlavorException {
     tableData.clear();
-    if(tokenCount == 1) {
-      tableCopy.processUnformattedTable(rawData);
+    TableMaker tableMaker;
+    if (rawData.contains("\t")) {
+      tableMaker = new FixedTableMaker(rawData);
+//      tableCopy.processTabDelimitedTable(rawData);
     } else {
-      tableCopy.processReadyTable(rawData);
-    }
-  }
-
-  private void processReadyTable(String rawData) {
-    String[] lines = rawData.split(LINE_BREAK);
-    int columnCount = 0;
-    for (String line: lines) {
-      String[] cells = line.split(TAB);
-      columnCount = Integer.max(columnCount, cells.length);
-    }
-    for (String line: lines) {
-      String[] cells = line.split(TAB);
-      Collections.addAll(tableData, cells);
-      for (int i = cells.length; i < columnCount; i++) {
-        tableData.add("");
+      final var data = systemClipboard.getData(DataFlavor.allHtmlFlavor);
+//      System.out.printf("ClipboardData of %s%n -> %s%n", data.getClass().getSimpleName(), data); // NON-NLS
+      String htmlData = data.toString();
+      if (htmlData.contains(rowDelimiter)) {
+        tableMaker = new FlexTableMaker(rawData, htmlData);
+      } else {
+        tableMaker = new AmbiguousTableMaker(rawData);
       }
     }
-    createTable(tableData, columnCount);
+    return tableMaker;
+  }
+  
+  private void displayData(TableMaker tableMaker) {
+    CopyTableModel tableModel = tableMaker.create();
+    table.setModel(tableModel);
+    System.out.println("TableData Size = " + tableData.size());
+    tableData.addAll(tableMaker.getTableCellData());
+    topPanel.removeAll();
+    if (!tableMaker.isColumnCountKnown()) {
+      topPanel.add(makeChoicePanel(tableMaker.getColumnChoices()));
+    }
+    revalidate();
   }
 
-  private void processUnformattedTable(String rawData) {
-    StringTokenizer lineTokenizer = new StringTokenizer(rawData, "\n");
-    int lineCount = lineTokenizer.countTokens();
-    while(lineTokenizer.hasMoreTokens()) {
-      tableData.add(lineTokenizer.nextToken());
-    }
-    Set<Integer> columnOptions = new TreeSet<>();
-    int limit = tableData.size()/2;
-    for (int i=2; i<=limit; ++i) {
-      if ((lineCount % i) == 0) {
-        columnOptions.add(i);
-      }
-    }
-
-    if (columnOptions.isEmpty()) {
-      createTable(tableData, 2, columnOptions);
-    } else {
-      int bestGuessColumnCount = columnOptions.iterator().next();
-      createTable(tableData, bestGuessColumnCount, columnOptions);
-    }
-    System.out.printf("Elements count: %s%n", getComponentCount()); // NON-NLS
-//    printComponent(this, "");
-  }
+////    printComponent(this, "");
+//  }
 //  private void printComponent(Component component, String indent) {
 //    final String simpleName = component.getClass().getSimpleName();
 //    System.out.printf("%s -* %s%n", indent, simpleName);
@@ -278,22 +244,6 @@ public class TableCopy extends JPanel {
 //  }
 //
 
-  private void createTable(List<String> tableData, int bestGuessColumnCount, Set<Integer> columnOptions) {
-    CopyTableModel tableModel = new CopyTableModel(bestGuessColumnCount, tableData);
-    table.setModel(tableModel);
-    topPanel.removeAll();
-    topPanel.add(makeChoicePanel(bestGuessColumnCount, columnOptions), BorderLayout.CENTER);
-    revalidate();
-  }
-
-  private void createTable(List<String> tableData, int columnCount) {
-    CopyTableModel tableModel = new CopyTableModel(columnCount, tableData);
-    table.setModel(tableModel);
-    
-    topPanel.removeAll();
-    revalidate();
-  }
-
   private JPanel makeCopyPanel() {
     JPanel panel = new JPanel(new FlowLayout());
     JButton copyButton = new JButton("Copy and Close");
@@ -302,11 +252,11 @@ public class TableCopy extends JPanel {
     return panel;
   }
 
-  private JPanel makeChoicePanel(int bestGuess, Set<Integer> columnOptions) {
+  private JPanel makeChoicePanel(Set<Integer> columnOptions) {
     JPanel choicePanel = new JPanel(new BorderLayout());
 
     final JSpinner spinner = new JSpinner();
-    choicePanel.add(makeSpinnerPanel(spinner, bestGuess), BorderLayout.PAGE_END);
+    choicePanel.add(makeSpinnerPanel(spinner), BorderLayout.PAGE_END);
     ActionListener buttonListener = e -> {
       JButton button = (JButton) e.getSource();
       int value = Integer.parseInt(button.getText());
@@ -324,9 +274,9 @@ public class TableCopy extends JPanel {
     return choicePanel;
   }
 
-  private JPanel makeSpinnerPanel(JSpinner spinner, int bestGuess) {
-    int max = Math.max(bestGuess, tableData.size()/2);
-    final SpinnerNumberModel model = new SpinnerNumberModel(bestGuess, 0, max, 1);
+  private JPanel makeSpinnerPanel(JSpinner spinner) {
+    int max = Math.max(2, tableData.size());
+    final SpinnerNumberModel model = new SpinnerNumberModel(2, 1, max, 1);
     spinner.setModel(model);
     spinner.addChangeListener(e -> ((CopyTableModel) table.getModel()).setColumnCount(model.getNumber().intValue()));
     JPanel longSpinner = Utils.stretchHorizontal(spinner, 100);
@@ -453,15 +403,230 @@ public class TableCopy extends JPanel {
     }
   }
   
-  record tableStructure(String[] elements, String encoded, TableType tableType, int rows, int columns) {}
   
-  private enum TableType {
-    HTML,
-    FLEX,
-    GRID
+  private abstract static class TableMaker {
+    private final List<String> tableCellData = new ArrayList<>();
+    private int columnCount;
+
+    CopyTableModel create() {
+      return new CopyTableModel(columnCount, tableCellData);
+    }
+
+    int getCellCount() {
+      return tableCellData.size();
+    }
+
+    abstract String getTableDescription();
+    abstract boolean isColumnCountKnown();
+
+    protected int getColumnCount() {
+      return columnCount;
+    }
+
+    protected void setColumnCount(int columnCount) {
+      this.columnCount = columnCount;
+    }
+
+    /**
+     * This only needs to return a value if isColumnCountKnown returns false;
+     * @return The most likely options for the number of columns in the table, which is a list containing all
+     * the divisors of the number of cells.
+     */
+    Set<Integer> getColumnChoices() { throw new UnsupportedOperationException("Should not happen"); }
+
+    protected List<String> getTableCellData() {
+      //noinspection AssignmentOrReturnOfFieldWithMutableType
+      return tableCellData;
+    }
   }
+  
+  private static class FlexTableMaker extends TableMaker {
+    private final int rowCount;
+
+    FlexTableMaker(String rawData, String htmlData) {
+      super();
+      String[] cells = rawData.split(LINE_BREAK);
+      final var tableCellData = getTableCellData();
+      tableCellData.addAll(List.of(cells));
+      int rowIndex = htmlData.indexOf(rowDelimiter);
+      int cellIndex = htmlData.indexOf(cellDelimiter);
+      int rowCellCount = 0;
+      var rowCellCountList = new LinkedList<Integer>();
+
+      // Skip the first rowDelimiter.
+      if (rowIndex < cellIndex) {
+        rowIndex = htmlData.indexOf(rowDelimiter, rowIndex+1);
+      }
+      while (cellIndex >= 0) {
+        if (rowIndex < cellIndex) {
+          rowCellCountList.add(rowCellCount);
+          rowCellCount = 0;
+          rowIndex = htmlData.indexOf(rowDelimiter, rowIndex + 1);
+          if (rowIndex < 0) {
+            rowIndex = Integer.MAX_VALUE; // Imaginary final rowDelimiter to keep going until we run out of cells.
+          }
+        } else {
+          rowCellCount++;
+          cellIndex = htmlData.indexOf(cellDelimiter, cellIndex + 1);
+        }
+      }
+
+      // Add the last row found.
+      rowCellCountList.add(rowCellCount);
+      // This probably won't happen.
+      while (rowCellCountList.get(0) == 0) {
+        rowCellCountList.remove(0);
+      }
+      int columnCount = rowCellCountList.stream().max(Integer::compareTo).get(); // throws exception if empty
+      setColumnCount(columnCount);
+      int rows = tableCellData.size()/ columnCount;
+      rowCount = rows + (((tableCellData.size() % columnCount) == 0) ? 0 : 1);
+
+      // Pack empty cells if the first row is shorter than the others.
+      int firstCellCount = rowCellCountList.getFirst();
+      for (int i = firstCellCount; i< columnCount; ++i) {
+        tableCellData.add(0, "");
+      }
+      int lastCellCount = rowCellCountList.getLast();
+      for (int i = lastCellCount; i< columnCount; ++i) {
+        tableCellData.add("");
+      }
+    }
+
+    @Override
+    public String getTableDescription() {
+      return "Flex Table with %d cells in %d rows and %d columns".formatted(getCellCount(), rowCount, getColumnCount());
+    }
+
+    @Override
+    public boolean isColumnCountKnown() {
+      return true;
+    }
+  }
+
+  private static class AmbiguousTableMaker extends TableMaker {
+    private final Set<Integer> columnOptions = new TreeSet<>();
+
+    AmbiguousTableMaker(String rawData) {
+      super();
+      StringTokenizer lineTokenizer = new StringTokenizer(rawData, "\n");
+      int lineCount = lineTokenizer.countTokens();
+      List<String> elements = new LinkedList<>();
+      while (lineTokenizer.hasMoreTokens()) {
+        elements.add(lineTokenizer.nextToken());
+      }
+      final var tableCellData = getTableCellData();
+      tableCellData.addAll(elements);
+      int limit = tableCellData.size() / 2;
+      for (int i = 2; i <= limit; ++i) {
+        if ((lineCount % i) == 0) {
+          columnOptions.add(i);
+        }
+      }
+      if (columnOptions.isEmpty()) {
+        columnOptions.addAll(List.of(2, 3, 4, 5));
+      }
+      columnOptions.add(tableCellData.size());
+    }
+    
+    @Override
+    public CopyTableModel create() {
+      return new CopyTableModel(2, getTableCellData());
+    }
+
+    @Override
+    public String getTableDescription() {
+      return String.format("Table with %d cells and an unknown number of columns", getTableCellData().size());
+    }
+
+    @Override
+    public boolean isColumnCountKnown() {
+      return false;
+    }
+
+    @Override
+    Set<Integer> getColumnChoices() {
+      return new TreeSet<>(columnOptions);
+    }
+  }
+
+  /**
+   * This makes a table that originated with the html table tag.
+   */
+  private static class FixedTableMaker extends TableMaker {
+    final int rowCount;
+
+    FixedTableMaker(String rawData) {
+      super();
+      String[] lines = rawData.split(LINE_BREAK);
+      List<String[]> tableRows = new LinkedList<>();
+      int columnTally = 0;
+      for (String line : lines) {
+        String[] cells = line.split(TAB);
+        columnTally = Integer.max(columnTally, cells.length);
+        tableRows.add(cells);
+      }
+      rowCount = tableRows.size();
+      setColumnCount(columnTally);
+      for (String[] cells : tableRows) {
+        final var tableCellData = getTableCellData();
+        Collections.addAll(tableCellData, cells);
+        for (int i = cells.length; i < columnTally; i++) {
+          tableCellData.add("");
+        }
+      }
+    }
+
+    @Override
+    public boolean isColumnCountKnown() {
+      return true;
+    }
+
+    @Override
+    public String getTableDescription() {
+      return String.format("Table with %d cells in %d rows and %d columns", getCellCount(), rowCount, getColumnCount());
+    }
+  }
+  
+//  record tableStructure(String[] elements, String encoded, TableType tableType, int rows, int columns) {}
+  
+//  private enum TableType {
+//    HTML,
+//    FLEX,
+//    GRID
+//  }
 }
 
 /*
-<meta charset='utf-8'><div class="flex-row flex-header" style="display: flex; background-color: rgb(33, 150, 243); color: white; font-weight: bold; font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Product</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Price</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">Stock</div></div><div class="flex-row" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Laptop</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">$999</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">15</div></div><div class="flex-row" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Smartphone</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">$699</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">28</div></div><div class="flex-row" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Tablet</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">$399</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">12</div></div><div class="flex-row" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor;">Chromebook</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor;">$299</div><div class="flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor;">19</div></div>
+<meta charset='utf-8'><div class="
+
+flex-row
+ flex-header" style="display: flex; background-color: rgb(33, 150, 243); color: white; font-weight: bold; font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Product</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Price</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">Stock</div></div><div class="
+
+flex-row
+" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Laptop</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">$999</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">15</div></div><div class="
+
+flex-row
+" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Smartphone</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">$699</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">28</div></div><div class="
+
+flex-row
+" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">Tablet</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom: 1px solid rgb(221, 221, 221);">$399</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom: 1px solid rgb(221, 221, 221);">12</div></div><div class="
+
+flex-row
+" style="display: flex; color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: start; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; white-space: normal; text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial;"><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor;">Chromebook</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right: 1px solid rgb(221, 221, 221); border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor;">$299</div><div class="
+---- flex-cell" style="flex: 1 1 0%; padding: 15px; border-right-width: medium; border-right-style: none; border-right-color: currentcolor; border-bottom-width: medium; border-bottom-style: none; border-bottom-color: currentcolor;">19</div></div>
  */
