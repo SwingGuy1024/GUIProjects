@@ -72,10 +72,11 @@ import com.mm.gui.table.FiringTable;
 @SuppressWarnings("MagicNumber")
 public class TableCopy extends JPanel {
 
-  public static final String TAB = "\t";
-  public static final String LINE_BREAK = "\n";
-  private static final String rowDelimiter = "flex-row";
-  private static final String cellDelimiter = "flex-cell";
+  private static final String TAB = "\t";
+  private static final String LINE_BREAK = "\n";
+  private static final String flexRowDelimiter = "flex-row";
+  private static final String flexCellDelimiter = "flex-cell";
+  private static final String GRID_HEADER = "grid-header";
   private static final Clipboard systemClipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
   private final List<String> tableData = new ArrayList<>();
@@ -210,10 +211,11 @@ public class TableCopy extends JPanel {
       final var data = systemClipboard.getData(DataFlavor.allHtmlFlavor);
 //      System.out.printf("ClipboardData of %s%n -> %s%n", data.getClass().getSimpleName(), data); // NON-NLS
       String htmlData = data.toString();
-      if (htmlData.contains(rowDelimiter)) {
+      if (htmlData.contains(flexRowDelimiter)) {
         tableMaker = new FlexTableMaker(rawData, htmlData);
       } else {
-        tableMaker = new AmbiguousTableMaker(rawData);
+        int columnsCountFromHeaders = countSubStrings(GRID_HEADER, htmlData);
+        tableMaker = new AmbiguousTableMaker(rawData, columnsCountFromHeaders);
       }
     }
     return tableMaker;
@@ -226,7 +228,7 @@ public class TableCopy extends JPanel {
     tableData.addAll(tableMaker.getTableCellData());
     topPanel.removeAll();
     if (!tableMaker.isColumnCountKnown()) {
-      topPanel.add(makeChoicePanel(tableMaker.getColumnChoices()));
+      topPanel.add(makeChoicePanel(tableMaker.getColumnChoices(), tableMaker.getColumnCount()));
     }
     revalidate();
   }
@@ -252,11 +254,11 @@ public class TableCopy extends JPanel {
     return panel;
   }
 
-  private JPanel makeChoicePanel(Set<Integer> columnOptions) {
+  private JPanel makeChoicePanel(Set<Integer> columnOptions, int columnCount) {
     JPanel choicePanel = new JPanel(new BorderLayout());
 
     final JSpinner spinner = new JSpinner();
-    choicePanel.add(makeSpinnerPanel(spinner), BorderLayout.PAGE_END);
+    choicePanel.add(makeSpinnerPanel(spinner, columnCount), BorderLayout.PAGE_END);
     ActionListener buttonListener = e -> {
       JButton button = (JButton) e.getSource();
       int value = Integer.parseInt(button.getText());
@@ -274,9 +276,9 @@ public class TableCopy extends JPanel {
     return choicePanel;
   }
 
-  private JPanel makeSpinnerPanel(JSpinner spinner) {
+  private JPanel makeSpinnerPanel(JSpinner spinner, int startingValue) {
     int max = Math.max(2, tableData.size());
-    final SpinnerNumberModel model = new SpinnerNumberModel(2, 1, max, 1);
+    final SpinnerNumberModel model = new SpinnerNumberModel(startingValue, 1, max, 1);
     spinner.setModel(model);
     spinner.addChangeListener(e -> ((CopyTableModel) table.getModel()).setColumnCount(model.getNumber().intValue()));
     JPanel longSpinner = Utils.stretchHorizontal(spinner, 100);
@@ -362,7 +364,17 @@ public class TableCopy extends JPanel {
     }
     return builder.toString();
   }
-  
+
+  private static int countSubStrings(String searchFor, String line) {
+    int count = 0;
+    int index = line.lastIndexOf(searchFor);
+    while (index >= 0) {
+      count++;
+      index = line.lastIndexOf(searchFor, index - 1);
+    }
+    return count;
+  }
+
   static class CopyTableModel extends AbstractFiringTableModel {
     
     private final ArrayList<String> elements;
@@ -448,26 +460,26 @@ public class TableCopy extends JPanel {
       String[] cells = rawData.split(LINE_BREAK);
       final var tableCellData = getTableCellData();
       tableCellData.addAll(List.of(cells));
-      int rowIndex = htmlData.indexOf(rowDelimiter);
-      int cellIndex = htmlData.indexOf(cellDelimiter);
+      int rowIndex = htmlData.indexOf(flexRowDelimiter);
+      int cellIndex = htmlData.indexOf(flexCellDelimiter);
       int rowCellCount = 0;
       var rowCellCountList = new LinkedList<Integer>();
 
       // Skip the first rowDelimiter.
       if (rowIndex < cellIndex) {
-        rowIndex = htmlData.indexOf(rowDelimiter, rowIndex+1);
+        rowIndex = htmlData.indexOf(flexRowDelimiter, rowIndex+1);
       }
       while (cellIndex >= 0) {
         if (rowIndex < cellIndex) {
           rowCellCountList.add(rowCellCount);
           rowCellCount = 0;
-          rowIndex = htmlData.indexOf(rowDelimiter, rowIndex + 1);
+          rowIndex = htmlData.indexOf(flexRowDelimiter, rowIndex + 1);
           if (rowIndex < 0) {
             rowIndex = Integer.MAX_VALUE; // Imaginary final rowDelimiter to keep going until we run out of cells.
           }
         } else {
           rowCellCount++;
-          cellIndex = htmlData.indexOf(cellDelimiter, cellIndex + 1);
+          cellIndex = htmlData.indexOf(flexCellDelimiter, cellIndex + 1);
         }
       }
 
@@ -480,7 +492,6 @@ public class TableCopy extends JPanel {
       int columnCount = rowCellCountList.stream().max(Integer::compareTo).get(); // throws exception if empty
       setColumnCount(columnCount);
       int rows = tableCellData.size()/ columnCount;
-      rowCount = rows + (((tableCellData.size() % columnCount) == 0) ? 0 : 1);
 
       // Pack empty cells if the first row is shorter than the others.
       int firstCellCount = rowCellCountList.getFirst();
@@ -491,6 +502,7 @@ public class TableCopy extends JPanel {
       for (int i = lastCellCount; i< columnCount; ++i) {
         tableCellData.add("");
       }
+      rowCount = rows + (((tableCellData.size() % columnCount) == 0) ? 0 : 1);
     }
 
     @Override
@@ -507,7 +519,15 @@ public class TableCopy extends JPanel {
   private static class AmbiguousTableMaker extends TableMaker {
     private final Set<Integer> columnOptions = new TreeSet<>();
 
-    AmbiguousTableMaker(String rawData) {
+    /**
+     * <p>Make an AmbiguousTable, which is a table with an unknown number of columns, from the raw data and possibly
+     * the number of columns. This number will be available if the user included the column headers in the selection,
+     * and will be accurate if the user included all of them. Since we have no way of knowing, the user will still
+     * be able to adjust the number of columns.</p>
+     * @param rawData The raw data.
+     * @param columnCount The number of columns if known, zero otherwise.
+     */
+    AmbiguousTableMaker(String rawData, int columnCount) {
       super();
       StringTokenizer lineTokenizer = new StringTokenizer(rawData, "\n");
       int lineCount = lineTokenizer.countTokens();
@@ -526,12 +546,16 @@ public class TableCopy extends JPanel {
       if (columnOptions.isEmpty()) {
         columnOptions.addAll(List.of(2, 3, 4, 5));
       }
+      if (columnCount > 0) {
+        columnOptions.add(columnCount);
+      }
       columnOptions.add(tableCellData.size());
+      setColumnCount((columnCount == 0) ? 2 : columnCount);
     }
     
     @Override
     public CopyTableModel create() {
-      return new CopyTableModel(2, getTableCellData());
+      return new CopyTableModel(getColumnCount(), getTableCellData());
     }
 
     @Override
@@ -561,17 +585,28 @@ public class TableCopy extends JPanel {
       String[] lines = rawData.split(LINE_BREAK);
       List<String[]> tableRows = new LinkedList<>();
       int columnTally = 0;
+      int firstRowCount = countSubStrings(TAB, lines[0]) + 1;
+      int lastRowCount = 0;
       for (String line : lines) {
         String[] cells = line.split(TAB);
         columnTally = Integer.max(columnTally, cells.length);
         tableRows.add(cells);
+        lastRowCount = cells.length;
+      }
+
+      final var tableCellData = getTableCellData();
+
+      // If the first row is missing cells, pack those empty cells with blank strings.
+      for (int i=0; i< (columnTally - firstRowCount); i++) {
+        tableCellData.add("");
       }
       rowCount = tableRows.size();
       setColumnCount(columnTally);
       for (String[] cells : tableRows) {
-        final var tableCellData = getTableCellData();
         Collections.addAll(tableCellData, cells);
-        for (int i = cells.length; i < columnTally; i++) {
+      }
+      if (tableRows.size() > 1) {
+        for (int i = lastRowCount; i < columnTally; i++) {
           tableCellData.add("");
         }
       }
