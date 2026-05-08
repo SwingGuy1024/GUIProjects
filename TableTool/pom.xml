@@ -27,5 +27,30 @@
       <scope>compile</scope>
     </dependency>
   </dependencies>
-
+  
+  <!-- I use thick to designate builds that include a JDK. (JREs with no JDK are hard to find.) -->
+  <!-- I use thick instead of fat because fat generally means support for multiple architectures. -->
+  <profiles>
+    <profile>
+      <id>thick-intel</id>
+      <properties>
+        <includeJVM>true</includeJVM>
+        <!--<jvm-path>/Library/Java/JavaVirtualMachines/jdk-25.jdk/</jvm-path>-->
+        <jvm-path>/Library/Java/JavaVirtualMachines/zulu-25.jdk</jvm-path>
+      </properties>
+      <build>
+        <directory>${project.basedir}/target-intel</directory>
+      </build>
+    </profile>
+    <profile>
+      <id>thick-arm</id>
+      <properties>
+        <includeJVM>true</includeJVM>
+        <jvm-path>${project.parent.basedir}/zulu25.34.17-ca-jdk25.0.3-macosx_aarch64</jvm-path>
+      </properties>
+      <build>
+        <directory>${project.basedir}/target-arm</directory>
+      </build>
+    </profile>
+  </profiles>
 </project>
