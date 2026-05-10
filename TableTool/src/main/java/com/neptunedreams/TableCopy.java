@@ -247,11 +247,11 @@ public class TableCopy extends JPanel {
 //
 
   private JPanel makeCopyPanel() {
-    JPanel panel = new JPanel(new FlowLayout());
+    JPanel flowPanel = new JPanel(new FlowLayout());
     JButton copyButton = new JButton("Copy and Close");
-    panel.add(copyButton);
+    flowPanel.add(copyButton);
     copyButton.addActionListener(e -> doCopyAndExit());
-    return panel;
+    return flowPanel;
   }
 
   private JPanel makeChoicePanel(Set<Integer> columnOptions, int columnCount) {
@@ -259,7 +259,7 @@ public class TableCopy extends JPanel {
 
     final JSpinner spinner = new JSpinner();
     choicePanel.add(makeSpinnerPanel(spinner, columnCount), BorderLayout.PAGE_END);
-    ActionListener buttonListener = e -> {
+    ActionListener numberButtonListener = e -> {
       JButton button = (JButton) e.getSource();
       int value = Integer.parseInt(button.getText());
       spinner.setValue(value);
@@ -269,7 +269,7 @@ public class TableCopy extends JPanel {
     for (Integer i: columnOptions) {
       @SuppressWarnings("CallToNumericToString")
       JButton button = new JButton(i.toString());
-      button.addActionListener(buttonListener);
+      button.addActionListener(numberButtonListener);
       buttonPanel.add(button);
     }
     choicePanel.add(buttonPanel, BorderLayout.CENTER);
@@ -293,14 +293,12 @@ public class TableCopy extends JPanel {
   }
 
   private void showInFrame() {
-    String javaVersion = System.getProperty("java.version");
-    JLabel label = new JLabel(String.format("  Java Version: %s", javaVersion));
     frame = new JFrame("Table Copy");
     frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
     frame.getContentPane().add(this, BorderLayout.CENTER);
     frame.pack();
     frame.setLocationRelativeTo(null);
-    frame.getContentPane().add(BorderLayout.PAGE_END, label);
+    frame.getContentPane().add(BorderLayout.PAGE_END, makeFrameFooter());
     frame.setVisible(true);
     WindowAdapter cl = new WindowAdapter() {
       @Override
@@ -310,6 +308,15 @@ public class TableCopy extends JPanel {
       }
     };
     frame.addWindowListener(cl);
+  }
+  
+  private static JPanel makeFrameFooter() {
+    String javaVersion = System.getProperty("java.version");
+    JLabel version = new JLabel(String.format("  Java Version: %s", javaVersion));
+    JLabel author = new JLabel("Written by Miguel Muñoz ");
+    return Utils.loadBorderPanel()
+        .lineStart(version)
+        .lineEnd(author);
   }
 
   private void addPermanentWindowListener(final JFrame frame) {

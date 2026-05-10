@@ -79,7 +79,7 @@ Java 25 JDK, in the directory at `${project.parent.basedir}/zulu25.34.17-ca-jdk2
 the JRE or JDK installed, you may specify that directory by editing the `pom.xml` file, or by overriding the value of
 the `jvm-path` property on the Maven command line, like this:
 
-    mvn clean package -P thick-intel -Djvm-path=<path to your jre>
+    mvn clean package -P thick-intel -Djvm-path=<_path-to-your-jre_>
 
 For example, if you use a Macintosh with the Java 17 JRE installed in the standard place, then to bundle the
 thick intel JRE, you would type:
