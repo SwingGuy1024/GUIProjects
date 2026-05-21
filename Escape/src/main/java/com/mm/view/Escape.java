@@ -417,8 +417,12 @@ public class Escape
 		addRange(font, initialTextBldr, '\u2400', '\u2500', "Enclosed letters:"); // Misc. Tech
 		addRange(font, initialTextBldr, '\u2500', '\u2600', "Boxes & Block drawing:"); // box & block
 		addRange(font, initialTextBldr, '\u2600', '\u2800', "Dingbats:"); // dingbats
-		addDoubleWide(font, initialTextBldr, 0xd83d, '\ud000', '\ue000', "Double-Wide:");
-		initialTextBldr.append("\nJava version ");
+
+    initialTextBldr.append("\n\nDouble Wide:");
+    addDoubleWide(font, initialTextBldr, 0xd83d, '\udc00', '\udc40', "Animals");
+    addDoubleWide(font, initialTextBldr, 0xd83d, '\udc40', '\udc88', "People");
+    addDoubleWide(font, initialTextBldr, 0xd83d, '\udc88', '\ue000', "Stuff");
+    initialTextBldr.append("\nJava version ");
 		initialTextBldr.append(System.getProperty("java.version"));
 		return initialTextBldr.toString();
 	}
