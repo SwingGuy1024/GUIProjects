@@ -7,7 +7,6 @@ import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
@@ -17,11 +16,8 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalField;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -30,8 +26,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.TimeZone;
 import java.util.TreeSet;
+import java.util.zip.GZIPInputStream;
 import javax.swing.AbstractButton;
 import javax.swing.ButtonModel;
 import javax.swing.DefaultListCellRenderer;
@@ -51,7 +47,6 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.KeyStroke;
 import javax.swing.ListModel;
-import javax.swing.UIDefaults;
 import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -93,7 +88,7 @@ import static java.awt.GridBagConstraints.VERTICAL;
  */
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-@SuppressWarnings("CallToPrintStackTrace")
+@SuppressWarnings({"CallToPrintStackTrace", "MagicCharacter", "MagicNumber"})
 public class WordleAid extends JPanel {
   public static final String[] EMPTY = new String[0];
   public static final String ANSWER_WORDS_FILE = "/wordle-answers.txt";
@@ -122,10 +117,10 @@ public class WordleAid extends JPanel {
   private final Color textFgColor = UIManager.getDefaults().getColor("Label.foreground");
 
   private LocalDate refreshDate = getToday();
-  private Set<String> pastWords = null;
-  private SortedSet<String> answerWords = null;
-  private SortedSet<String> allWords = null;
-  private SortedSet<String> reverseWords = null;
+  private Set<String> pastWords = new HashSet<>();
+  private final SortedSet<String> answerWords;
+  private final SortedSet<String> allWords;
+  private final SortedSet<String> reverseWords;
 
   WordleAid() {
     super(new BorderLayout());
@@ -223,7 +218,11 @@ public class WordleAid extends JPanel {
     URLConnection conn = url.openConnection();
     conn.connect();
     Set<String> archive = new HashSet<>();
-    try (BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+    var inputStream = conn.getInputStream();
+    if ("gzip".equals(conn.getHeaderField("Content-Encoding"))) {
+      inputStream = new GZIPInputStream(inputStream);
+    }
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
       boolean searching = true;
       while (searching) {
         String line = reader.readLine();
@@ -355,9 +354,7 @@ public class WordleAid extends JPanel {
     JPanel panel = new JPanel(new BorderLayout());
     JButton copy = new JButton("<html>c<u>O</u>py</html>");
     panel.add(copy, BorderLayout.CENTER);
-    copy.addActionListener(e -> {
-      copyVisibleWords();
-    });
+    copy.addActionListener(e -> copyVisibleWords());
     setAccelerator(copy, KeyEvent.VK_O); // must be called after adding all ActionListeners
     return panel;
   }
@@ -551,7 +548,6 @@ public class WordleAid extends JPanel {
   }
 
   private class WordleRenderer extends DefaultListCellRenderer {
-    private boolean strikethrough = false;
 
     @Override
     public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -576,7 +572,7 @@ public class WordleAid extends JPanel {
       }
       Component renderer = super.getListCellRendererComponent(list, newValue, index, isSelected, cellHasFocus);
       renderer.setFont(MONOSPACED);
-      strikethrough = pastWords.contains(text);
+      final boolean strikethrough = pastWords.contains(text);
       if (strikethrough) {
         fg = new Color(0x880000);
       }
