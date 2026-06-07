@@ -94,7 +94,6 @@ import org.jetbrains.annotations.Range;
  * <br>Time: 4:59 PM
  * <br>@author Miguel Muñoz</p>
  */
-@SuppressWarnings("unused")
 public class Constrainer extends GridBagConstraints {
 
   /**
