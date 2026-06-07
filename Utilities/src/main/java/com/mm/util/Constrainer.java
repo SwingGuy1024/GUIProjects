@@ -1,7 +1,10 @@
 package com.mm.util;
 
 import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
 import java.awt.Insets;
+
+import javax.swing.JPanel;
 
 import org.intellij.lang.annotations.MagicConstant;
 import org.jetbrains.annotations.Range;
@@ -91,6 +94,7 @@ import org.jetbrains.annotations.Range;
  * <br>Time: 4:59 PM
  * <br>@author Miguel Muñoz</p>
  */
+@SuppressWarnings("unused")
 public class Constrainer extends GridBagConstraints {
 
   /**
@@ -803,5 +807,9 @@ public class Constrainer extends GridBagConstraints {
   public Constrainer anchorBelowBaselineTrailing() {
     anchor = BELOW_BASELINE_TRAILING;
     return this;
+  }
+
+  public static JPanel createPanel() {
+    return new JPanel(new GridBagLayout());
   }
 }
