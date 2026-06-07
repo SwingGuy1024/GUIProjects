@@ -361,8 +361,8 @@ public final class Crypto extends JPanel {
   private JPanel makeDoublePane() {
     JPanel doublePane = new JPanel(new GridLayout(0, 1));
     cipherText.setEditable(false);
-    doublePane.add(Utils.wrap(cipherText, true));
-    doublePane.add(Utils.wrap(clearText, true));
+    doublePane.add(Utils.prepareForText(cipherText, true));
+    doublePane.add(Utils.prepareForText(clearText, true));
     return doublePane;
   }
   
