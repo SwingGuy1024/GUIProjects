@@ -20,7 +20,7 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <mainClass>com.neptunedreams.refBuilder.RefBuilder</mainClass>
-        <iconFile>refBuilder.icns</iconFile>
+        <iconFile>RefBuilder.icns</iconFile>
     </properties>
     
     <dependencies>
