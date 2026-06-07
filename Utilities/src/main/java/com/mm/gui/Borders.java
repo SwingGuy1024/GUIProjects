@@ -23,7 +23,7 @@ import javax.swing.border.TitledBorder;
  * This would make it easier to apply the same border to multiple objects.
  * @author Miguel Mu\u00f1oz
  */
-@SuppressWarnings({"UnusedReturnValue", "unused"})
+@SuppressWarnings("UnusedReturnValue")
 public enum Borders
 {
   ;
@@ -53,11 +53,11 @@ public enum Borders
 	 * to the outside of the existing border, if there is one, or directly 
 	 * to the JComponent if not. This makes it easy for several components
 	 * to share the same Border. 
-	 * @param border
-	 * @param pCmp
+	 * @param border The border to add
+	 * @param pCmp The JComponents (JPanels, etc) to receive the components
 	 * @return {@code border}
 	 */ 
-	public static <T extends Border> T addBorder(T border, JComponent[] pCmp)
+	public static <T extends Border> T addBorder(T border, JComponent... pCmp)
 	{
 		for (JComponent cmp : pCmp) {
       addBorder(cmp, border);
@@ -122,7 +122,7 @@ public enum Borders
 			addBorder(cmp, emptyBorder); // reuses a singleton.
 		} else {
 			if (emptyBorders==null) {
-        emptyBorders = new HashMap<Integer, Border>();
+        emptyBorders = new HashMap<>();
       }
 			if (emptyBorders.containsKey(size)) {
         emptyBorder = emptyBorders.get(size);
@@ -202,7 +202,7 @@ public enum Borders
 	{
 			addBorder(new LineBorder(pClr, pThick, pRnd), pCmp);
 	}
-	public static void addLine(Color pClr, int pThick, JComponent pCmp[]) { addLine(pClr, pThick, false, pCmp); }
+	public static void addLine(Color pClr, int pThick, JComponent[] pCmp) { addLine(pClr, pThick, false, pCmp); }
 	public static void addLine(Color pClr, JComponent[] pCmp) { addLine(pClr, 1, false, pCmp); }
 	public static void addLine(int pThick, JComponent[] pCmp) { addLine(Color.BLACK, pThick, false, pCmp); }
 	public static void addLine(JComponent... pCmps) { addLine(Color.BLACK, 1, false, pCmps); }

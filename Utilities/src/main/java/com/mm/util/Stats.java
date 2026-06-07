@@ -6,7 +6,6 @@ package com.mm.util;
  * <p>Time: 2:54 AM</p>
  * <p>@author Miguel Muñoz</p>
  */
-@SuppressWarnings("unused")
 public class Stats {
   private double sumX = 0.0;
   private double sumXSquared = 0.0;

@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
  * Copyright (c) 2004 Miguel Munoz
  */
 
-@SuppressWarnings({"HardCodedStringLiteral", "unused", "UnnecessaryUnicodeEscape", "OverlyBroadCatchBlock"})
+@SuppressWarnings({"HardCodedStringLiteral", "UnnecessaryUnicodeEscape", "OverlyBroadCatchBlock"})
 public enum LandF
 {
               /** Platform's default Look and Feel */

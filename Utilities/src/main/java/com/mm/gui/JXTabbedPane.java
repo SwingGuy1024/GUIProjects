@@ -3,6 +3,9 @@ package com.mm.gui;
 import java.awt.Component;
 import javax.swing.Icon;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingConstants;
+
+import org.intellij.lang.annotations.MagicConstant;
 
 /**
  * <p>Created by IntelliJ IDEA.
@@ -10,7 +13,7 @@ import javax.swing.JTabbedPane;
  * <br>Time: 3:45 AM
  * <br>@author Miguel Muñoz</p>
  */
-@SuppressWarnings({"unused", "unchecked"})
+@SuppressWarnings("unchecked")
 public class JXTabbedPane<T extends Component> extends JTabbedPane {
   private final Class<T> componentType;
   public JXTabbedPane(Class<T> componentType) {
@@ -18,12 +21,20 @@ public class JXTabbedPane<T extends Component> extends JTabbedPane {
     this.componentType = componentType;
   }
 
-  public JXTabbedPane(int tabPlacement, Class<T> componentType) {
+  public JXTabbedPane(
+      @MagicConstant(intValues = {SwingConstants.TOP, SwingConstants.BOTTOM, SwingConstants.LEFT, SwingConstants.RIGHT})
+      int tabPlacement,
+      Class<T> componentType) {
     super(tabPlacement);
     this.componentType = componentType;
   }
 
-  public JXTabbedPane(int tabPlacement, int tabLayoutPolicy, Class<T> componentType) {
+  public JXTabbedPane(
+      @MagicConstant(intValues = {SwingConstants.TOP, SwingConstants.BOTTOM, SwingConstants.LEFT, SwingConstants.RIGHT})
+      int tabPlacement,
+      @MagicConstant(intValues = {JTabbedPane.WRAP_TAB_LAYOUT, JTabbedPane.SCROLL_TAB_LAYOUT})
+      int tabLayoutPolicy,
+      Class<T> componentType) {
     super(tabPlacement, tabLayoutPolicy);
     this.componentType = componentType;
   }

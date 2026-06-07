@@ -35,7 +35,6 @@ import org.jetbrains.annotations.Nullable;
  * <p>Time: 9:24 AM</p>
  * <p>@author Miguel Muñoz</p>
  */
-@SuppressWarnings("unused")
 public class HighlightRenderer extends DefaultTableCellRenderer {
 
   /**

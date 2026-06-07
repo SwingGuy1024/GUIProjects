@@ -15,7 +15,7 @@ import javax.swing.table.DefaultTableModel;
  * <br>Time: 2:35 AM
  * <br>@author Miguel Muñoz (<a href="https://github.com/SwingGuy1024">https://github.com/SwingGuy1024</a>)</p>
  */
-@SuppressWarnings({"UseOfObsoleteCollectionType", "unused"})
+@SuppressWarnings("UseOfObsoleteCollectionType")
 public class DefaultFiringTableModel extends DefaultTableModel implements FiringTableModel {
   public DefaultFiringTableModel() {
     super();

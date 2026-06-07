@@ -87,7 +87,7 @@ import org.jetbrains.annotations.Nullable;
  *
  * @author Miguel Mu\u00f1oz
  */
-@SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
+@SuppressWarnings("UnnecessaryUnicodeEscape")
 public class GridHelper {
 	public static final int labelSpace = 5;
 	private final JPanel panel;

@@ -5,7 +5,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -15,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
  * Date: Aug 11, 2006
  * Time: 11:16:56 PM
  */
-@SuppressWarnings({"HardcodedFileSeparator", "MagicCharacter", "MagicNumber", "CallToStringEquals", "CallToStringEqualsIgnoreCase", "CallToNumericToString", "HardcodedLineSeparator", "HardCodedStringLiteral", "StringConcatenation", "unused"})
+@SuppressWarnings({"HardcodedFileSeparator", "MagicCharacter", "MagicNumber", "CallToStringEquals", "CallToStringEqualsIgnoreCase", "HardcodedLineSeparator", "HardCodedStringLiteral", "StringConcatenation"})
 public enum StringUtil {
 	;
 
@@ -70,14 +69,14 @@ public enum StringUtil {
 		StringBuilder buf = new StringBuilder();
 		boolean escape = false;
 		for(int i = 0; i < s.length(); ++i) {
-			char c = s.charAt(i);
+			final char c = s.charAt(i);
 			if(c == '\\') {
-				if(!escape) {
-					escape = true;
-				} else {
-					buf.append(c);
-					escape = false;
-				}
+        if (escape) {
+          buf.append(c);
+          escape = false;
+        } else {
+          escape = true;
+        }
 			} else {
 				buf.append(c);
 				escape = false;
@@ -195,15 +194,15 @@ public enum StringUtil {
 
 	public static int[] intArrayFromString(String values) {
 		int[] a;
-		if(!values.isEmpty()) {
-			String[] s = values.split(" ");
-			a = new int[s.length];
-			for(int i = 0; i < a.length; i++) {
-				a[i] = Integer.parseInt(s[i]);
-			}
-		} else {
-			a = EMPTY_INT_ARRAY;
-		}
+    if (values.isEmpty()) {
+      a = EMPTY_INT_ARRAY;
+    } else {
+      String[] s = values.split(" ");
+      a = new int[s.length];
+      for (int i = 0; i < a.length; i++) {
+        a[i] = Integer.parseInt(s[i]);
+      }
+    }
 		return a;
 	}
 

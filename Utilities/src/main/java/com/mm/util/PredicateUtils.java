@@ -12,7 +12,6 @@ import java.util.function.Predicate;
  * <br>Time: 4:05 PM
  * <br>@author Miguel Muñoz</p>
  */
-@SuppressWarnings("unused")
 public enum PredicateUtils {
   ;
 

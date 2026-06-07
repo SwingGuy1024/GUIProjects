@@ -25,7 +25,6 @@ import javax.swing.text.JTextComponent;
  * editing cells in a JTable. Turn on the isInTable property to 
  * use this in a JTable.
  */
-@SuppressWarnings("unused")
 public class SelectCaret extends DefaultCaret
 {
   private boolean myIsInTable = false;

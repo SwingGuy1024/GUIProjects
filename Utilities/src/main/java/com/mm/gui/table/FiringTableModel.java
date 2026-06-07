@@ -18,7 +18,6 @@ import javax.swing.table.TableModel;
  * <br>Time: 2:16 AM
  * <br>@author Miguel Muñoz (<a href="https://github.com/SwingGuy1024">https://github.com/SwingGuy1024</a>)</p>
  */
-@SuppressWarnings("unused")
 public interface FiringTableModel extends TableModel {
   void fireTableDataChanged();
   void fireTableStructureChanged();

@@ -20,7 +20,6 @@ import org.jetbrains.annotations.NotNull;
  * <br>Time: 11:51 PM
  * <br>@author Miguel Muñoz (<a href="https://github.com/SwingGuy1024">https://github.com/SwingGuy1024</a>)</p>
  */
-@SuppressWarnings("unused")
 public class FiringTable extends JTable {
   public FiringTable() {
     super();

@@ -59,7 +59,7 @@ import java.util.stream.Collector;
  * @author Miguel Muñoz
  * @see #filterString(String, IntPredicate) 
  */
-@SuppressWarnings({"unused", "UnnecessaryUnicodeEscape"})
+@SuppressWarnings("UnnecessaryUnicodeEscape")
 public class StringCollector implements Collector<Integer, StringBuilder, String> {
   private final Supplier<StringBuilder> supplier = StringBuilder::new;
   // Integer is used here to stand in for Character. Many filtering methods for characters use Integer parameters.
