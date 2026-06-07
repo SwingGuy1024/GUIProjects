@@ -18,6 +18,16 @@
   <properties>
     <maven.compiler.source>8</maven.compiler.source>
     <maven.compiler.target>8</maven.compiler.target>
+    <iconFile>EinsteinTiling2.icns</iconFile>
   </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>de.perdian.maven.plugins</groupId>
+        <artifactId>macosappbundler-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

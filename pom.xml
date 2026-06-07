@@ -15,7 +15,6 @@
     <module>Anagram</module>
     <module>Amazing</module>
     <module>Penrose</module>
-    <module>ClipHack</module>
     <module>BeatCounter</module>
     <module>Paragraph</module>
     <module>WWF</module>
@@ -26,17 +25,30 @@
     <module>LinkBuilder</module>
     <module>RefBuilder</module>
     <module>AsciiTable</module>
+    <module>UrlDecode</module>
+    <module>SetGame</module>
+    <module>ClipboardTray</module>
+    <module>WordleAid</module>
+    <!--<module>KSTray</module>-->
+    <module>ClipboardSpy</module>
+    <module>TableTool</module>
   </modules>
 
   <!-- The extraJar property no longer works now that this is a base project. It turns out that you can't override properties-->
   <!-- in Maven like you can in Java. But I leave them in to make it clear how to add extra jar files if needed.-->
   <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <mainClass>dummy</mainClass>
     <iconFile>replace me in the module pom file</iconFile>
     <appName>Replace me in the module pom file</appName>
+    <HideOnDock>false</HideOnDock>
+    <includeJVM>false</includeJVM>
+    <jvm-path>unused</jvm-path>
+    <utilities.version>0.0.2-SNAPSHOT</utilities.version>
     <!--<extraJar></extraJar> &lt;!&ndash; Leave blank, or add the name of a single jar dependency &ndash;&gt;-->
+    <!-- Default target directory -->
   </properties>
 
   <dependencies>
@@ -52,6 +64,22 @@
       <version>3.2.2</version>
     </dependency>
 
+    <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>5.10.2</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>5.10.2</version>
+      <scope>test</scope>
+    </dependency>
+
     <!-- https://mvnrepository.com/artifact/com.apple/AppleJavaExtensions -->
     <dependency>
       <groupId>com.apple</groupId>
@@ -61,6 +89,52 @@
   </dependencies>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>de.perdian.maven.plugins</groupId>
+          <artifactId>macosappbundler-maven-plugin</artifactId>
+          <version>1.21.1</version>
+          <configuration>
+            <plist>
+              <JVMMainClassName>${mainClass}</JVMMainClassName>
+
+              <CFBundleIconFile>src/main/resources/${iconFile}</CFBundleIconFile>
+              <CFBundleDisplayName>${appName}</CFBundleDisplayName>
+              <CFBundleDevelopmentRegion>English</CFBundleDevelopmentRegion>
+              <NSHumanReadableCopyright>© 2026 Miguel Muñoz/Neptune Dreams</NSHumanReadableCopyright>
+              <!-- See the README.md file. -->
+              <LSUIElement>${HideOnDock}</LSUIElement>
+              <!--            <CFBundleURLTypes>-->
+              <!--              <string>msa</string>-->
+              <!--            </CFBundleURLTypes>-->
+              <JVMVersion>17+</JVMVersion>
+              <!--            <JVMRuntimePath>(unused)</JVMRuntimePath>-->
+              <!--            <JVMOptions>-->
+              <!--              <string>-Dfoo=bar</string>-->
+              <!--              <string>-Dx=y</string>-->
+              <!--            </JVMOptions>-->
+              <!--            <JVMArguments>-->
+              <!--              <string>-example</string>-->
+              <!--              <string>${someProperty}</string>-->
+              <!--            </JVMArguments>-->
+            </plist>
+            <jdk>
+              <include>${includeJVM}</include>
+              <location>${jvm-path}</location>
+            </jdk>
+          </configuration>
+          <executions>
+            <execution>
+              <phase>package</phase>
+              <goals>
+                <goal>bundle</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <!--This is the Maven dependency plugin.-->
@@ -103,70 +177,11 @@
       </plugin>
 
       <!--This one will bundle everything into a Mac Application bundle.-->
-<!--      <plugin>-->
-<!--        &lt;!&ndash; https://github.com/federkasten/appbundle-maven-plugin &ndash;&gt;-->
-<!--        <groupId>sh.tak.appbundler</groupId>-->
-<!--        <artifactId>appbundle-maven-plugin</artifactId>-->
-<!--        <version>1.2.1-SNAPSHOT</version>-->
-<!--        <configuration>-->
-<!--          &lt;!&ndash;Put your custom Info.plist and Icon.icns under your maven resource paths (src/main/resources on default configuration).&ndash;&gt;-->
-<!--          <mainClass>${mainClass}</mainClass>-->
-<!--          &lt;!&ndash;<dictionaryFile>YourCustomInfo.plist</dictionaryFile>&ndash;&gt;-->
-<!--          &lt;!&ndash;<additionalClasspath>${extraJar}</additionalClasspath>&ndash;&gt;-->
-<!--          <iconFile>${iconFile}</iconFile>-->
-<!--          &lt;!&ndash; Put this line in to bundle the jdk with the app. &ndash;&gt;-->
-<!--          &lt;!&ndash;suppress MavenModelInspection &ndash;&gt;-->
-<!--          &lt;!&ndash;<jrePath>${javaHome}/../..</jrePath>&ndash;&gt;-->
-<!--          &lt;!&ndash;<jrePath>${env.JAVA_HOME}/../..</jrePath>&ndash;&gt;-->
-<!--        </configuration>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <phase>package</phase>-->
-<!--            <goals>-->
-<!--              <goal>bundle</goal>-->
-<!--            </goals>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--      </plugin>-->
-      
+<!--      I used to use the plugin at https://github.com/federkasten/appbundle-maven-plugin, but that stopped-->
+<!--      working with the release of Java 17.-->
 <!--      This is an alternate plugin to bundle everything into a Mac Application Bundle, which-->
 <!--      I added to support Java 17.-->
       <!-- Source: https://github.com/perdian/macosappbundler-maven-plugin -->
-      <plugin>
-        <groupId>de.perdian.maven.plugins</groupId>
-        <artifactId>macosappbundler-maven-plugin</artifactId>
-        <version>1.20.0</version>
-        <configuration>
-          <plist>
-            <JVMMainClassName>${mainClass}</JVMMainClassName>
-
-            <CFBundleIconFile>src/main/resources/${iconFile}</CFBundleIconFile>
-            <CFBundleDisplayName>${appName}</CFBundleDisplayName>
-            <CFBundleDevelopmentRegion>English</CFBundleDevelopmentRegion>
-<!--            <CFBundleURLTypes>-->
-<!--              <string>msa</string>-->
-<!--            </CFBundleURLTypes>-->
-            <JVMVersion>17+</JVMVersion>
-<!--            <JVMRuntimePath>(unused)</JVMRuntimePath>-->
-<!--            <JVMOptions>-->
-<!--              <string>-Dfoo=bar</string>-->
-<!--              <string>-Dx=y</string>-->
-<!--            </JVMOptions>-->
-<!--            <JVMArguments>-->
-<!--              <string>-example</string>-->
-<!--              <string>${someProperty}</string>-->
-<!--            </JVMArguments>-->
-          </plist>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>bundle</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
 
       <!-- Allows user to launch from maven: mvn exec:java -->
       <plugin>
@@ -177,6 +192,42 @@
           <mainClass>${mainClass}</mainClass>
         </configuration>
       </plugin>
+    <!--&lt;!&ndash;  Dummy:&ndash;&gt;-->
+    <!--    <plugin>-->
+    <!--      <groupId>org.apache.maven.plugins</groupId>-->
+    <!--      <artifactId>maven-antrun-plugin</artifactId>-->
+    <!--      <version>1.8</version>-->
+    <!--      <executions>-->
+    <!--        <execution>-->
+    <!--          <id>pre-package</id>-->
+    <!--          <phase>package</phase>-->
+    <!--          <goals>-->
+    <!--            <goal>run</goal>-->
+    <!--          </goals>-->
+    <!--          <configuration>-->
+    <!--            <target>-->
+    <!--              <echo>Executing pre-package task...</echo>-->
+    <!--            </target>-->
+    <!--          </configuration>-->
+    <!--        </execution>-->
+    <!--      </executions>-->
+    <!--    </plugin>-->
     </plugins>
   </build>
+  <!--<profiles>-->
+  <!--  <profile>-->
+  <!--    <id>jvm25-Mac</id>-->
+  <!--    <properties>-->
+  <!--      <includeJVM>true</includeJVM>-->
+  <!--      <jvm-path>/library/Java/JavaVirtualMachines/zulu-25.jdk/Contents/Home</jvm-path>-->
+  <!--      &lt;!&ndash; Default target directory &ndash;&gt;-->
+  <!--    </properties>-->
+  <!--    <build>-->
+  <!--      <directory>${project.basedir}/jvm-target</directory>-->
+  <!--    </build>-->
+  <!--    &lt;!&ndash;<activation>&ndash;&gt;-->
+  <!--    &lt;!&ndash;  <activeByDefault>true</activeByDefault>&ndash;&gt;-->
+  <!--    &lt;!&ndash;</activation>&ndash;&gt;-->
+  <!--  </profile>-->
+  <!--</profiles>-->
 </project>

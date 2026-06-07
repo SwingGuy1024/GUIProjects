@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.mm</groupId>
             <artifactId>utilities</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${utilities.version}</version>
         </dependency>
     </dependencies>
 
@@ -29,5 +29,14 @@
         <mainClass>com.neptunedreams.Crypto</mainClass>
         <iconFile>Crypto.icns</iconFile>
     </properties>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>de.perdian.maven.plugins</groupId>
+        <artifactId>macosappbundler-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 
 </project>

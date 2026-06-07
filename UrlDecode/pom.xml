@@ -22,4 +22,13 @@
         <iconFile>UrlDecode Gaze.icns</iconFile>
     </properties>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>de.perdian.maven.plugins</groupId>
+        <artifactId>macosappbundler-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
 </project>

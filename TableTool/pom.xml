@@ -23,7 +23,7 @@
     <dependency>
       <groupId>com.mm</groupId>
       <artifactId>utilities</artifactId>
-      <version>0.0.2-SNAPSHOT</version>
+      <version>${utilities.version}</version>
       <scope>compile</scope>
     </dependency>
   </dependencies>
@@ -53,4 +53,13 @@
       </build>
     </profile>
   </profiles>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>de.perdian.maven.plugins</groupId>
+        <artifactId>macosappbundler-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
 </project>
