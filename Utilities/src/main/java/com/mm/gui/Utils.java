@@ -1,17 +1,24 @@
 package com.mm.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
+import java.net.URL;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import javax.swing.Box;
 import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -31,7 +38,7 @@ import org.jetbrains.annotations.Nullable;
  * Time: 8:35:34 PM
  * To change this template use File | Settings | File Templates.
  */
-@SuppressWarnings({"UnnecessaryUnicodeEscape", "MagicNumber", "unused"})
+@SuppressWarnings({"UnnecessaryUnicodeEscape", "MagicNumber"})
 public enum Utils {
 	;
 
@@ -103,8 +110,13 @@ public enum Utils {
 			Font monoFont = new Font(Font.MONOSPACED, originalFont.getStyle(), originalFont.getSize());
 			textArea.setFont(monoFont);
 		}
-		return prepareForText(textArea);
-	}
+    textArea.setWrapStyleWord(true);
+    textArea.setLineWrap(true);
+    return new JScrollPane(textArea,
+        JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
+        JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+  }
 
   /**
    * <p>Wrap a JTextArea in a JScrollPane, set up for handling normal text. This turns on line-wrapping on word
@@ -113,13 +125,9 @@ public enum Utils {
    * @return A JScrollPane that wraps the JTextArea
    */
 	public static JScrollPane prepareForText(JTextArea textArea) {
-		textArea.setWrapStyleWord(true);
-		textArea.setLineWrap(true);
-		return new JScrollPane(textArea,
-				JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,
-				JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+    return prepareForText(textArea, false);
 	}
-  
+
   public static JScrollPane prepareTable(JTable table) {
       return new JScrollPane(table, JScrollPane.VERTICAL_SCROLLBAR_ALWAYS, JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
   }
@@ -154,6 +162,35 @@ public enum Utils {
     panel.add(component, BorderLayout.CENTER);
     panel.add(Box.createHorizontalStrut(width), BorderLayout.PAGE_END);
     return panel;
+  }
+
+  /**
+   * <p>Returns a new JPanel that uses the FlowLayout, loaded with the specified components.</p>
+   * @param components The components to add to the panel
+   * @return A JPanel that uses the FlowLayout, with the specified components
+   */
+  public static JPanel loadFlowPanel(JComponent... components) {
+    JPanel flowPanel = new JPanel(new FlowLayout());
+    for (JComponent component : components) {
+      flowPanel.add(component);
+    }
+    return flowPanel;
+  }
+
+  /**
+   * <p>Quick way to create a JPanel with a BorderLayout and pack it with components. This has chainable
+   * methods to set all five components.</p>
+   * <p><strong>Example:</strong></p>
+   * <pre>
+   *   JPanel panel = Utils.loadBorderPanel()
+   *       .center(mainContents)  // Adds mainContents at BorderLayout.CENTER
+   *       .north(headerPanel)    // Adds headerPanel at BorderLayout.PAGE_START
+   *       .south(buttonPanel);   // Adds buttonPanel at BorderLayout.PAGE_END
+   * </pre>
+   * @return A BorderPanel with chainable methods
+   */
+  public static BorderPanel loadBorderPanel() {
+    return new BorderPanel();
   }
 
 	/**
@@ -295,4 +332,97 @@ public enum Utils {
 		return new Font("Dialog", style, size);
 	}
 
+  /**
+   * <p>Load the icon from the graphic image (the resource) specified by the resource class and the resourcePath.</p> 
+   * @param resourceClass The class giving the starting point of the specified resourcePath
+   * @param resourcePath The path to the graphic image, relative to the class.
+   * @return An ImageIcon containing the loaded image.
+   */
+  public static ImageIcon loadIcon(Class<?> resourceClass, String resourcePath) {
+    URL url = resourceClass.getResource(resourcePath);
+    Objects.requireNonNull(url, "Resource " + resourcePath + " not found");
+    return new ImageIcon(url);
+  }
+
+  /**
+   * <p>Load the icon, using a scaling factor, from the graphic image (the resource) specified by the resource
+   * class and the resourcePath. The size of the resulting ImageIcon is the original size multiplied by
+   * the scaling factor.</p>
+   *
+   * @param resourceClass The class giving the starting point of the specified resourcePath
+   * @param resourcePath  The path to the graphic image, relative to the class.
+   * @param scale The amount of scaling to apply.
+   * @return An ImageIcon containing the loaded image.
+   */
+  public static ImageIcon loadIcon(Class<?> resourceClass, String resourcePath, float scale) {
+    URL url = resourceClass.getResource(resourcePath);
+    Objects.requireNonNull(url, "Resource " + resourcePath + " not found");
+    return new ImageIcon(url) {
+      @Override
+      public synchronized void paintIcon(final Component c, final Graphics g, final int x, final int y) {
+        Graphics2D g2 = (Graphics2D) g;
+        AffineTransform savedTransform = g2.getTransform();
+        System.out.printf("Scale: %4.2f%n", scale);  // NON-NLS
+        g2.scale(scale, scale);
+        super.paintIcon(c, g2, x, y);
+        g2.setTransform(savedTransform);
+      }
+
+      @Override
+      public int getIconWidth() {
+        return Math.round(scale * super.getIconWidth());
+      }
+
+      @Override
+      public int getIconHeight() {
+        return Math.round(scale * super.getIconHeight());
+      }
+    };
+  }
+
+  /**
+   * <p>Class to return a JPanel with a BorderLayout and chainable methods to add components with the specific
+   * constraints. This class cannot be instantiated directly, but may be instantiated by calling the
+   * {@code loadBorderPanel()} method.</p>
+   * @see #loadBorderPanel() 
+   */
+  public static final class BorderPanel extends JPanel {
+    private BorderPanel() {
+      super(new BorderLayout());
+    }
+    
+    public BorderPanel center(Component centerComponent) {
+      add(centerComponent, BorderLayout.CENTER);
+      return this;
+    }
+    
+    public BorderPanel left(Component leftComponent) {
+      add(leftComponent, BorderLayout.LINE_START);
+      return this;
+    }
+    
+    public BorderPanel right(Component rightComponent) {
+      add(rightComponent, BorderLayout.LINE_END);
+      return this;
+    }
+    
+    public BorderPanel top(Component topComponent) {
+      add(topComponent, BorderLayout.PAGE_START);
+      return this;
+    }
+    
+    public BorderPanel bottom(Component bottomComponent) {
+      add(bottomComponent, BorderLayout.PAGE_END);
+      return this;
+    }
+    
+    public BorderPanel north(Component northComponent) { return top(northComponent); }
+    public BorderPanel south(Component southComponent) { return bottom(southComponent); }
+    public BorderPanel west(Component westComponent) { return left(westComponent); }
+    public BorderPanel east(Component eastComponent) { return right(eastComponent); }
+    public BorderPanel pageStart(Component pageStartComponent) { return top(pageStartComponent); }
+    public BorderPanel pageEnd(Component pageEndComponent) { return bottom(pageEndComponent); }
+    public BorderPanel lineStart(Component lineStartComponent) { return left(lineStartComponent); }
+    public BorderPanel lineEnd(Component lineEndComponent) { return right(lineEndComponent); }
+  }
 }
