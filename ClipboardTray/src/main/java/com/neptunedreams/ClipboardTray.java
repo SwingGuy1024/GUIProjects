@@ -1,6 +1,7 @@
 package com.neptunedreams;
 
 import java.awt.AWTException;
+import java.awt.GridLayout;
 import java.awt.MenuItem;
 import java.awt.PopupMenu;
 import java.awt.SystemTray;
@@ -10,6 +11,7 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.event.ActionListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -33,7 +35,10 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -53,6 +58,10 @@ import org.jetbrains.annotations.Nullable;
  * On a Macintosh, the first time, you should then open <b>System Settings:General:Login Items & Extensions</b> and add it to the list of <b>Open at Login</b>items.</p>
  * <p>I don't remember how to add it to the System Tray on Windows, but it's not hard.</p>
  * 
+ * <p>This was originally written to go on a System Tray, which is supported on Windows and Macintosh. I don't know
+ * if it's supported on Linux, but it's not supported on Chromebook. So on that platform (or any that doesn't 
+ * support the SystemTray) it puts the controls into a Frame with "Always on Top" turned on.</p>
+ *
  * <p>Icon: <a href="https://clipartix.com/hummingbird-clipart/">Hummingbird Clip Art</a></p>
  * <p>Created by IntelliJ IDEA.</p>
  * <p>Date: 9/9/24</p>
@@ -67,46 +76,67 @@ public enum ClipboardTray {
   public static final char TAB = '\t';
 
   public static void main(String[] args) throws AWTException {
-    SystemTray systemTray = SystemTray.getSystemTray();
+    if (SystemTray.isSupported()) {
+      SystemTray systemTray = SystemTray.getSystemTray();
 
-    systemTray.add(getIndentTray());
-    systemTray.add(getTextTray());
+//      systemTray.add(getIndentTray());
+      systemTray.add(getTextTray());
+    } else {
+      JFrame frame = new JFrame();
+      frame.setAlwaysOnTop(true);
+      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+      JPanel mainPanel = new JPanel(new GridLayout(0, 1));
+      FilterOwner filterOwner = new FilterOwner(mainPanel);
+      addFilters(filterOwner);
+      frame.setContentPane(mainPanel);
+      frame.pack();
+      frame.setVisible(true);
+    }
   }
 
   private static TrayIcon getTextTray() {
-    ImageIcon imageIcon = getImageIcon("/hummingbird.png");
+    ImageIcon imageIcon = getImageIcon();
 //    ImageIcon imageIcon = getImageIcon("/hummingbirdIcon8000.png");
     TrayIcon trayIcon = new TrayIcon(imageIcon.getImage(), "Clipboard Tools");
     trayIcon.setImageAutoSize(true);
-    PopupMenu popupMenu = new PopupMenu();
-    trayIcon.setPopupMenu(popupMenu);
+    PopupMenu wrappedPopupMenu = new PopupMenu();
+    FilterOwner filterOwner = new FilterOwner(wrappedPopupMenu);
+    
+    trayIcon.setPopupMenu(wrappedPopupMenu);
+    addFilters(filterOwner);
+    wrappedPopupMenu.addSeparator();
+    wrappedPopupMenu.add(exitItem());
+    return trayIcon;
+  }
+
+  private static void addFilters(FilterOwner popupMenu) {
     addCharFilter(popupMenu, "To Plain Text", c -> c);
     addCharFilter(popupMenu, "To Upper Case", Character::toUpperCase);
     addCharFilter(popupMenu, "To Lower Case", Character::toLowerCase);
     addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
     addStringFilter(popupMenu, "Combine Lines", ClipboardTray::combineLines);
-    addLineFilter(popupMenu, "Indent 2 spaces", t -> prePadLine(t, "  "));   
+    addLineFilter(popupMenu, "Indent 2 spaces", t -> prePadLine(t, "  "));
     addLineFilter(popupMenu, "Indent 4 spaces", t -> prePadLine(t, "    "));
     addLineFilter(popupMenu, "Unordered List <li>", t -> wrapLine(t, "li"));
     addLineFilter(popupMenu, "Paragraph <p>", t -> wrapLine(t, "p"));
     addStringFilter(popupMenu, "Counts", ClipboardTray::stats);
     addStringFilter(popupMenu, "To Table…", ClipboardTray::toTable);
-    popupMenu.addSeparator();
-    popupMenu.add(exitItem());
-    return trayIcon;
-  }
-  
-  private static TrayIcon getIndentTray() {
-    ImageIcon indentIcon = getImageIcon("/IndentIcon.png");
-    PopupMenu popupMenu = new PopupMenu();
-    TrayIcon trayIcon = new TrayIcon(indentIcon.getImage(), "Indent", popupMenu);
-//    addStringFilter(popupMenu, "Indent", ClipboardTray::indentForEmail);
-    addLineFilter(popupMenu, "Indent", ClipboardTray::toEmailLine);
-    return trayIcon;
+    addLineFilter(popupMenu, "Email Indent >", ClipboardTray::toEmailLine);
   }
 
+//  private static TrayIcon getIndentTray() {
+//    ImageIcon indentIcon = getImageIcon("/IndentIcon.png");
+//    PopupMenu popupMenu = new PopupMenu();
+//    TrayIcon trayIcon = new TrayIcon(indentIcon.getImage(), "Indent", popupMenu);
+////    addStringFilter(popupMenu, "Indent", ClipboardTray::indentForEmail);
+//    addLineFilter(popupMenu, "Indent", ClipboardTray::toEmailLine);
+//    return trayIcon;
+//  }
+//
   @NotNull
-  private static ImageIcon getImageIcon(String iconName) {
+  private static ImageIcon getImageIcon() {
+    String iconName = "/hummingbird.png";
     final URL resource = ClipboardTray.class.getResource(iconName);
     return new ImageIcon(Objects.requireNonNull(resource));
   }
@@ -118,8 +148,8 @@ public enum ClipboardTray {
    * @param name The text of the Menu Item
    * @param charFunction A function that transforms each individual character in the input String
    */
-  private static void addCharFilter(PopupMenu popupMenu, String name, IntUnaryOperator charFunction) {
-    MenuItem menuItem = new MenuItem(name);
+  private static void addCharFilter(FilterOwner popupMenu, String name, IntUnaryOperator charFunction) {
+    ActionControl menuItem = popupMenu.newActionControl(name);
     menuItem.addActionListener(e -> processClipboardData(charFunction));
     popupMenu.add(menuItem);
   }
@@ -130,8 +160,8 @@ public enum ClipboardTray {
    * @param name The text of the Menu Item
    * @param stringFunction A function that transforms the entire input text from the clipboard
    */
-  private static void addStringFilter(PopupMenu popupMenu, String name, UnaryOperator<String> stringFunction) {
-    MenuItem menuItem = new MenuItem(name);
+  private static void addStringFilter(FilterOwner popupMenu, String name, UnaryOperator<String> stringFunction) {
+    ActionControl menuItem = popupMenu.newActionControl(name);
     menuItem.addActionListener(e -> processClipboardData(stringFunction));
     popupMenu.add(menuItem);
   }
@@ -142,8 +172,8 @@ public enum ClipboardTray {
    * @param name The text of the Menu Item
    * @param lineFunction A function that transforms a single line of the input text
    */
-  private static void addLineFilter(PopupMenu popupMenu, String name, UnaryOperator<String> lineFunction) {
-    MenuItem menuItem = new MenuItem(name);
+  private static void addLineFilter(FilterOwner popupMenu, String name, UnaryOperator<String> lineFunction) {
+    ActionControl menuItem = popupMenu.newActionControl(name);
 
     Function<String, String> allLinesProcessor = t -> transformLines(t, lineFunction);
     menuItem.addActionListener(e -> processClipboardData(allLinesProcessor));
@@ -348,6 +378,58 @@ public enum ClipboardTray {
   
   @SuppressWarnings("StringConcatenation")
   private static String prePadLine(String lineIn, String pad) { return pad + lineIn; }
+
+  /**
+   * <p>A FilterControl is either a PopupMenu or a JButton, depending on whether a SystemTray is supported
+   * on this platform.</p>
+   */
+  private static class FilterOwner {
+    private final boolean isPopupMenu;
+    private final @Nullable PopupMenu popupMenu;
+    private final @Nullable JPanel panel;
+    FilterOwner(@NotNull PopupMenu popupMenu) {
+      isPopupMenu = true;
+      this.popupMenu = popupMenu;
+      this.panel = null;
+    }
+    
+    FilterOwner(@NotNull JPanel panel) {
+      isPopupMenu = false;
+      this.panel = panel;
+      this.popupMenu = null;
+    }
+    
+    @SuppressWarnings("DataFlowIssue")
+    private void add(ActionControl actionControl) {
+      if (isPopupMenu) {
+        assert popupMenu != null;
+        popupMenu.add((MenuItem) actionControl);
+      } else {
+        assert panel != null;
+        panel.add((JButton) actionControl);
+      }
+    }
+    
+    ActionControl newActionControl(String name) {
+      if (isPopupMenu) {
+        return new CTMenuItem(name);
+      } else {
+        return new CTButton(name);
+      }
+    }
+  }
+  
+  @SuppressWarnings("InterfaceMayBeAnnotatedFunctional")
+  private interface ActionControl {
+    void addActionListener(ActionListener listener);
+  }
+  
+  private static class CTMenuItem extends MenuItem implements ActionControl {
+    CTMenuItem(String name) { super(name); }
+  }
+  private static class CTButton extends JButton implements ActionControl {
+    CTButton(String name) { super(name); }
+  }
 
   /**
    * <p>Immutable Collector to use when using an IntStream or{@literal Stream<Integer>} to filter text. I wrote this
