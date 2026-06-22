@@ -325,7 +325,7 @@ public enum ClipboardTray {
     }
     return builder.toString().trim();
   }
-  
+
   private static @Nullable String stats(String lines) {
     int lineCount = 0;
     final String trim = lines.trim();
@@ -338,7 +338,14 @@ public enum ClipboardTray {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    String message = String.format("Characters: %d\n\nTrimmed:\nCharacters: %d\nLines: %d", lines.length(), trim.length(), lineCount);
+
+    // We don't include $¢%,.() because they're always joined to a word or number. By not including period,
+    // we treat each of these as a single word: $500.00 and google.com.
+    StringTokenizer tokenizer = new StringTokenizer(trim, "\n \t?!");
+    int wordCount = tokenizer.countTokens();
+    String message = String.format(
+        "Characters: %d\n\nTrimmed:\nCharacters: %d\nWords: %d\nLines: %d",
+        lines.length(), trim.length(), wordCount, lineCount);
     JOptionPane.showMessageDialog(null, message);
     return null;
   }
