@@ -115,6 +115,7 @@ public enum ClipboardTray {
     addCharFilter(popupMenu, "To Upper Case", Character::toUpperCase);
     addCharFilter(popupMenu, "To Lower Case", Character::toLowerCase);
     addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
+    addStringFilter(popupMenu, "To Sentence Case", ClipboardTray::toSentenceCase);
     addStringFilter(popupMenu, "Combine Lines", ClipboardTray::combineLines);
     addLineFilter(popupMenu, "Indent 2 spaces", t -> prePadLine(t, "  "));
     addLineFilter(popupMenu, "Indent 4 spaces", t -> prePadLine(t, "    "));
@@ -267,6 +268,28 @@ public enum ClipboardTray {
         builder.append(lowWord.toUpperCase());
       } else {
         appendTitleCaseWord(word, builder);
+      }
+    }
+    return builder.toString();
+  }
+
+  private static String toSentenceCase(String lines) {
+    StringBuilder builder = new StringBuilder();
+    StringTokenizer tokenizer = new StringTokenizer(lines, ".?!", true);
+    while (tokenizer.hasMoreTokens()) {
+      String sentence = tokenizer.nextToken();
+      boolean sentenceStart = true;
+      for (char c : sentence.toCharArray()) {
+        if (Character.isAlphabetic(c)) {
+          if (sentenceStart) {
+            builder.append(Character.toUpperCase(c));
+            sentenceStart = false;
+          } else {
+            builder.append(Character.toLowerCase(c));
+          }
+        } else {
+          builder.append(c);
+        }
       }
     }
     return builder.toString();
@@ -427,6 +450,7 @@ public enum ClipboardTray {
   private static class CTMenuItem extends MenuItem implements ActionControl {
     CTMenuItem(String name) { super(name); }
   }
+
   private static class CTButton extends JButton implements ActionControl {
     CTButton(String name) { super(name); }
   }
