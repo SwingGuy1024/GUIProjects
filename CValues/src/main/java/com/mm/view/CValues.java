@@ -174,7 +174,7 @@ public class CValues //extends JPanel
     myCharView.setEditable(false);
     vPanel.setBottomComponent(topView);
     vPanel.setTopComponent(botView);
-    vPanel.setDividerLocation(160);
+    vPanel.setDividerLocation(170);
     myTextView.getDocument().addDocumentListener(this);
     myTextView.requestFocus();
     myTextView.setLineWrap(true);
@@ -196,39 +196,17 @@ public class CValues //extends JPanel
     {
 	    String doc = evt.getDocument().getText(0, length);
       StringBuilder sb = new StringBuilder();
+      char highSurrogate = '\0';
       for (int ii=0; ii<doc.length(); ++ii)
       {
         char theChar = doc.charAt(ii);
-        if (theChar < 32)
-        {
-          switch (theChar)
-          {
-            case '\r':
-              sb.append("\\r");
-              break;
-            case '\n':
-              sb.append("\\n");
-              break;
-            case '\t':
-              sb.append("\\t");
-              break;
-            default:
-              sb.append(' ');
-              sb.append((char)1); // will show up as a box.
-//              sb.append(" ");
-              break;
-          }
-        }
-        else
-        {
-          sb.append(' ');
-          sb.append(theChar);
-        }
-        sb.append(" = 0x");
-        sb.append(pad4(Integer.toHexString(theChar)));
-        sb.append(" = ");
-        sb.append((int)theChar);
-        sb.append('\n');
+        String charString = charToString(theChar, highSurrogate > 0);
+        final String info = getInfo(theChar, highSurrogate);
+        @SuppressWarnings("UnnecessaryLocalVariable")
+        int intVal = theChar;
+        String charLine = String.format("%s = 0x%04x = %-5d %s%n", charString, intVal, intVal, info); // NON-NLS
+        sb.append(charLine);
+        highSurrogate = Character.isHighSurrogate(theChar)? theChar : '\0';
       }
       myCharView.setText(sb.toString());
     }
@@ -237,6 +215,39 @@ public class CValues //extends JPanel
       ble.printStackTrace();
     }
     showTextLength();
+  }
+
+  private static @NotNull String getInfo(final char theChar, char highSurrogate) {
+    if (highSurrogate > '\0') {
+      return String.format("  %c%c", highSurrogate, theChar);
+    }
+    if (Character.isLetter(theChar)) {
+      return "•  ";
+    }
+    if (Character.isDigit(theChar)) {
+      return " * ";
+    }
+    return   "   ";
+  }
+
+  private static final String badChar = new String(new char[] {' ', (char)1 });
+  private static String charToString(char theChar, boolean isHighSurrogate) {
+    if (theChar < 32) {
+      switch (theChar) {
+        case '\r':
+          return "\\r";
+        case '\n':
+          return "\\n";
+        case '\t':
+          return "\\t";
+        default:
+          return badChar;
+      }
+    }
+    if (isHighSurrogate) {
+      return "  ";
+    }
+    return String.format(" %c", theChar); // will show up as a box.
   }
 
   private void showTextLength() {
@@ -250,15 +261,6 @@ public class CValues //extends JPanel
     }
   }
 
-  private static String pad4(String input)
-  {
-    StringBuilder bf = new StringBuilder(input);
-    while (bf.length() < 4) {
-      bf.insert(0, '0');
-    }
-    return bf.toString();
-  }
-  
   private void setCourier()
   {
     float oldSize = myTextView.getFont().getSize2D();
