@@ -116,6 +116,9 @@ public enum ClipboardTray {
     addCharFilter(popupMenu, "To Lower Case", Character::toLowerCase);
     addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
     addStringFilter(popupMenu, "To Sentence Case", ClipboardTray::toSentenceCase);
+    addStringFilter(popupMenu, "To Bold Surrogates", ClipboardTray::toBoldSurrogates);
+    addStringFilter(popupMenu, "To Italic Surrogates", ClipboardTray::toItalicSurrogates);
+    addStringFilter(popupMenu, "To Bold Italic Surrogates", ClipboardTray::toBoldItalicSurrogates);
     addStringFilter(popupMenu, "Combine Lines", ClipboardTray::combineLines);
     addLineFilter(popupMenu, "Indent 2 spaces", t -> prePadLine(t, "  "));
     addLineFilter(popupMenu, "Indent 4 spaces", t -> prePadLine(t, "    "));
@@ -295,6 +298,67 @@ public enum ClipboardTray {
     return builder.toString();
   }
 
+  // Basic theory of Unicode surrogate: https://www.johndcook.com/blog/2025/03/09/unicode-surrogates/
+  private static final int  BOLD_UPPER_DELTA = 0xddd4 - 'A';
+  private static final int  BOLD_LOWER_DELTA = 0xddf4 - 'g';
+  private static final char HIGH_SURROGATE = 0xd835;
+  private static final int  ITALIC_UPPER_DELTA = 0xde1b - 'T';
+  private static final int  ITALIC_LOWER_DELTA = 0xde22 - 'a'; // 0xde26 - 'e'
+  private static final int  BOLD_ITALIC_UPPER_DELTA = 0xDE3C - 'A';
+  private static final int  BOLD_ITALIC_LOWER_DELTA = 0xde56 - 'a';
+  private static final char NUMERIC_HIGH_SURROGATE = 0xd835;
+  private static final int  NUMERIC_DELTA = 0xdfec - '0';
+
+  private static String toBoldSurrogates(String lines) {
+    return toSurrogates(lines, BOLD_UPPER_DELTA, BOLD_LOWER_DELTA, true);
+  }
+
+  private static String toItalicSurrogates(String lines) {
+    return toSurrogates(lines, ITALIC_UPPER_DELTA, ITALIC_LOWER_DELTA, false);
+  }
+  
+  private static String toBoldItalicSurrogates(String lines) {
+    return toSurrogates(lines, BOLD_ITALIC_UPPER_DELTA, BOLD_ITALIC_LOWER_DELTA, true);
+  }
+
+  private static String toSurrogates(String lines, int upperDelta, int lowerDelta, boolean modifyDigits) {
+    StringBuilder builder = new StringBuilder();
+    for (char c : lines.toCharArray()) {
+      if (isAtoZUpperCase(c)) {
+        char secondChar = (char) (c + upperDelta);
+        builder.append(HIGH_SURROGATE);
+        builder.append(secondChar);
+      } else if (isAtoZLowerCase(c)) {
+        char secondChar = (char) (c + lowerDelta);
+        builder.append(HIGH_SURROGATE);
+        builder.append(secondChar);
+      } else if (isDigit(c) && modifyDigits) {
+        // There are no italic or bold italic digits. 
+        char secondChar = (char) (c + NUMERIC_DELTA);
+        builder.append(NUMERIC_HIGH_SURROGATE);
+        builder.append(secondChar);
+      } else {
+        builder.append(c);
+      }
+    }
+    return builder.toString();
+  }
+  
+  private static boolean isAtoZUpperCase(char c) {
+    //noinspection MagicCharacter
+    return (c >= 'A') && (c <= 'Z');
+  }
+  
+  private static boolean isAtoZLowerCase(char c) {
+    //noinspection MagicCharacter
+    return (c >= 'a') && (c <= 'z');
+  }
+  
+  private static boolean isDigit(char c) {
+    //noinspection MagicCharacter
+    return (c >= '0') && (c <= '9');
+  }
+  
   private static void appendTitleCaseWord(String word, StringBuilder builder) {
     final char firstLetter = word.charAt(0);
     if (Character.isLetter(firstLetter)) {
@@ -580,7 +644,7 @@ public enum ClipboardTray {
      * </pre>
      * <p>instead of this</p>
      * <pre>
-     *  {@literal stream.filter((Predicate<Character>)} Character::isWhitespace).negate() ...
+     *  {@literal stream.filter((Predicate<Character>) Character::isWhitespace)}.negate() ...
      * </pre>
      *
      * @param p A predicate
