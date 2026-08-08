@@ -16,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
+import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -446,11 +447,14 @@ public enum ClipboardTray {
     return toSurrogates(lines, MONOSPACE_UPPER_DELTA, MONOSPACED_NUMERIC_DELTA);
   }
 
-  private static String toSurrogates(String lines, int upperDelta, int numericDelta) {
+  private static String toSurrogates(String text, int upperDelta, int numericDelta) {
+    String lines = Normalizer.normalize(text, Normalizer.Form.NFD);
+      
     @SuppressWarnings("MagicNumber")
     int lowerDelta = (upperDelta + 26) + (A - a); // 26 skips past the 26 upper case letters.
     StringBuilder builder = new StringBuilder();
     for (char c : lines.toCharArray()) {
+      
       if (isAtoZUpperCase(c)) {
         appendSurrogate(c, upperDelta, builder);
       } else if (isAtoZLowerCase(c)) {
