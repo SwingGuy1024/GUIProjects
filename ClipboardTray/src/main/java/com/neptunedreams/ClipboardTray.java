@@ -18,10 +18,12 @@ import java.io.StringReader;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -34,6 +36,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collector;
+import javax.swing.Box;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -75,11 +78,89 @@ public enum ClipboardTray {
   public static final char SPACE = ' ';
   public static final char TAB = '\t';
 
+  @SuppressWarnings("StringConcatenationMissingWhitespace")
+  private static final @NonNls String substitutionSource = 
+      // Generated using Artificial Stupidity. I had fix many mistakes.
+      "U+1D4BAU+212FℯSCRIPT SMALL E" +
+      "U+1D455U+210EℎMATHEMATICAL ITALIC SMALL H" +
+      "U+1D49DU+212CℬSCRIPT CAPITAL B" +
+      "U+1D4A0U+2130ℰSCRIPT CAPITAL E" +
+      "U+1D4A1U+2131ℱSCRIPT CAPITAL F" +
+      "U+1D4A3U+210BℋSCRIPT CAPITAL H" +
+      "U+1D4A4U+2110ℐSCRIPT CAPITAL I" +
+      "U+1D4A7U+2112ℒSCRIPT CAPITAL L" +
+      "U+1D4A8U+2133ℳSCRIPT CAPITAL M" +
+      "U+1D4ADU+211BℛSCRIPT CAPITAL R" +
+      "U+1D4BAU+212F\u212fSCRIPT SMALL E" +
+      "U+1D4BCU+210AℊSCRIPT SMALL G" +
+      "U+1D4C4U+2134ℴSCRIPT SMALL O" +
+      "U+1D506U+212DℭBLACK-LETTER CAPITAL C" +
+      "U+1D50BU+210CℌBLACK-LETTER CAPITAL H" +
+      "U+1D50CU+2111ℑBLACK-LETTER CAPITAL I" +
+      "U+1D515U+211CℜBLACK-LETTER CAPITAL R" +
+      "U+1D51DU+2128ℨBLACK-LETTER CAPITAL Z" +
+      "U+1D53AU+2102ℂDOUBLE-STRUCK CAPITAL C (Complex Numbers)" +
+      "U+1D53FU+210DℍDOUBLE-STRUCK CAPITAL H (Quaternions)" +
+      "U+1D545U+2115ℕDOUBLE-STRUCK CAPITAL N (Natural Numbers)" +
+      "U+1D547U+2119ℙDOUBLE-STRUCK CAPITAL P" +
+      "U+1D548U+211AℚDOUBLE-STRUCK CAPITAL Q (Rational Numbers)" +
+      "U+1D549U+211DℝDOUBLE-STRUCK CAPITAL R (Real Numbers)" +
+      "U+1D551U+2124ℤDOUBLE-STRUCK CAPITAL Z (Integers)"
+      ;
+  
+  /*
+    To Add:
+    1D7CE Bold Digits
+    1D7D8 Double Struck Digits 
+    1D7E2 San Serif Digits
+    1D7EC Sans Serif Bold Digits
+    1D7F6 Monospace Digits
+   */
+  private static final Map<Integer, Character> substitutions = makeSubstitutions();
+  public static final int HEX_RADIX = 16;
+
+  private static Map<Integer, Character> makeSubstitutions() {
+    Map<Integer, Character> subs = new HashMap<>();
+    int where = 0;
+    while (where >= 0) {
+      where += 2;
+      String codePointSource = substitutionSource.substring(where, where + 5);
+      long codePoint = Long.parseLong(codePointSource, HEX_RADIX);
+      int lowSurrogate = toSurrogates(codePoint)[1]; // We don't need the first value, which will always be the same.
+      where += 7;
+      String charSource = substitutionSource.substring(where, where + 4);
+      int character = Integer.parseInt(charSource, HEX_RADIX);
+      char replacement = substitutionSource.charAt(where+4);
+
+      // AS-Generated substitutionSource was wrong at Black-letter capital R, among others. 
+      // (Its character was Script Capital R, but the 4-digit code was correct.)
+      // this assertion triggers whenever the 4-digit describing the replacement character (following the second "U+"
+      // on each line) doesn't match the numeric value of the character that follows.
+      assert character == replacement : 
+          String.format(
+              "Mismatch: (%c) 0x%04x != 0x.%04x (%c) %s",
+              character,
+              character,
+              (int) replacement,
+              replacement, describe(where)
+          );
+      subs.put(lowSurrogate, (char)character);
+      where = substitutionSource.indexOf("U+", where);
+    }
+    return subs;
+  }
+  
+  private static String describe(int where) {
+    int endOfDescription = substitutionSource.indexOf("U+", where);
+    if (endOfDescription == -1) {endOfDescription = substitutionSource.length();}
+    return substitutionSource.substring(where+5, endOfDescription);
+    
+  }
+
   public static void main(String[] args) throws AWTException {
     if (SystemTray.isSupported()) {
       SystemTray systemTray = SystemTray.getSystemTray();
 
-//      systemTray.add(getIndentTray());
       systemTray.add(getTextTray());
     } else {
       JFrame frame = new JFrame();
@@ -110,34 +191,34 @@ public enum ClipboardTray {
     return trayIcon;
   }
 
-  private static void addFilters(FilterOwner popupMenu) {
-    addCharFilter(popupMenu, "To Plain Text", c -> c);
-    addCharFilter(popupMenu, "To Upper Case", Character::toUpperCase);
-    addCharFilter(popupMenu, "To Lower Case", Character::toLowerCase);
-    addStringFilter(popupMenu, "To Title Case", ClipboardTray::toTitleCase);
-    addStringFilter(popupMenu, "To Sentence Case", ClipboardTray::toSentenceCase);
-    addStringFilter(popupMenu, "To Bold Surrogates", ClipboardTray::toBoldSurrogates);
-    addStringFilter(popupMenu, "To Italic Surrogates", ClipboardTray::toItalicSurrogates);
-    addStringFilter(popupMenu, "To Bold Italic Surrogates", ClipboardTray::toBoldItalicSurrogates);
-    addStringFilter(popupMenu, "Combine Lines", ClipboardTray::combineLines);
-    addLineFilter(popupMenu, "Indent 2 spaces", t -> prePadLine(t, "  "));
-    addLineFilter(popupMenu, "Indent 4 spaces", t -> prePadLine(t, "    "));
-    addLineFilter(popupMenu, "Unordered List <li>", t -> wrapLine(t, "li"));
-    addLineFilter(popupMenu, "Paragraph <p>", t -> wrapLine(t, "p"));
-    addStringFilter(popupMenu, "Counts", ClipboardTray::stats);
-    addStringFilter(popupMenu, "To Table…", ClipboardTray::toTable);
-    addLineFilter(popupMenu, "Email Indent >", ClipboardTray::toEmailLine);
+  private static void addFilters(FilterOwner filterOwner) {
+    addCharFilter(filterOwner, "To Plain Text", c -> c);
+    addCharFilter(filterOwner, "To Upper Case", Character::toUpperCase);
+    addCharFilter(filterOwner, "To Lower Case", Character::toLowerCase);
+    addStringFilter(filterOwner, "To Title Case", ClipboardTray::toTitleCase);
+    addStringFilter(filterOwner, "To Sentence Case", ClipboardTray::toSentenceCase);
+    addStringFilter(filterOwner, "Combine Lines", ClipboardTray::combineLines);
+    addLineFilter(filterOwner, "Indent 2 spaces", t -> prePadLine(t, "  "));
+    addLineFilter(filterOwner, "Indent 4 spaces", t -> prePadLine(t, "    "));
+    addLineFilter(filterOwner, "Unordered List <li>", t -> wrapLine(t, "li"));
+    addLineFilter(filterOwner, "Paragraph <p>", t -> wrapLine(t, "p"));
+    addStringFilter(filterOwner, "Counts", ClipboardTray::stats);
+    addStringFilter(filterOwner, "To Table…", ClipboardTray::toTable);
+    addLineFilter(filterOwner, "Email Indent >", ClipboardTray::toEmailLine);
+    filterOwner.addSeparator(); // 𝘚𝘢𝘯𝘴 𝘐𝘵𝘢𝘭𝘪𝘤
+    addStringFilter(filterOwner, "To 𝗦𝗮𝗻𝘀 𝗕𝗼𝗹𝗱 Surrogates", ClipboardTray::toSansBoldSurrogates);
+    addStringFilter(filterOwner, "To 𝘚𝘢𝘯𝘴 𝘐𝘵𝘢𝘭𝘪𝘤 Surrogates", ClipboardTray::toSansItalicSurrogates);
+    addStringFilter(filterOwner, "To 𝙎𝙖𝙣𝙨 𝘽𝙤𝙡𝙙 𝙄𝙩𝙖𝙡𝙞𝙘 Surrogates", ClipboardTray::toSansBoldItalicSurrogates);
+    addStringFilter(filterOwner, "To 𝐒𝐞𝐫𝐢𝐟 𝐁𝐨𝐥𝐝 Surrogates",  ClipboardTray::toSerifBoldSurrogates);
+    addStringFilter(filterOwner, "To 𝑆𝑒𝑟𝑖𝑓 𝐼𝑡𝑎𝑙𝑖𝑐 Surrogates", ClipboardTray::toSerifItalicSurrogates);
+    addStringFilter(filterOwner, "To 𝑺𝒆𝒓𝒊𝒇 𝑩𝒐𝒍𝒅 𝑰𝒕𝒂𝒍𝒊𝒄 Surrogates", ClipboardTray::toSerifBoldItalicSurrogates);
+    addStringFilter(filterOwner, "To 𝒮𝒸𝓇𝒾𝓅𝓉 Surrogates", ClipboardTray::toScriptSurrogates);
+    addStringFilter(filterOwner, "To 𝓑𝓸𝓵𝓭 𝓢𝓬𝓻𝓲𝓹𝓽 Surrogates", ClipboardTray::toScriptBoldSurrogates);
+    addStringFilter(filterOwner, "To 𝔻𝕠𝕦𝕓𝕝𝕖-𝕊𝕥𝕣𝕦𝕔𝕜 Surrogates", ClipboardTray::toDoubleStruckSurrogates);
+    addStringFilter(filterOwner, "To 𝔅𝔩𝔞𝔠𝔨 𝔏𝔢𝔱𝔱𝔢𝔯 Surrogates", ClipboardTray::toBlackLetterSurrogates);
+    addStringFilter(filterOwner, "To 𝙼𝚘𝚗𝚘𝚜𝚙𝚊𝚌𝚎𝚍 Surrogates", ClipboardTray::toMonospaceSurrogates);
   }
 
-//  private static TrayIcon getIndentTray() {
-//    ImageIcon indentIcon = getImageIcon("/IndentIcon.png");
-//    PopupMenu popupMenu = new PopupMenu();
-//    TrayIcon trayIcon = new TrayIcon(indentIcon.getImage(), "Indent", popupMenu);
-////    addStringFilter(popupMenu, "Indent", ClipboardTray::indentForEmail);
-//    addLineFilter(popupMenu, "Indent", ClipboardTray::toEmailLine);
-//    return trayIcon;
-//  }
-//
   @NotNull
   private static ImageIcon getImageIcon() {
     String iconName = "/hummingbird.png";
@@ -153,6 +234,7 @@ public enum ClipboardTray {
    * @param charFunction A function that transforms each individual character in the input String
    */
   private static void addCharFilter(FilterOwner popupMenu, String name, IntUnaryOperator charFunction) {
+    
     ActionControl menuItem = popupMenu.newActionControl(name);
     menuItem.addActionListener(e -> processClipboardData(charFunction));
     popupMenu.add(menuItem);
@@ -299,44 +381,83 @@ public enum ClipboardTray {
   }
 
   // Basic theory of Unicode surrogate: https://www.johndcook.com/blog/2025/03/09/unicode-surrogates/
-  private static final int  BOLD_UPPER_DELTA = 0xddd4 - 'A';
-  private static final int  BOLD_LOWER_DELTA = 0xddf4 - 'g';
+  // Slightly out-of-date code chart: https://www.unicode.org/charts/PDF/U1D400.pdf
   private static final char HIGH_SURROGATE = 0xd835;
-  private static final int  ITALIC_UPPER_DELTA = 0xde1b - 'T';
-  private static final int  ITALIC_LOWER_DELTA = 0xde22 - 'a'; // 0xde26 - 'e'
-  private static final int  BOLD_ITALIC_UPPER_DELTA = 0xDE3C - 'A';
-  private static final int  BOLD_ITALIC_LOWER_DELTA = 0xde56 - 'a';
-  private static final char NUMERIC_HIGH_SURROGATE = 0xd835;
-  private static final int  NUMERIC_DELTA = 0xdfec - '0';
+  public static final char A = 'A';
+  private static final int  BOLD_UPPER_DELTA = toDelta(0x1D5D4);
+  public static final char a = 'a';
+  private static final int  ITALIC_UPPER_DELTA = toDelta(0x1D608);
+  private static final int  BOLD_ITALIC_UPPER_DELTA = toDelta(0x1D63C);
+  private static final int  ITALIC_SERIF_UPPER_DELTA = toDelta(0x1D434);
+  private static final int  BOLD_ITALIC_SERIF_UPPER_DELTA = toDelta(0x1D468);
+  private static final int  BOLD_SERIF_UPPER_DELTA = toDelta(0x1D400);
+  private static final int  BOLD_SCRIPT_UPPER_DELTA = toDelta(0x1D4D0);
+  private static final int  SCRIPT_UPPER_DELTA = toDelta(0x1D49C); 
+  private static final int  BLACK_LETTER_UPPER_DELTA = toDelta(0x1D504);
+  private static final int  MONOSPACE_UPPER_DELTA = toDelta(0x1D670); 
+  private static final int  DOUBLE_STRUCK_UPPER_DELTA = toDelta(0x1D538);
+  private static final int  SERIF_BOLD_NUMERIC_DELTA = 0xDFCE - '0';
+  private static final int  DOUBLE_STRUCK_NUMERIC_DELTA = SERIF_BOLD_NUMERIC_DELTA + 10; // 0xDFD8
+  private static final int  SANS_NUMERIC_DELTA = DOUBLE_STRUCK_NUMERIC_DELTA + 10; // 0xDFE2
+  private static final int  SANS_BOLD_NUMERIC_DELTA = SANS_NUMERIC_DELTA + 10; // 0XDFEC
+  private static final int  MONOSPACED_NUMERIC_DELTA = SANS_BOLD_NUMERIC_DELTA + 10;
 
-  private static String toBoldSurrogates(String lines) {
-    return toSurrogates(lines, BOLD_UPPER_DELTA, BOLD_LOWER_DELTA, true);
+  private static String toSansBoldSurrogates(String lines) {
+    return toSurrogates(lines, BOLD_UPPER_DELTA, SANS_BOLD_NUMERIC_DELTA);
   }
 
-  private static String toItalicSurrogates(String lines) {
-    return toSurrogates(lines, ITALIC_UPPER_DELTA, ITALIC_LOWER_DELTA, false);
+  private static String toSansItalicSurrogates(String lines) {
+    return toSurrogates(lines, ITALIC_UPPER_DELTA, SANS_NUMERIC_DELTA); // There are no italic digits
   }
   
-  private static String toBoldItalicSurrogates(String lines) {
-    return toSurrogates(lines, BOLD_ITALIC_UPPER_DELTA, BOLD_ITALIC_LOWER_DELTA, true);
+  private static String toSansBoldItalicSurrogates(String lines) {
+    return toSurrogates(lines, BOLD_ITALIC_UPPER_DELTA, SANS_BOLD_NUMERIC_DELTA);
+  }
+  
+  private static String toSerifBoldSurrogates(String lines) {
+    return toSurrogates(lines, BOLD_SERIF_UPPER_DELTA, SERIF_BOLD_NUMERIC_DELTA);
   }
 
-  private static String toSurrogates(String lines, int upperDelta, int lowerDelta, boolean modifyDigits) {
+  private static String toSerifItalicSurrogates(String lines) {
+    return toSurrogates(lines, ITALIC_SERIF_UPPER_DELTA, SERIF_BOLD_NUMERIC_DELTA);
+  }
+
+  private static String toSerifBoldItalicSurrogates(String lines) {
+    return toSurrogates(lines, BOLD_ITALIC_SERIF_UPPER_DELTA, SERIF_BOLD_NUMERIC_DELTA);
+  }
+  
+  private static String toScriptSurrogates(String lines) {
+    return toSurrogates(lines, SCRIPT_UPPER_DELTA, SANS_NUMERIC_DELTA);
+  }
+
+  private static String toScriptBoldSurrogates(String lines) {
+    return toSurrogates(lines, BOLD_SCRIPT_UPPER_DELTA, SANS_BOLD_NUMERIC_DELTA);
+  }
+
+  private static String toDoubleStruckSurrogates(String lines) {
+    return toSurrogates(lines, DOUBLE_STRUCK_UPPER_DELTA, DOUBLE_STRUCK_NUMERIC_DELTA);
+  }
+
+  private static String toBlackLetterSurrogates(String lines) {
+    return toSurrogates(lines, BLACK_LETTER_UPPER_DELTA, SANS_NUMERIC_DELTA);
+  }
+  
+  private static String toMonospaceSurrogates(String lines) {
+    return toSurrogates(lines, MONOSPACE_UPPER_DELTA, MONOSPACED_NUMERIC_DELTA);
+  }
+
+  private static String toSurrogates(String lines, int upperDelta, int numericDelta) {
+    @SuppressWarnings("MagicNumber")
+    int lowerDelta = (upperDelta + 26) + (A - a); // 26 skips past the 26 upper case letters.
     StringBuilder builder = new StringBuilder();
     for (char c : lines.toCharArray()) {
       if (isAtoZUpperCase(c)) {
-        char secondChar = (char) (c + upperDelta);
-        builder.append(HIGH_SURROGATE);
-        builder.append(secondChar);
+        appendSurrogate(c, upperDelta, builder);
       } else if (isAtoZLowerCase(c)) {
-        char secondChar = (char) (c + lowerDelta);
-        builder.append(HIGH_SURROGATE);
-        builder.append(secondChar);
-      } else if (isDigit(c) && modifyDigits) {
-        // There are no italic or bold italic digits. 
-        char secondChar = (char) (c + NUMERIC_DELTA);
-        builder.append(NUMERIC_HIGH_SURROGATE);
-        builder.append(secondChar);
+        appendSurrogate(c, lowerDelta, builder);
+      } else if (isDigit(c)) {
+        // There are no italic or bold italic digits.
+        appendSurrogate(c, numericDelta, builder);
       } else {
         builder.append(c);
       }
@@ -344,14 +465,39 @@ public enum ClipboardTray {
     return builder.toString();
   }
   
+  private static void appendSurrogate(char c, int delta, StringBuilder builder) {
+    int secondCharAsInt = (c + delta);
+    char secondChar = (char) secondCharAsInt;
+    if (substitutions.containsKey(secondCharAsInt)) {
+      /*
+        This assertion used to work. Then it stopped working. I have no idea why. The Character.isSurrogatePair()
+        method now returns true for all pairs, even when the code points are undefined. I don't know why because
+        I didn't change the version of Java in the meantime.
+        // This tests if the character we're about it get a substitute for is actually a bad character.
+        // Sometimes the code chart is wrong.
+        assert !Character.isSurrogatePair(HIGH_SURROGATE, secondChar) 
+            : String.format("Bad second character: \\u%04x for %c", secondCharAsInt, c);
+      */
+      builder.append(substitutions.get(secondCharAsInt));
+    } else {
+      builder.append(HIGH_SURROGATE);
+      builder.append(secondChar);
+    }
+  }
+  
+  @SuppressWarnings("MagicNumber")
+  private static int toDelta(int codePoint) {
+    return ((codePoint - 0x10000) + 0x800) - A;
+  }
+  
   private static boolean isAtoZUpperCase(char c) {
     //noinspection MagicCharacter
-    return (c >= 'A') && (c <= 'Z');
+    return (c >= A) && (c <= 'Z');
   }
   
   private static boolean isAtoZLowerCase(char c) {
     //noinspection MagicCharacter
-    return (c >= 'a') && (c <= 'z');
+    return (c >= a) && (c <= 'z');
   }
   
   private static boolean isDigit(char c) {
@@ -473,6 +619,28 @@ public enum ClipboardTray {
   @SuppressWarnings("StringConcatenation")
   private static String prePadLine(String lineIn, String pad) { return pad + lineIn; }
 
+  public static final int LOW_MASK = 0x03FF;
+  public static final int LOW_HEAD = 0xDC00;
+
+  /**
+   * <p>Convert a UTF-16 code point to a pair of surrogate characters, with the high surrogate first. For the
+   * characters currently handled by this tool, the high surrogate will always evaluate to 0xd835, but I may deal
+   * with other characters later as I learn more about them.</p>
+   * @param codePoint The UTF-16 digit to convert
+   * @return A pair of characters, with the high surrogate at [0] and the low surrogate at [1].
+   */
+  @SuppressWarnings({"LocalCanBeFinal", "MagicNumber"})
+  private static int[] toSurrogates(final long codePoint) {
+    int lowTen = (int) (codePoint & LOW_MASK); // Low ten digits
+    int fullLowTen = lowTen | LOW_HEAD;
+
+    // Here, we only capture six bits of the high-ten bits. But the seventh bit is the leading digit in the
+    // five-hexDigit code point 0x1_Dxxx which we need to strip out.
+    int highTen = (int) ((codePoint & 0xFC00) >>> 10);
+    int fullHighTen = highTen | 0xD800;
+    return new int[]{fullHighTen, fullLowTen};
+  }
+
   /**
    * <p>A FilterControl is either a PopupMenu or a JButton, depending on whether a SystemTray is supported
    * on this platform.</p>
@@ -509,6 +677,14 @@ public enum ClipboardTray {
         return new CTMenuItem(name);
       } else {
         return new CTButton(name);
+      }
+    }
+    
+    void addSeparator() {
+      if (popupMenu != null) {
+        popupMenu.addSeparator();
+      } else if (panel != null) {
+        panel.add(Box.createVerticalStrut(8));
       }
     }
   }
@@ -844,3 +1020,12 @@ la
 dj
 """;
 }
+
+
+/*
+Missing Code Points:
+U+1D4BAU+212FℯSCRIPT SMALL EU+1D4BCU+210AℊSCRIPT SMALL GU+1D4C4U+2134ℴSCRIPT SMALL O
+U+1D4A0U+212CℬSCRIPT CAPITAL BU+1D4A1U+2130ℰSCRIPT CAPITAL EU+1D4A3U+2131ℱSCRIPT CAPITAL FU+1D4A4U+210BℋSCRIPT CAPITAL HU+1D4A7U+2110ℐSCRIPT CAPITAL IU+1D4A8U+2112ℒSCRIPT CAPITAL LU+1D4ADU+211BℛSCRIPT CAPITAL R
+U+1D506U+212DℭBLACK-LETTER CAPITAL CU+1D50BU+210CℌBLACK-LETTER CAPITAL HU+1D50CU+2111ℑBLACK-LETTER CAPITAL IU+1D515U+211CℛBLACK-LETTER CAPITAL RU+1D51DU+2128ℨBLACK-LETTER CAPITAL Z
+U+1D53AU+2102ℂDOUBLE-STRUCK CAPITAL C (Complex Numbers)U+1D53EU+210DℍDOUBLE-STRUCK CAPITAL H (Quaternions)U+1D545U+2115ℕDOUBLE-STRUCK CAPITAL N (Natural Numbers)U+1D547U+2119ℙDOUBLE-STRUCK CAPITAL PU+1D548U+211AℚDOUBLE-STRUCK CAPITAL Q (Rational Numbers)U+1D549U+211DℝDOUBLE-STRUCK CAPITAL R (Real Numbers)U+1D551U+2124ℤDOUBLE-STRUCK CAPITAL Z (Integers)
+U+1D556U+2145ⅅDOUBLE-STRUCK ITALIC CAPITAL D (Differential)U+1D558U+2146ⅆDOUBLE-STRUCK ITALIC SMALL D (Differential)U+1D559U+2147ⅇDOUBLE-STRUCK ITALIC SMALL E (Exponential)U+1D55AU+2148ⅈDOUBLE-STRUCK ITALIC SMALL I (Imaginary) */
