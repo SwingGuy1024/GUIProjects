@@ -43,6 +43,8 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -158,7 +160,15 @@ public enum ClipboardTray {
     
   }
 
-  public static void main(String[] args) throws AWTException {
+  public static void main(String[] args)
+      throws
+      AWTException,
+      UnsupportedLookAndFeelException,
+      ClassNotFoundException,
+      InstantiationException,
+      IllegalAccessException
+  {
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
     if (SystemTray.isSupported()) {
       SystemTray systemTray = SystemTray.getSystemTray();
 
@@ -448,7 +458,7 @@ public enum ClipboardTray {
   }
 
   private static String toSurrogates(String text, int upperDelta, int numericDelta) {
-    String lines = Normalizer.normalize(text, Normalizer.Form.NFD);
+    String lines = Normalizer.normalize(text, Normalizer.Form.NFD); // Support for diacritical characters.
       
     @SuppressWarnings("MagicNumber")
     int lowerDelta = (upperDelta + 26) + (A - a); // 26 skips past the 26 upper case letters.
