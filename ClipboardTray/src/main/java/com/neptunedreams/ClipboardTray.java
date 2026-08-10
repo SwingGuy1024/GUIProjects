@@ -165,10 +165,7 @@ public enum ClipboardTray {
   public static void main(String[] args)
       throws
       AWTException,
-      UnsupportedLookAndFeelException,
-      ClassNotFoundException,
-      InstantiationException,
-      IllegalAccessException
+      UnsupportedLookAndFeelException
   {
     if (SystemTray.isSupported()) {
       SystemTray systemTray = SystemTray.getSystemTray();
