@@ -46,6 +46,8 @@ import javax.swing.JPanel;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatLaf;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -168,12 +170,13 @@ public enum ClipboardTray {
       InstantiationException,
       IllegalAccessException
   {
-    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
     if (SystemTray.isSupported()) {
       SystemTray systemTray = SystemTray.getSystemTray();
 
       systemTray.add(getTextTray());
     } else {
+      FlatLaf laf = new FlatDarculaLaf();
+      UIManager.setLookAndFeel(laf);
       JFrame frame = new JFrame();
       frame.setAlwaysOnTop(true);
       frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
